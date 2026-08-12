@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Image as ImageIcon } from "lucide-react";
+import { X, Image as ImageIcon, ChevronDown, Lock } from "lucide-react";
 
 // The Web Share API is also implemented by some desktop browsers now, which
 // makes the "share instead of download" trick misfire on laptops — gate it
@@ -354,4 +354,64 @@ export function TopNav({ active, onSwitch }) {
       </div>
     </header>
   );
+}
+
+// Collapsible section for secondary controls (advanced design tweaks, brand
+// info) that most posts don't need touched every time — keeps the primary
+// flow short without deleting the option to fine-tune anything.
+export function Accordion({ title, subtitle, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="md:col-span-2 rounded border" style={{ borderColor: UI.line, background: UI.card }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
+      >
+        <span>
+          <span className="font-body text-sm font-semibold block" style={{ color: UI.ink }}>{title}</span>
+          {subtitle && <span className="font-body text-xs block mt-0.5" style={{ color: UI.inkSoft }}>{subtitle}</span>}
+        </span>
+        <ChevronDown size={18} style={{ color: UI.inkSoft, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s", flexShrink: 0 }} />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 grid md:grid-cols-2 gap-x-8 gap-y-4 border-t" style={{ borderColor: UI.line }}>
+          <div className="pt-4 md:col-span-2 grid md:grid-cols-2 gap-x-8 gap-y-4">
+            {children}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// A one-line, always-plain-language reassurance — this is a real
+// differentiator (no upload, no server), so it earns a visible badge
+// instead of small print under the download button.
+export function PrivacyBadge() {
+  return (
+    <div className="flex items-center gap-1.5 font-body text-xs" style={{ color: UI.inkSoft }}>
+      <Lock size={12} />
+      Private by design — photos never leave your device
+    </div>
+  );
+}
+
+// "Just SOLD!" -> { lead: "Just", emphasis: "SOLD!" } and back — lets the
+// UI show one plain-language Headline field while the canvas code keeps
+// treating the last word as the differently-styled/colored one.
+export function splitHeadlineLastWord(text) {
+  const parts = (text || "").trim().split(/\s+/);
+  if (parts.length <= 1) return { lead: "", emphasis: parts[0] || "" };
+  const emphasis = parts.pop();
+  return { lead: parts.join(" "), emphasis };
+}
+
+// Same idea but the FIRST word is the styled one — used by layouts (like
+// Modern) whose visual identity leads with the emphasized word.
+export function splitHeadlineFirstWord(text) {
+  const parts = (text || "").trim().split(/\s+/);
+  if (parts.length <= 1) return { emphasis: parts[0] || "", lead: "" };
+  const emphasis = parts.shift();
+  return { emphasis, lead: parts.join(" ") };
 }

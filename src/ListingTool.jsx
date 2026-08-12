@@ -5,15 +5,19 @@ import {
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
   mixWithWhite, drawCover, wrapText, roundRect, archedRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
+  Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord,
 } from "./shared.jsx";
 
+// "What are you posting?" — the event, independent of which visual Style
+// draws it. Applying one fills in every layout's headline representation
+// at once, so switching Style afterward never loses the chosen wording.
 const TEMPLATES = {
-  sold: { word1: "Just", script: "SOLD!", badge: "Another Home\nSold by\nBilly Jo" },
-  just_listed: { word1: "Just", script: "Listed!", badge: "New on the\nMarket with\nBilly Jo" },
-  open_house: { word1: "Open", script: "House!", badge: "See You\nThere with\nBilly Jo" },
-  price_improvement: { word1: "New", script: "Price!", badge: "Priced to\nMove with\nBilly Jo" },
-  under_contract: { word1: "Under", script: "Contract!", badge: "Another One\nUnder Contract" },
-  coming_soon: { word1: "Coming", script: "Soon!", badge: "Coming Soon\nwith\nBilly Jo" },
+  sold: { label: "Just Sold", word1: "Just", script: "SOLD!", badge: "Another Home\nSold by\nBilly Jo" },
+  just_listed: { label: "Just Listed", word1: "Just", script: "Listed!", badge: "New on the\nMarket with\nBilly Jo" },
+  open_house: { label: "Open House", word1: "Open", script: "House!", badge: "See You\nThere with\nBilly Jo" },
+  price_improvement: { label: "New Price", word1: "New", script: "Price!", badge: "Priced to\nMove with\nBilly Jo" },
+  under_contract: { label: "Under Contract", word1: "Under", script: "Contract!", badge: "Another One\nUnder Contract" },
+  coming_soon: { label: "Coming Soon", word1: "Coming", script: "Soon!", badge: "Coming Soon\nwith\nBilly Jo" },
 };
 
 const DEFAULTS = {
@@ -67,7 +71,16 @@ export function ListingTool({ onSwitchTool }) {
 
   const applyTemplate = (key) => {
     const t = TEMPLATES[key];
-    setForm((f) => ({ ...f, template: key, word1: t.word1, script: t.script, badgeText: t.badge }));
+    setForm((f) => ({
+      ...f,
+      template: key,
+      word1: t.word1,
+      script: t.script,
+      badgeText: t.badge,
+      bigHeadline: `${t.word1} ${t.script}`.toUpperCase(),
+      modernScript: t.word1.toLowerCase(),
+      modernHeadline: t.script.replace(/!+$/, ""),
+    }));
   };
 
   const drawBoldLayout = (ctx, w, h) => {
@@ -493,10 +506,8 @@ export function ListingTool({ onSwitchTool }) {
     ctx.textAlign = "left";
   };
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const { w, h } = ASPECTS[form.aspect];
+  const drawToCanvas = (canvas, aspectKey) => {
+    const { w, h } = ASPECTS[aspectKey];
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, w, h);
@@ -505,6 +516,12 @@ export function ListingTool({ onSwitchTool }) {
     else if (form.layout === "collage") drawCollageLayout(ctx, w, h);
     else if (form.layout === "modern") drawModernLayout(ctx, w, h);
     else drawBoldLayout(ctx, w, h);
+  };
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    drawToCanvas(canvas, form.aspect);
   }, [form, photo.img, photo2.img, photo3.img, headshot.img, logo.img]);
 
   useEffect(() => { if (fontsReady) draw(); }, [draw, fontsReady]);
@@ -561,6 +578,35 @@ export function ListingTool({ onSwitchTool }) {
     setDownloading(false);
   };
 
+  const [downloadingAll, setDownloadingAll] = useState(false);
+
+  // Generates every size back-to-back onto an offscreen canvas instead of
+  // making the user pick one size up front — a small stagger between each
+  // download keeps browsers from treating the burst as a popup attack.
+  const downloadAllSizes = async () => {
+    setDownloadingAll(true);
+    setDownloadError("");
+    const safeName = (form.address || "social-post").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    const offscreen = document.createElement("canvas");
+
+    for (const aspectKey of Object.keys(ASPECTS)) {
+      drawToCanvas(offscreen, aspectKey);
+      const blob = await new Promise((resolve, reject) => {
+        offscreen.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = `${safeName}-${form.template}-${aspectKey}.png`;
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    setDownloadingAll(false);
+  };
+
   return (
     <div className="min-h-screen" style={{ background: UI.stone, color: UI.ink }}>
       <TopNav active="listings" onSwitch={onSwitchTool} />
@@ -586,7 +632,7 @@ export function ListingTool({ onSwitchTool }) {
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4 mt-6">
+          <div className="flex flex-col sm:flex-row items-center gap-3 mt-6">
             <button
               onClick={downloadImage}
               disabled={downloading}
@@ -595,9 +641,20 @@ export function ListingTool({ onSwitchTool }) {
             >
               <Download size={16} /> {downloading ? "Preparing..." : "Download image"}
             </button>
-            <p className="font-body text-xs text-center sm:text-left" style={{ color: UI.inkSoft, maxWidth: "22rem" }}>
-              Photos stay on this device — nothing is uploaded anywhere. Add your logo once and it'll be there for every post.
-            </p>
+            <button
+              onClick={downloadAllSizes}
+              disabled={downloadingAll}
+              className="w-full sm:w-auto py-2.5 px-5 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60 border"
+              style={{ borderColor: UI.line, color: UI.ink }}
+            >
+              {downloadingAll ? "Preparing all sizes..." : "Create the whole set"}
+            </button>
+          </div>
+          <p className="font-body text-xs mt-2" style={{ color: UI.inkSoft }}>
+            "Whole set" downloads Feed, Story, FB Landscape, and FB Portrait sizes at once.
+          </p>
+          <div className="mt-3">
+            <PrivacyBadge />
           </div>
           {downloadError && (
             <p className="font-body text-xs mt-2" style={{ color: PINK }}>{downloadError}</p>
@@ -607,18 +664,89 @@ export function ListingTool({ onSwitchTool }) {
         {/* CONTROLS */}
         <div className="grid md:grid-cols-2 gap-x-10 gap-y-5">
           <div className="md:col-span-2">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LAYOUT</span>
+            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>WHAT ARE YOU POSTING?</span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {Object.entries(TEMPLATES).map(([key, t]) => (
+                <button key={key} onClick={() => applyTemplate(key)}
+                  className="text-left p-3 rounded border transition font-body text-xs font-semibold"
+                  style={{ borderColor: form.template === key ? PINK : UI.line, background: form.template === key ? UI.card : "transparent" }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADD THE PROPERTY</span>
+            <div className="grid md:grid-cols-2 gap-3">
+              <UploadBox label="PROPERTY PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add the main photo" />
+              {form.layout !== "modern" && (
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
+                  <input className="input" value={form.address} onChange={update("address")} />
+                </label>
+              )}
+            </div>
+
+            {form.layout !== "bold" && (
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <UploadBox label={form.layout === "collage" ? "PHOTO 2 (top right)" : "PHOTO 2 (strip)"} icon={ImageIcon} state={photo2} hint="Second photo" />
+                <UploadBox label={form.layout === "collage" ? "PHOTO 3 (bottom right)" : "PHOTO 3 (strip)"} icon={ImageIcon} state={photo3} hint="Third photo" />
+              </div>
+            )}
+
+            {form.layout === "editorial" && (
+              <div className="grid grid-cols-4 gap-2 mt-3">
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
+                  <input className="input" value={form.beds} onChange={update("beds")} />
+                </label>
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
+                  <input className="input" value={form.baths} onChange={update("baths")} />
+                </label>
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
+                  <input className="input" value={form.sqft} onChange={update("sqft")} />
+                </label>
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PRICE</span>
+                  <input className="input" value={form.price} onChange={update("price")} />
+                </label>
+              </div>
+            )}
+
+            {form.layout === "modern" && (
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
+                  <input className="input" value={form.beds} onChange={update("beds")} />
+                </label>
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
+                  <input className="input" value={form.baths} onChange={update("baths")} />
+                </label>
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
+                  <input className="input" value={form.sqft} onChange={update("sqft")} />
+                </label>
+              </div>
+            )}
+          </div>
+
+          <div className="md:col-span-2">
+            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PICK A LOOK</span>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button onClick={() => setForm((f) => ({ ...f, layout: "bold" }))}
                 className="text-left p-3 rounded border transition font-body text-xs"
                 style={{ borderColor: form.layout === "bold" ? PINK : UI.line, background: form.layout === "bold" ? UI.card : "transparent" }}>
-                <span className="font-semibold block">Bold Band</span>
-                <span style={{ color: UI.inkSoft }}>Photo + headline overlay + contact strip</span>
+                <span className="font-semibold block">Bold</span>
+                <span style={{ color: UI.inkSoft }}>Photo + headline overlay</span>
               </button>
               <button onClick={() => setForm((f) => ({ ...f, layout: "editorial" }))}
                 className="text-left p-3 rounded border transition font-body text-xs"
                 style={{ borderColor: form.layout === "editorial" ? PINK : UI.line, background: form.layout === "editorial" ? UI.card : "transparent" }}>
-                <span className="font-semibold block">Just Listed</span>
+                <span className="font-semibold block">Editorial</span>
                 <span style={{ color: UI.inkSoft }}>Hero photo, stats row, photo strip</span>
               </button>
               <button onClick={() => setForm((f) => ({ ...f, layout: "collage" }))}
@@ -636,187 +764,123 @@ export function ListingTool({ onSwitchTool }) {
             </div>
           </div>
 
-          <div className="md:col-span-2">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT COLOR</span>
-            <div className="flex items-center gap-2 flex-wrap">
-              {ACCENT_PRESETS.map((c) => (
-                <button key={c} onClick={() => setForm((f) => ({ ...f, accentColor: c }))}
-                  aria-label={c}
-                  className="rounded-full transition"
-                  style={{
-                    width: "1.75rem", height: "1.75rem", background: c,
-                    border: form.accentColor.toLowerCase() === c.toLowerCase() ? `2px solid ${UI.ink}` : "2px solid transparent",
-                    boxShadow: form.accentColor.toLowerCase() === c.toLowerCase() ? `0 0 0 2px ${UI.card}` : "none",
-                  }} />
-              ))}
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input type="color" value={form.accentColor}
-                  onChange={(e) => setForm((f) => ({ ...f, accentColor: e.target.value }))}
-                  style={{ width: "1.75rem", height: "1.75rem", padding: 0, border: `1px solid ${UI.line}`, borderRadius: "0.35rem", background: "none" }} />
-                <span className="font-mono text-xs" style={{ color: UI.inkSoft }}>Custom</span>
-              </label>
-            </div>
-          </div>
-
-          <UploadBox label="PROPERTY PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add the main photo" />
-
-          {form.layout !== "bold" && (
-            <div className="grid grid-cols-2 gap-3">
-              <UploadBox label={form.layout === "collage" ? "PHOTO 2 (top right)" : "PHOTO 2 (strip)"} icon={ImageIcon} state={photo2} hint="Second photo" />
-              <UploadBox label={form.layout === "collage" ? "PHOTO 3 (bottom right)" : "PHOTO 3 (strip)"} icon={ImageIcon} state={photo3} hint="Third photo" />
-            </div>
-          )}
-
-          {form.layout === "bold" && (
-            <div className="grid grid-cols-2 gap-3">
-              <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
-              <UploadBox label="LOGO" icon={Building2} state={logo} hint="Brokerage logo" />
-            </div>
-          )}
-
-          {form.layout === "modern" && (
-            <UploadBox label="HEADSHOT (4th strip photo)" icon={User} state={headshot} hint="Your photo" />
-          )}
-
-          {(form.layout === "editorial" || form.layout === "collage") && (
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
-                {form.layout === "editorial" ? "HEADLINE" : "TOP HEADLINE"}
-              </span>
-              <input className="input" value={form.bigHeadline} onChange={update("bigHeadline")} placeholder={form.layout === "editorial" ? "JUST LISTED" : "FOR SALE"} />
-            </label>
-          )}
-
-          {form.layout === "editorial" && (
-            <div className="grid grid-cols-4 gap-2">
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
-                <input className="input" value={form.beds} onChange={update("beds")} />
-              </label>
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
-                <input className="input" value={form.baths} onChange={update("baths")} />
-              </label>
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
-                <input className="input" value={form.sqft} onChange={update("sqft")} />
-              </label>
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PRICE</span>
-                <input className="input" value={form.price} onChange={update("price")} />
-              </label>
-            </div>
-          )}
-
-          {form.layout === "modern" && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SCRIPT WORD</span>
-                  <input className="input" value={form.modernScript} onChange={update("modernScript")} placeholder="just" />
-                </label>
-                <label className="block">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE WORD</span>
-                  <input className="input" value={form.modernHeadline} onChange={update("modernHeadline")} placeholder="Listed" />
+          <Accordion title="Customize design" subtitle="Colors, wording, banners, badge">
+            <div className="md:col-span-2">
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT COLOR</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                {ACCENT_PRESETS.map((c) => (
+                  <button key={c} onClick={() => setForm((f) => ({ ...f, accentColor: c }))}
+                    aria-label={c}
+                    className="rounded-full transition"
+                    style={{
+                      width: "1.75rem", height: "1.75rem", background: c,
+                      border: form.accentColor.toLowerCase() === c.toLowerCase() ? `2px solid ${UI.ink}` : "2px solid transparent",
+                      boxShadow: form.accentColor.toLowerCase() === c.toLowerCase() ? `0 0 0 2px ${UI.card}` : "none",
+                    }} />
+                ))}
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="color" value={form.accentColor}
+                    onChange={(e) => setForm((f) => ({ ...f, accentColor: e.target.value }))}
+                    style={{ width: "1.75rem", height: "1.75rem", padding: 0, border: `1px solid ${UI.line}`, borderRadius: "0.35rem", background: "none" }} />
+                  <span className="font-mono text-xs" style={{ color: UI.inkSoft }}>Custom</span>
                 </label>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <label className="block">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
-                  <input className="input" value={form.beds} onChange={update("beds")} />
-                </label>
-                <label className="block">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
-                  <input className="input" value={form.baths} onChange={update("baths")} />
-                </label>
-                <label className="block">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
-                  <input className="input" value={form.sqft} onChange={update("sqft")} />
-                </label>
-              </div>
+            </div>
+
+            {form.layout === "bold" && (
+              <label className="block md:col-span-2">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
+                <input className="input" value={`${form.word1} ${form.script}`.trim()}
+                  onChange={(e) => {
+                    const { lead, emphasis } = splitHeadlineLastWord(e.target.value);
+                    setForm((f) => ({ ...f, word1: lead, script: emphasis }));
+                  }} placeholder="Just SOLD!" />
+                <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The last word gets your accent color and script font.</span>
+              </label>
+            )}
+
+            {(form.layout === "editorial" || form.layout === "collage") && (
+              <label className="block md:col-span-2">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
+                <input className="input" value={form.bigHeadline} onChange={update("bigHeadline")} placeholder={form.layout === "editorial" ? "JUST LISTED" : "FOR SALE"} />
+              </label>
+            )}
+
+            {form.layout === "modern" && (
+              <label className="block md:col-span-2">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
+                <input className="input" value={`${form.modernScript} ${form.modernHeadline}`.trim()}
+                  onChange={(e) => {
+                    const { emphasis, lead } = splitHeadlineFirstWord(e.target.value);
+                    setForm((f) => ({ ...f, modernScript: emphasis, modernHeadline: lead }));
+                  }} placeholder="just Listed" />
+                <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The first word gets the cursive script treatment.</span>
+              </label>
+            )}
+
+            {form.layout === "modern" && (
               <label className="block md:col-span-2">
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BOTTOM BAR MESSAGE</span>
                 <input className="input" value={form.bottomMessage} onChange={update("bottomMessage")} placeholder="Message for more details" />
               </label>
-            </>
-          )}
+            )}
 
-          <label className="block">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
-            <input className="input" value={form.address} onChange={update("address")} />
-          </label>
+            {form.layout === "bold" && (
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>TOP BANNER (optional)</span>
+                <input className="input" value={form.banner} onChange={update("banner")} placeholder="$571,000 in 8 days!" />
+              </label>
+            )}
 
-          <div style={{ display: form.layout === "bold" ? "contents" : "none" }}>
-          <div>
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>TEMPLATE</span>
-            <div className="grid grid-cols-3 gap-2">
-              {Object.entries(TEMPLATES).map(([key, t]) => (
-                <button key={key} onClick={() => applyTemplate(key)}
-                  className="text-left p-2 rounded border transition font-body text-xs font-semibold"
-                  style={{ borderColor: form.template === key ? PINK : UI.line, background: form.template === key ? UI.card : "transparent" }}>
-                  {t.word1} {t.script}
-                </button>
-              ))}
-            </div>
-          </div>
+            {form.layout === "bold" && (
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HIGHLIGHT LINE (optional)</span>
+                <input className="input" value={form.highlight} onChange={update("highlight")} placeholder="Highest Sale Price in the Community!" />
+              </label>
+            )}
 
-          <div>
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SIZE</span>
-            <div className="grid grid-cols-4 gap-2">
-              {Object.entries(ASPECTS).map(([key, a]) => (
-                <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
+            {form.layout === "bold" && (
+              <label className="block md:col-span-2">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PERSONAL NOTE</span>
+                <textarea className="input" rows={3} value={form.badgeText} onChange={update("badgeText")} />
+              </label>
+            )}
+
+            <div>
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CONTACT BAND</span>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => setForm((f) => ({ ...f, contactBg: "black" }))}
                   className="p-2 rounded border font-body text-xs font-semibold transition"
-                  style={{ borderColor: form.aspect === key ? PINK : UI.line, background: form.aspect === key ? UI.card : "transparent" }}>
-                  {a.label}
+                  style={{ borderColor: form.contactBg === "black" ? PINK : UI.line, background: form.contactBg === "black" ? UI.card : "transparent" }}>
+                  Black background
                 </button>
-              ))}
+                <button onClick={() => setForm((f) => ({ ...f, contactBg: "white" }))}
+                  className="p-2 rounded border font-body text-xs font-semibold transition"
+                  style={{ borderColor: form.contactBg === "white" ? PINK : UI.line, background: form.contactBg === "white" ? UI.card : "transparent" }}>
+                  White background
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE WORD 1</span>
-              <input className="input" value={form.word1} onChange={update("word1")} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SCRIPT WORD</span>
-              <input className="input" value={form.script} onChange={update("script")} />
-            </label>
-          </div>
-
-          <label className="block">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>TOP BANNER (optional)</span>
-            <input className="input" value={form.banner} onChange={update("banner")} placeholder="$571,000 in 8 days!" />
-          </label>
-
-          <label className="block">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HIGHLIGHT LINE (optional)</span>
-            <input className="input" value={form.highlight} onChange={update("highlight")} placeholder="Highest Sale Price in the Community!" />
-          </label>
-
-          <label className="block">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CORNER BADGE TEXT</span>
-            <textarea className="input" rows={3} value={form.badgeText} onChange={update("badgeText")} />
-          </label>
-
-          <div>
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CONTACT BAND</span>
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setForm((f) => ({ ...f, contactBg: "black" }))}
-                className="p-2 rounded border font-body text-xs font-semibold transition"
-                style={{ borderColor: form.contactBg === "black" ? PINK : UI.line, background: form.contactBg === "black" ? UI.card : "transparent" }}>
-                Black background
-              </button>
-              <button onClick={() => setForm((f) => ({ ...f, contactBg: "white" }))}
-                className="p-2 rounded border font-body text-xs font-semibold transition"
-                style={{ borderColor: form.contactBg === "white" ? PINK : UI.line, background: form.contactBg === "white" ? UI.card : "transparent" }}>
-                White background
-              </button>
+            <div>
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SIZE (for single-image download)</span>
+              <div className="grid grid-cols-4 gap-2">
+                {Object.entries(ASPECTS).map(([key, a]) => (
+                  <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
+                    className="p-2 rounded border font-body text-xs font-semibold transition"
+                    style={{ borderColor: form.aspect === key ? PINK : UI.line, background: form.aspect === key ? UI.card : "transparent" }}>
+                    {a.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          </div>
+          </Accordion>
 
-          <div className="grid grid-cols-2 gap-3 md:col-span-2">
+          <Accordion title="Brand settings" subtitle="Set this up once — it carries to every post">
+            <div className="grid grid-cols-2 gap-3 md:col-span-2">
+              <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
+              <UploadBox label="LOGO" icon={Building2} state={logo} hint="Brokerage logo" />
+            </div>
             <label className="block">
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>AGENT NAME</span>
               <input className="input" value={form.agentName} onChange={update("agentName")} />
@@ -841,7 +905,7 @@ export function ListingTool({ onSwitchTool }) {
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OFFICE PHONE</span>
               <input className="input" value={form.officePhone} onChange={update("officePhone")} />
             </label>
-          </div>
+          </Accordion>
         </div>
       </main>
     </div>
