@@ -415,3 +415,42 @@ export function splitHeadlineFirstWord(text) {
   const emphasis = parts.shift();
   return { emphasis, lead: parts.join(" ") };
 }
+
+// A soft, out-of-focus generic-house scene — used as the empty-state
+// backdrop for layouts that need a full-bleed photo but don't have one
+// yet, so the post still looks intentional before a real photo is added.
+export function drawHouseBackdrop(ctx, w, h) {
+  ctx.save();
+  ctx.filter = `blur(${Math.round(w * 0.022)}px)`;
+
+  const sky = ctx.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, "#E8C9A8");
+  sky.addColorStop(0.55, "#D3958F");
+  sky.addColorStop(1, "#5B3B54");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.fillStyle = "rgba(40,25,35,0.32)";
+  ctx.fillRect(0, h * 0.72, w, h * 0.28);
+
+  const houseW = w * 0.5;
+  const houseX = (w - houseW) / 2;
+  const baseY = h * 0.72;
+  const houseH = h * 0.22;
+  const roofH = h * 0.12;
+
+  ctx.fillStyle = "rgba(30,18,26,0.55)";
+  ctx.fillRect(houseX, baseY - houseH, houseW, houseH);
+  ctx.beginPath();
+  ctx.moveTo(houseX - w * 0.03, baseY - houseH);
+  ctx.lineTo(houseX + houseW / 2, baseY - houseH - roofH);
+  ctx.lineTo(houseX + houseW + w * 0.03, baseY - houseH);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(232,201,168,0.5)";
+  const doorW = houseW * 0.16, doorH = houseH * 0.55;
+  ctx.fillRect(houseX + houseW / 2 - doorW / 2, baseY - doorH, doorW, doorH);
+
+  ctx.restore();
+}
