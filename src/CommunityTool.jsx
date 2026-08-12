@@ -5,6 +5,7 @@ import {
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
   mixWithWhite, drawCover, wrapText, roundRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
+  Accordion, PrivacyBadge, splitHeadlineLastWord,
 } from "./shared.jsx";
 
 function drawStarPath(ctx, cx, cy, r) {
@@ -530,10 +531,8 @@ export function CommunityTool({ onSwitchTool }) {
     drawContactBand(ctx, w, contactY0, contactH, form, headshot, logo);
   };
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const { w, h } = ASPECTS[form.aspect];
+  const drawToCanvas = (canvas, aspectKey) => {
+    const { w, h } = ASPECTS[aspectKey];
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, w, h);
@@ -543,6 +542,12 @@ export function CommunityTool({ onSwitchTool }) {
     else if (form.style === "stats") drawStatsStyle(ctx, w, h);
     else if (form.style === "checklist") drawChecklistStyle(ctx, w, h);
     else drawCardStyle(ctx, w, h);
+  };
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    drawToCanvas(canvas, form.aspect);
   }, [form, photo.img, headshot.img, logo.img]);
 
   useEffect(() => { if (fontsReady) draw(); }, [draw, fontsReady]);
@@ -598,6 +603,32 @@ export function CommunityTool({ onSwitchTool }) {
     setDownloading(false);
   };
 
+  const [downloadingAll, setDownloadingAll] = useState(false);
+
+  const downloadAllSizes = async () => {
+    setDownloadingAll(true);
+    setDownloadError("");
+    const safeName = (form.subject || "community-post").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    const offscreen = document.createElement("canvas");
+
+    for (const aspectKey of Object.keys(ASPECTS)) {
+      drawToCanvas(offscreen, aspectKey);
+      const blob = await new Promise((resolve, reject) => {
+        offscreen.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = `${safeName}-${form.template}-${aspectKey}.png`;
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    setDownloadingAll(false);
+  };
+
   return (
     <div className="min-h-screen" style={{ background: UI.stone, color: UI.ink }}>
       <TopNav active="community" onSwitch={onSwitchTool} />
@@ -622,7 +653,7 @@ export function CommunityTool({ onSwitchTool }) {
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4 mt-6">
+          <div className="flex flex-col sm:flex-row items-center gap-3 mt-6">
             <button
               onClick={downloadImage}
               disabled={downloading}
@@ -631,9 +662,20 @@ export function CommunityTool({ onSwitchTool }) {
             >
               <Download size={16} /> {downloading ? "Preparing..." : "Download image"}
             </button>
-            <p className="font-body text-xs text-center sm:text-left" style={{ color: UI.inkSoft, maxWidth: "22rem" }}>
-              Photos stay on this device — nothing is uploaded anywhere. Add your logo once and it'll be there for every post.
-            </p>
+            <button
+              onClick={downloadAllSizes}
+              disabled={downloadingAll}
+              className="w-full sm:w-auto py-2.5 px-5 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60 border"
+              style={{ borderColor: UI.line, color: UI.ink }}
+            >
+              {downloadingAll ? "Preparing all sizes..." : "Create the whole set"}
+            </button>
+          </div>
+          <p className="font-body text-xs mt-2" style={{ color: UI.inkSoft }}>
+            "Whole set" downloads Feed, Story, FB Landscape, and FB Portrait sizes at once.
+          </p>
+          <div className="mt-3">
+            <PrivacyBadge />
           </div>
           {downloadError && (
             <p className="font-body text-xs mt-2" style={{ color: PINK }}>{downloadError}</p>
@@ -643,7 +685,7 @@ export function CommunityTool({ onSwitchTool }) {
         {/* CONTROLS */}
         <div className="grid md:grid-cols-2 gap-x-10 gap-y-5">
           <div className="md:col-span-2">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>STYLE</span>
+            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>WHAT KIND OF POST?</span>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
               {Object.entries(STYLES).map(([key, s]) => (
                 <button key={key} onClick={() => setForm((f) => ({ ...f, style: key }))}
@@ -658,7 +700,7 @@ export function CommunityTool({ onSwitchTool }) {
 
           {form.style === "card" && (
             <div className="md:col-span-2">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>POST TYPE</span>
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>WHAT ARE YOU POSTING?</span>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {Object.entries(TEMPLATES).map(([key, t]) => (
                   <button key={key} onClick={() => applyTemplate(key)}
@@ -672,36 +714,9 @@ export function CommunityTool({ onSwitchTool }) {
             </div>
           )}
 
-          <div className="md:col-span-2">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT COLOR</span>
-            <div className="flex items-center gap-2 flex-wrap">
-              {ACCENT_PRESETS.map((c) => (
-                <button key={c} onClick={() => setForm((f) => ({ ...f, accentColor: c }))}
-                  aria-label={c}
-                  className="rounded-full transition"
-                  style={{
-                    width: "1.75rem", height: "1.75rem", background: c,
-                    border: form.accentColor.toLowerCase() === c.toLowerCase() ? `2px solid ${UI.ink}` : "2px solid transparent",
-                    boxShadow: form.accentColor.toLowerCase() === c.toLowerCase() ? `0 0 0 2px ${UI.card}` : "none",
-                  }} />
-              ))}
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input type="color" value={form.accentColor}
-                  onChange={(e) => setForm((f) => ({ ...f, accentColor: e.target.value }))}
-                  style={{ width: "1.75rem", height: "1.75rem", padding: 0, border: `1px solid ${UI.line}`, borderRadius: "0.35rem", background: "none" }} />
-                <span className="font-mono text-xs" style={{ color: UI.inkSoft }}>Custom</span>
-              </label>
-            </div>
-          </div>
-
           {form.style !== "testimonial" && (
             <UploadBox label="PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add a photo" />
           )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
-            <UploadBox label="LOGO" icon={Building2} state={logo} hint="Brokerage logo" />
-          </div>
 
           {form.style === "card" && (
             <label className="block">
@@ -711,29 +726,21 @@ export function CommunityTool({ onSwitchTool }) {
           )}
 
           {form.style === "card" && (
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE WORD 1</span>
-                <input className="input" value={form.word1} onChange={update("word1")} />
-              </label>
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SCRIPT WORD</span>
-                <input className="input" value={form.script} onChange={update("script")} />
-              </label>
-            </div>
+            <label className="block md:col-span-2">
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
+              <input className="input" value={`${form.word1} ${form.script}`.trim()}
+                onChange={(e) => {
+                  const { lead, emphasis } = splitHeadlineLastWord(e.target.value);
+                  setForm((f) => ({ ...f, word1: lead, script: emphasis }));
+                }} placeholder="Local Favorite!" />
+              <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The last word gets your accent color and script font.</span>
+            </label>
           )}
 
           {form.style === "card" && (
             <label className="block md:col-span-2">
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>{activeTemplate.bodyLabel}</span>
               <textarea className="input" rows={3} value={form.body} onChange={update("body")} placeholder={activeTemplate.bodyPlaceholder} />
-            </label>
-          )}
-
-          {form.style === "card" && (
-            <label className="block md:col-span-2">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CORNER BADGE TEXT</span>
-              <textarea className="input" rows={3} value={form.badgeText} onChange={update("badgeText")} />
             </label>
           )}
 
@@ -787,38 +794,73 @@ export function CommunityTool({ onSwitchTool }) {
             </>
           )}
 
-          <div className="md:col-span-2">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SIZE</span>
-            <div className="grid grid-cols-4 gap-2">
-              {Object.entries(ASPECTS).map(([key, a]) => (
-                <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
-                  className="p-2 rounded border font-body text-xs font-semibold transition"
-                  style={{ borderColor: form.aspect === key ? PINK : UI.line, background: form.aspect === key ? UI.card : "transparent" }}>
-                  {a.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {form.style === "card" && (
-            <div>
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CONTACT BAND</span>
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => setForm((f) => ({ ...f, contactBg: "black" }))}
-                  className="p-2 rounded border font-body text-xs font-semibold transition"
-                  style={{ borderColor: form.contactBg === "black" ? PINK : UI.line, background: form.contactBg === "black" ? UI.card : "transparent" }}>
-                  Black background
-                </button>
-                <button onClick={() => setForm((f) => ({ ...f, contactBg: "white" }))}
-                  className="p-2 rounded border font-body text-xs font-semibold transition"
-                  style={{ borderColor: form.contactBg === "white" ? PINK : UI.line, background: form.contactBg === "white" ? UI.card : "transparent" }}>
-                  White background
-                </button>
+          <Accordion title="Customize design" subtitle="Accent color, personal note, size, contact band">
+            <div className="md:col-span-2">
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT COLOR</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                {ACCENT_PRESETS.map((c) => (
+                  <button key={c} onClick={() => setForm((f) => ({ ...f, accentColor: c }))}
+                    aria-label={c}
+                    className="rounded-full transition"
+                    style={{
+                      width: "1.75rem", height: "1.75rem", background: c,
+                      border: form.accentColor.toLowerCase() === c.toLowerCase() ? `2px solid ${UI.ink}` : "2px solid transparent",
+                      boxShadow: form.accentColor.toLowerCase() === c.toLowerCase() ? `0 0 0 2px ${UI.card}` : "none",
+                    }} />
+                ))}
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="color" value={form.accentColor}
+                    onChange={(e) => setForm((f) => ({ ...f, accentColor: e.target.value }))}
+                    style={{ width: "1.75rem", height: "1.75rem", padding: 0, border: `1px solid ${UI.line}`, borderRadius: "0.35rem", background: "none" }} />
+                  <span className="font-mono text-xs" style={{ color: UI.inkSoft }}>Custom</span>
+                </label>
               </div>
             </div>
-          )}
 
-          <div className="grid grid-cols-2 gap-3 md:col-span-2">
+            {form.style === "card" && (
+              <label className="block md:col-span-2">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PERSONAL NOTE</span>
+                <textarea className="input" rows={3} value={form.badgeText} onChange={update("badgeText")} />
+              </label>
+            )}
+
+            <div>
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SIZE (for single-image download)</span>
+              <div className="grid grid-cols-4 gap-2">
+                {Object.entries(ASPECTS).map(([key, a]) => (
+                  <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
+                    className="p-2 rounded border font-body text-xs font-semibold transition"
+                    style={{ borderColor: form.aspect === key ? PINK : UI.line, background: form.aspect === key ? UI.card : "transparent" }}>
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {form.style === "card" && (
+              <div>
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CONTACT BAND</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => setForm((f) => ({ ...f, contactBg: "black" }))}
+                    className="p-2 rounded border font-body text-xs font-semibold transition"
+                    style={{ borderColor: form.contactBg === "black" ? PINK : UI.line, background: form.contactBg === "black" ? UI.card : "transparent" }}>
+                    Black background
+                  </button>
+                  <button onClick={() => setForm((f) => ({ ...f, contactBg: "white" }))}
+                    className="p-2 rounded border font-body text-xs font-semibold transition"
+                    style={{ borderColor: form.contactBg === "white" ? PINK : UI.line, background: form.contactBg === "white" ? UI.card : "transparent" }}>
+                    White background
+                  </button>
+                </div>
+              </div>
+            )}
+          </Accordion>
+
+          <Accordion title="Brand settings" subtitle="Set this up once — it carries to every post">
+            <div className="grid grid-cols-2 gap-3 md:col-span-2">
+              <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
+              <UploadBox label="LOGO" icon={Building2} state={logo} hint="Brokerage logo" />
+            </div>
             <label className="block">
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>AGENT NAME</span>
               <input className="input" value={form.agentName} onChange={update("agentName")} />
@@ -843,7 +885,7 @@ export function CommunityTool({ onSwitchTool }) {
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OFFICE PHONE</span>
               <input className="input" value={form.officePhone} onChange={update("officePhone")} />
             </label>
-          </div>
+          </Accordion>
         </div>
       </main>
     </div>
