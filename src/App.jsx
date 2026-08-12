@@ -55,7 +55,7 @@ const DEFAULTS = {
   brokerageCity: "Collegeville",
   officePhone: "(610) 489-5900",
   contactBg: "white",
-  headshotFocusY: 0.38,
+  headshotFocusY: 0.5,
 };
 
 function drawCover(ctx, img, dx, dy, dW, dH, focusX = 0.5, focusY = 0.5) {
@@ -868,19 +868,6 @@ export default function SocialPostCreator() {
               ))}
             </div>
           </div>
-
-          <label className="block md:col-span-2">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
-              HEADSHOT VERTICAL POSITION — nudge until her face is centered in the crop
-            </span>
-            <input
-              type="range" min="0" max="1" step="0.02"
-              value={form.headshotFocusY}
-              onChange={(e) => setForm((f) => ({ ...f, headshotFocusY: parseFloat(e.target.value) }))}
-              className="w-full"
-              style={{ accentColor: PINK }}
-            />
-          </label>
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
