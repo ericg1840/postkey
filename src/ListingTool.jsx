@@ -4,7 +4,7 @@ import {
   UI, PINK, BLACK, WHITE, ASPECTS, ACCENT_PRESETS,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
   mixWithWhite, drawCover, wrapText, roundRect, archedRect,
-  useUploadedImage, useAgentAsset, UploadBox, TopNav,
+  useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
 } from "./shared.jsx";
 
 const TEMPLATES = {
@@ -646,7 +646,7 @@ export function ListingTool({ onSwitchTool }) {
 
       // On phones, the native share sheet is far more reliable than a download link —
       // iOS Safari in particular often just opens the image instead of saving it.
-      if (navigator.canShare) {
+      if (isMobileDevice() && navigator.canShare) {
         const file = new File([blob], filename, { type: "image/png" });
         if (navigator.canShare({ files: [file] })) {
           await navigator.share({ files: [file] });
@@ -709,10 +709,10 @@ export function ListingTool({ onSwitchTool }) {
             <button
               onClick={downloadImage}
               disabled={downloading}
-              className="w-full sm:w-auto flex-1 py-5 px-8 rounded-lg font-body font-bold text-lg flex items-center justify-center gap-3 transition hover:opacity-90 disabled:opacity-60"
+              className="w-full sm:w-auto py-2.5 px-5 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
               style={{ background: BLACK, color: WHITE }}
             >
-              <Download size={22} /> {downloading ? "Preparing..." : "Download image"}
+              <Download size={16} /> {downloading ? "Preparing..." : "Download image"}
             </button>
             <p className="font-body text-xs text-center sm:text-left" style={{ color: UI.inkSoft, maxWidth: "22rem" }}>
               Photos stay on this device — nothing is uploaded anywhere. Add your logo once and it'll be there for every post.
