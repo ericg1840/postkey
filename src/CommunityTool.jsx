@@ -148,7 +148,7 @@ const DEFAULTS = {
   listItems: "Turn on the AC\nOffer cold refreshments\nHighlight outdoor spaces",
   bigNumber: "5",
   quote: "Mariella was a joy to work with when I chose to sell my starter home. Her negotiation skills were amazing and we will definitely work with her in the future!",
-  clientName: "Client Name",
+  clientName: "Mariella Torres",
   rating: 5,
   agentName: "Billy Jo Salkowski, Realtor",
   agentPhone: "(610) 308-5894",
@@ -777,7 +777,7 @@ export function CommunityTool({ onSwitchTool }) {
               </label>
               <label className="block">
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CLIENT NAME</span>
-                <input className="input" value={form.clientName} onChange={update("clientName")} placeholder="Client Name" />
+                <input className="input" value={form.clientName} onChange={update("clientName")} placeholder="Mariella Torres" />
               </label>
               <div className="block">
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>RATING</span>
