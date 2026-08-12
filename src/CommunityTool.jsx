@@ -5,7 +5,7 @@ import {
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
   mixWithWhite, drawCover, wrapText, roundRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
-  Accordion, PrivacyBadge, splitHeadlineLastWord,
+  Accordion, PrivacyBadge, splitHeadlineLastWord, drawHouseBackdrop,
 } from "./shared.jsx";
 
 function drawStarPath(ctx, cx, cy, r) {
@@ -197,7 +197,7 @@ export function CommunityTool({ onSwitchTool }) {
     const contactH = h * 0.145;
 
     if (photo.img) drawCover(ctx, photo.img, 0, 0, w, h);
-    else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(0, 0, w, h); }
+    else drawHouseBackdrop(ctx, w, h);
 
     const bandX = w * 0.08, bandW = w * 0.84;
     const bandY = h * 0.1;
@@ -315,7 +315,7 @@ export function CommunityTool({ onSwitchTool }) {
     const contactH = h * 0.145;
 
     if (photo.img) drawCover(ctx, photo.img, 0, 0, w, h);
-    else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(0, 0, w, h); }
+    else drawHouseBackdrop(ctx, w, h);
     ctx.fillStyle = "rgba(20,14,10,0.45)";
     ctx.fillRect(0, 0, w, h - contactH);
 
@@ -359,7 +359,7 @@ export function CommunityTool({ onSwitchTool }) {
     const contactH = h * 0.145;
 
     if (photo.img) drawCover(ctx, photo.img, 0, 0, w, h);
-    else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(0, 0, w, h); }
+    else drawHouseBackdrop(ctx, w, h);
 
     const cardW = w * 0.8, cardX = (w - cardW) / 2;
     const cardY = h * 0.26;
