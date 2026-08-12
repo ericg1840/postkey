@@ -272,19 +272,34 @@ export default function SocialPostCreator() {
     ctx.fillRect(0, bandY, w, bandH);
     ctx.restore();
 
-    const word1Size = bandH * 0.5;
+    const w1x = w * 0.06;
+    const headlineGap = w * 0.025;
+    const headlineMaxW = w - w1x * 2;
+
+    let word1Size = bandH * 0.5;
+    let scriptSize = bandH * 0.62;
+    ctx.font = `900 ${word1Size}px "Playfair Display", serif`;
+    let w1Width = ctx.measureText(form.word1).width;
+    ctx.font = `400 ${scriptSize}px "Permanent Marker", cursive`;
+    let scriptWidth = ctx.measureText(form.script).width;
+    const headlineTotalW = w1Width + headlineGap + scriptWidth;
+    if (headlineTotalW > headlineMaxW) {
+      const scale = headlineMaxW / headlineTotalW;
+      word1Size *= scale;
+      scriptSize *= scale;
+      ctx.font = `900 ${word1Size}px "Playfair Display", serif`;
+      w1Width = ctx.measureText(form.word1).width;
+    }
+
     ctx.font = `900 ${word1Size}px "Playfair Display", serif`;
     ctx.fillStyle = BLACK;
     ctx.textBaseline = "alphabetic";
-    const w1x = w * 0.06;
     const w1y = bandY + bandH * 0.62;
     ctx.fillText(form.word1, w1x, w1y);
-    const w1Width = ctx.measureText(form.word1).width;
 
-    const scriptSize = bandH * 0.62;
     ctx.font = `400 ${scriptSize}px "Permanent Marker", cursive`;
     ctx.fillStyle = PINK;
-    ctx.fillText(form.script, w1x + w1Width + w * 0.025, bandY + bandH * 0.78);
+    ctx.fillText(form.script, w1x + w1Width + headlineGap, bandY + bandH * 0.78);
 
     // ---- Highlight line (optional, below headline band, still on photo) ----
     if (form.highlight) {
@@ -302,10 +317,16 @@ export default function SocialPostCreator() {
     ctx.fillStyle = WHITE;
     ctx.fillRect(0, photoH, w, addressH);
     ctx.fillStyle = BLACK;
-    const addrSize = addressH * 0.44;
+    let addrSize = addressH * 0.44;
+    const addrText = (form.address || "").toUpperCase();
+    const addrMaxW = w * 0.9;
     ctx.font = `800 ${addrSize}px "Montserrat", sans-serif`;
-    const addrLines = wrapText(ctx, (form.address || "").toUpperCase(), w * 0.9);
-    ctx.fillText(addrLines[0] || "", w * 0.045, photoH + addressH / 2 + addrSize * 0.35);
+    const addrWidth = ctx.measureText(addrText).width;
+    if (addrWidth > addrMaxW) {
+      addrSize *= addrMaxW / addrWidth;
+      ctx.font = `800 ${addrSize}px "Montserrat", sans-serif`;
+    }
+    ctx.fillText(addrText, w * 0.045, photoH + addressH / 2 + addrSize * 0.35);
 
     // ---- Contact band ----
     const contactY0 = photoH + addressH;
