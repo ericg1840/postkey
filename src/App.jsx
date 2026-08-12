@@ -311,7 +311,7 @@ export default function SocialPostCreator() {
     ctx.fillStyle = form.accentColor;
     ctx.fillText(form.script, w1x + w1Width + headlineGap, bandY + bandH * 0.78);
 
-    // ---- Highlight line (optional, below headline band, still on photo) ----
+    // ---- Highlight line (optional, directly above the headline band, still on photo) ----
     if (form.highlight) {
       ctx.save();
       ctx.shadowColor = "rgba(0,0,0,0.55)";
@@ -319,7 +319,7 @@ export default function SocialPostCreator() {
       ctx.font = `italic 700 ${photoH * 0.036}px "Montserrat", sans-serif`;
       ctx.fillStyle = WHITE;
       const lines = wrapText(ctx, form.highlight, w * 0.9);
-      ctx.fillText(lines[0] || "", w * 0.06, bandY + bandH + photoH * 0.06);
+      ctx.fillText(lines[0] || "", w * 0.06, bandY - photoH * 0.025);
       ctx.restore();
     }
 
