@@ -55,8 +55,17 @@ const DEFAULTS = {
   brokerageCity: "Collegeville",
   officePhone: "(610) 489-5900",
   contactBg: "white",
-  headshotFocusY: 0.38,
+  accentColor: "#E0298C",
 };
+
+const ACCENT_PRESETS = ["#E0298C", "#0043FF", "#0F9D58", "#E8792E", "#7B3FE4", "#111111"];
+
+function mixWithWhite(hex, amount) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const mix = (c) => Math.round(c + (255 - c) * amount);
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
 
 function drawCover(ctx, img, dx, dy, dW, dH, focusX = 0.5, focusY = 0.5) {
   const imgRatio = img.width / img.height;
@@ -256,7 +265,7 @@ export default function SocialPostCreator() {
       const bh = photoH * 0.052 + padY * 2;
       const bx = w * 0.045;
       const by = photoH * 0.045;
-      ctx.fillStyle = PINK_PALE;
+      ctx.fillStyle = mixWithWhite(form.accentColor, 0.78);
       roundRect(ctx, bx, by, bw, bh, bh * 0.4);
       ctx.fill();
       ctx.fillStyle = "#2A1030";
@@ -273,21 +282,36 @@ export default function SocialPostCreator() {
     ctx.fillRect(0, bandY, w, bandH);
     ctx.restore();
 
-    const word1Size = bandH * 0.5;
+    const w1x = w * 0.06;
+    const headlineGap = w * 0.025;
+    const headlineMaxW = w - w1x * 2;
+
+    let word1Size = bandH * 0.5;
+    let scriptSize = bandH * 0.62;
+    ctx.font = `900 ${word1Size}px "Playfair Display", serif`;
+    let w1Width = ctx.measureText(form.word1).width;
+    ctx.font = `400 ${scriptSize}px "Permanent Marker", cursive`;
+    let scriptWidth = ctx.measureText(form.script).width;
+    const headlineTotalW = w1Width + headlineGap + scriptWidth;
+    if (headlineTotalW > headlineMaxW) {
+      const scale = headlineMaxW / headlineTotalW;
+      word1Size *= scale;
+      scriptSize *= scale;
+      ctx.font = `900 ${word1Size}px "Playfair Display", serif`;
+      w1Width = ctx.measureText(form.word1).width;
+    }
+
     ctx.font = `900 ${word1Size}px "Playfair Display", serif`;
     ctx.fillStyle = BLACK;
     ctx.textBaseline = "alphabetic";
-    const w1x = w * 0.06;
     const w1y = bandY + bandH * 0.62;
     ctx.fillText(form.word1, w1x, w1y);
-    const w1Width = ctx.measureText(form.word1).width;
 
-    const scriptSize = bandH * 0.62;
     ctx.font = `400 ${scriptSize}px "Permanent Marker", cursive`;
-    ctx.fillStyle = PINK;
-    ctx.fillText(form.script, w1x + w1Width + w * 0.025, bandY + bandH * 0.78);
+    ctx.fillStyle = form.accentColor;
+    ctx.fillText(form.script, w1x + w1Width + headlineGap, bandY + bandH * 0.78);
 
-    // ---- Highlight line (optional, below headline band, still on photo) ----
+    // ---- Highlight line (optional, directly above the headline band, still on photo) ----
     if (form.highlight) {
       ctx.save();
       ctx.shadowColor = "rgba(0,0,0,0.55)";
@@ -295,7 +319,7 @@ export default function SocialPostCreator() {
       ctx.font = `italic 700 ${photoH * 0.036}px "Montserrat", sans-serif`;
       ctx.fillStyle = WHITE;
       const lines = wrapText(ctx, form.highlight, w * 0.9);
-      ctx.fillText(lines[0] || "", w * 0.06, bandY + bandH + photoH * 0.06);
+      ctx.fillText(lines[0] || "", w * 0.06, bandY - photoH * 0.025);
       ctx.restore();
     }
 
@@ -303,10 +327,16 @@ export default function SocialPostCreator() {
     ctx.fillStyle = WHITE;
     ctx.fillRect(0, photoH, w, addressH);
     ctx.fillStyle = BLACK;
-    const addrSize = addressH * 0.44;
+    let addrSize = addressH * 0.44;
+    const addrText = (form.address || "").toUpperCase();
+    const addrMaxW = w * 0.9;
     ctx.font = `800 ${addrSize}px "Montserrat", sans-serif`;
-    const addrLines = wrapText(ctx, (form.address || "").toUpperCase(), w * 0.9);
-    ctx.fillText(addrLines[0] || "", w * 0.045, photoH + addressH / 2 + addrSize * 0.35);
+    const addrWidth = ctx.measureText(addrText).width;
+    if (addrWidth > addrMaxW) {
+      addrSize *= addrMaxW / addrWidth;
+      ctx.font = `800 ${addrSize}px "Montserrat", sans-serif`;
+    }
+    ctx.fillText(addrText, w * 0.045, photoH + addressH / 2 + addrSize * 0.35);
 
     // ---- Contact band ----
     const contactY0 = photoH + addressH;
@@ -326,12 +356,21 @@ export default function SocialPostCreator() {
       ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
       ctx.closePath();
       ctx.clip();
-      drawCover(ctx, headshot.img, headshotX, circleCY - circleD / 2, circleD, circleD, 0.5, form.headshotFocusY);
+      // Zoom into the shorter side so the face fills the circle instead of
+      // showing the full frame (which leaves the face sitting high above
+      // excess shoulder/torso space) — a plain "cover" crop is a no-op
+      // whenever the source image is already square, like the default photo.
+      const img = headshot.img;
+      const shortSide = Math.min(img.width, img.height);
+      const cropSize = shortSide * 0.82;
+      const sx = (img.width - cropSize) / 2;
+      const sy = 0;
+      ctx.drawImage(img, sx, sy, cropSize, cropSize, headshotX, circleCY - circleD / 2, circleD, circleD);
       ctx.restore();
 
       ctx.beginPath();
       ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
-      ctx.strokeStyle = PINK;
+      ctx.strokeStyle = form.accentColor;
       ctx.lineWidth = Math.max(2, w * 0.004);
       ctx.stroke();
     }
@@ -369,7 +408,7 @@ export default function SocialPostCreator() {
     ctx.fillText(form.agentName, textStartX, nameY);
 
     // Short pink underline beneath the name
-    ctx.strokeStyle = PINK;
+    ctx.strokeStyle = form.accentColor;
     ctx.lineWidth = Math.max(2, w * 0.0035);
     ctx.beginPath();
     ctx.moveTo(textStartX, nameY + contactH * 0.075);
@@ -395,10 +434,10 @@ export default function SocialPostCreator() {
       ctx.fillStyle = mutedColor;
       ctx.fillText(sep, textStartX + phoneW, contactY);
       const sepW = ctx.measureText(sep).width;
-      ctx.fillStyle = PINK;
+      ctx.fillStyle = form.accentColor;
       ctx.fillText(form.agentEmail, textStartX + phoneW + sepW, contactY);
     } else if (form.agentPhone || form.agentEmail) {
-      ctx.fillStyle = form.agentPhone ? contactTextColor : PINK;
+      ctx.fillStyle = form.agentPhone ? contactTextColor : form.accentColor;
       fitFont(form.agentPhone || form.agentEmail, 600, contactSize);
       ctx.fillText(form.agentPhone || form.agentEmail, textStartX, contactY);
     }
@@ -444,7 +483,7 @@ export default function SocialPostCreator() {
       ctx.shadowColor = "rgba(0,0,0,0.28)";
       ctx.shadowBlur = w * 0.012;
       ctx.shadowOffsetY = h * 0.004;
-      ctx.fillStyle = PINK;
+      ctx.fillStyle = form.accentColor;
       roundRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeH * 0.14);
       ctx.fill();
       ctx.restore();
@@ -501,7 +540,7 @@ export default function SocialPostCreator() {
     const headlineH = h * 0.1;
     ctx.fillStyle = WHITE;
     ctx.fillRect(0, headlineY0, w, headlineH);
-    ctx.fillStyle = PINK;
+    ctx.fillStyle = form.accentColor;
     ctx.font = `700 ${headlineH * 0.44}px "Playfair Display", serif`;
     ctx.textAlign = "center";
     ctx.fillText(form.bigHeadline.toUpperCase(), w / 2, headlineY0 + headlineH * 0.55);
@@ -524,7 +563,7 @@ export default function SocialPostCreator() {
     ctx.fillStyle = UI.ink;
     ctx.fillText(statsParts, cursorX, statsY0 + statsH * 0.62);
     cursorX += ctx.measureText(statsParts + gapText).width;
-    ctx.fillStyle = PINK;
+    ctx.fillStyle = form.accentColor;
     ctx.fillText(priceText, cursorX, statsY0 + statsH * 0.62);
 
     const footerH = h * 0.075;
@@ -556,7 +595,7 @@ export default function SocialPostCreator() {
     ctx.fillStyle = UI.ink;
     ctx.fillText(form.agentName, w / 2, footerY0 + footerH * 0.32);
     ctx.font = `500 ${footerH * 0.2}px "Montserrat", sans-serif`;
-    ctx.fillStyle = PINK;
+    ctx.fillStyle = form.accentColor;
     const line2 = [form.agentPhone, form.agentEmail].filter(Boolean).join("   •   ");
     ctx.fillText(line2, w / 2, footerY0 + footerH * 0.62);
     ctx.font = `500 ${footerH * 0.18}px "Montserrat", sans-serif`;
@@ -598,7 +637,7 @@ export default function SocialPostCreator() {
       const bh = bubbleFont + padY * 2;
       const bx = pad + w * 0.025;
       const by = collageY0 + h * 0.025;
-      ctx.fillStyle = PINK;
+      ctx.fillStyle = form.accentColor;
       roundRect(ctx, bx, by, bw, bh, bh * 0.5);
       ctx.fill();
       ctx.fillStyle = WHITE;
@@ -618,14 +657,14 @@ export default function SocialPostCreator() {
     const sigY0 = collageY0 + collageH;
     const sigH = h - sigY0;
 
-    ctx.strokeStyle = PINK;
+    ctx.strokeStyle = form.accentColor;
     ctx.lineWidth = Math.max(2, w * 0.003);
     ctx.beginPath();
     ctx.moveTo(w / 2 - w * 0.06, sigY0 + sigH * 0.12);
     ctx.lineTo(w / 2 + w * 0.06, sigY0 + sigH * 0.12);
     ctx.stroke();
 
-    ctx.fillStyle = PINK;
+    ctx.fillStyle = form.accentColor;
     ctx.font = `italic 700 ${sigH * 0.42}px "Playfair Display", serif`;
     ctx.textAlign = "center";
     ctx.fillText(form.agentName.replace(/, Realtor$/i, ""), w / 2, sigY0 + sigH * 0.5);
@@ -791,6 +830,28 @@ export default function SocialPostCreator() {
             </div>
           </div>
 
+          <div className="md:col-span-2">
+            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT COLOR</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              {ACCENT_PRESETS.map((c) => (
+                <button key={c} onClick={() => setForm((f) => ({ ...f, accentColor: c }))}
+                  aria-label={c}
+                  className="rounded-full transition"
+                  style={{
+                    width: "1.75rem", height: "1.75rem", background: c,
+                    border: form.accentColor.toLowerCase() === c.toLowerCase() ? `2px solid ${UI.ink}` : "2px solid transparent",
+                    boxShadow: form.accentColor.toLowerCase() === c.toLowerCase() ? `0 0 0 2px ${UI.card}` : "none",
+                  }} />
+              ))}
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input type="color" value={form.accentColor}
+                  onChange={(e) => setForm((f) => ({ ...f, accentColor: e.target.value }))}
+                  style={{ width: "1.75rem", height: "1.75rem", padding: 0, border: `1px solid ${UI.line}`, borderRadius: "0.35rem", background: "none" }} />
+                <span className="font-mono text-xs" style={{ color: UI.inkSoft }}>Custom</span>
+              </label>
+            </div>
+          </div>
+
           <UploadBox label="PROPERTY PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add the main photo" />
 
           {form.layout !== "bold" && (
@@ -869,19 +930,6 @@ export default function SocialPostCreator() {
             </div>
           </div>
 
-          <label className="block md:col-span-2">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
-              HEADSHOT VERTICAL POSITION — nudge until her face is centered in the crop
-            </span>
-            <input
-              type="range" min="0" max="1" step="0.02"
-              value={form.headshotFocusY}
-              onChange={(e) => setForm((f) => ({ ...f, headshotFocusY: parseFloat(e.target.value) }))}
-              className="w-full"
-              style={{ accentColor: PINK }}
-            />
-          </label>
-
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE WORD 1</span>
@@ -904,7 +952,7 @@ export default function SocialPostCreator() {
           </label>
 
           <label className="block">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PINK BADGE TEXT</span>
+            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CORNER BADGE TEXT</span>
             <textarea className="input" rows={3} value={form.badgeText} onChange={update("badgeText")} />
           </label>
 
