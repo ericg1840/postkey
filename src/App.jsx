@@ -352,9 +352,9 @@ export default function SocialPostCreator() {
       // whenever the source image is already square, like the default photo.
       const img = headshot.img;
       const shortSide = Math.min(img.width, img.height);
-      const cropSize = shortSide * 0.65;
+      const cropSize = shortSide * 0.82;
       const sx = (img.width - cropSize) / 2;
-      const sy = (img.height - cropSize) * 0.12;
+      const sy = 0;
       ctx.drawImage(img, sx, sy, cropSize, cropSize, headshotX, circleCY - circleD / 2, circleD, circleD);
       ctx.restore();
 
