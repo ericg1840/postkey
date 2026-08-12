@@ -4,7 +4,7 @@ import {
   UI, PINK, BLACK, WHITE, ASPECTS, ACCENT_PRESETS,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
   mixWithWhite, drawCover, wrapText, roundRect, archedRect,
-  useUploadedImage, useAgentAsset, UploadBox, TopNav,
+  useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
 } from "./shared.jsx";
 
 const TEMPLATES = {
@@ -31,6 +31,9 @@ const DEFAULTS = {
   sqft: "3,028",
   price: "$2,295,000",
   badgeText: "Another Home\nSold by\nBilly Jo",
+  modernScript: "just",
+  modernHeadline: "Listed",
+  bottomMessage: "Message for more details",
   agentName: "Billy Jo Salkowski, Realtor",
   agentPhone: "(610) 308-5894",
   agentEmail: "billyjosalkowski@gmail.com",
@@ -507,6 +510,108 @@ export function ListingTool({ onSwitchTool }) {
     ctx.textAlign = "left";
   };
 
+  // ---- Modern layout: script + serif headline, stat line, 4-up photo strip (incl. headshot), black message bar ----
+  const drawModernLayout = (ctx, w, h) => {
+    ctx.fillStyle = WHITE;
+    ctx.fillRect(0, 0, w, h);
+
+    // Fixed-height bands from the bottom up; the hero photo takes whatever's left.
+    const headlineH = h * 0.145;
+    const stripGap = h * 0.045;
+    const stripH = h * 0.22;
+    const barH = h * 0.09;
+    const heroH = h - headlineH - stripGap - stripH - barH;
+
+    if (photo.img) drawCover(ctx, photo.img, 0, 0, w, heroH);
+    else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(0, 0, w, heroH); }
+
+    // ---- Headline: cursive "just" + letter-spaced serif "LISTED" ----
+    const headlineY0 = heroH;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+
+    let scriptSize = headlineH * 0.62;
+    let capsSize = headlineH * 0.4;
+    const gap = w * 0.02;
+    const spacedCaps = () => form.modernHeadline.toUpperCase().split("").join(" ");
+
+    ctx.font = `700 ${scriptSize}px "Dancing Script", cursive`;
+    let scriptW = ctx.measureText(form.modernScript).width;
+    ctx.font = `700 ${capsSize}px "Playfair Display", serif`;
+    let capsW = ctx.measureText(spacedCaps()).width;
+    const headlineMaxW = w * 0.86;
+    const headlineTotalW = scriptW + gap + capsW;
+    if (headlineTotalW > headlineMaxW) {
+      const scale = headlineMaxW / headlineTotalW;
+      scriptSize *= scale;
+      capsSize *= scale;
+      ctx.font = `700 ${scriptSize}px "Dancing Script", cursive`;
+      scriptW = ctx.measureText(form.modernScript).width;
+      ctx.font = `700 ${capsSize}px "Playfair Display", serif`;
+      capsW = ctx.measureText(spacedCaps()).width;
+    }
+
+    let hx = w / 2 - (scriptW + gap + capsW) / 2;
+    const hy = headlineY0 + headlineH * 0.64;
+    ctx.font = `700 ${scriptSize}px "Dancing Script", cursive`;
+    ctx.fillStyle = form.accentColor;
+    ctx.fillText(form.modernScript, hx, hy);
+    hx += scriptW + gap;
+    ctx.font = `700 ${capsSize}px "Playfair Display", serif`;
+    ctx.fillStyle = UI.ink;
+    ctx.fillText(spacedCaps(), hx, hy);
+
+    // ---- Stat line ----
+    const statsY = headlineY0 + headlineH * 0.92;
+    const statsSize = h * 0.021;
+    const statsText = [`${form.beds} BED`, `${form.baths} BATH`, `${form.sqft} SQFT`].filter(Boolean).join("   |   ");
+    ctx.font = `600 ${statsSize}px "Montserrat", sans-serif`;
+    ctx.fillStyle = UI.inkSoft;
+    ctx.textAlign = "center";
+    ctx.fillText(statsText, w / 2, statsY);
+    ctx.textAlign = "left";
+
+    // ---- Thin accent divider ----
+    const dividerY = statsY + h * 0.025;
+    ctx.strokeStyle = form.accentColor;
+    ctx.lineWidth = Math.max(1.5, w * 0.0025);
+    ctx.beginPath();
+    ctx.moveTo(w / 2 - w * 0.05, dividerY);
+    ctx.lineTo(w / 2 + w * 0.05, dividerY);
+    ctx.stroke();
+
+    // ---- 4-up photo strip: 3 property photos + headshot, flush, no gaps ----
+    const stripY0 = headlineY0 + headlineH + stripGap;
+    const tileW = w / 4;
+    const tiles = [photo, photo2, photo3];
+    tiles.forEach((p, i) => {
+      const tx = i * tileW;
+      if (p.img) drawCover(ctx, p.img, tx, stripY0, tileW, stripH);
+      else { ctx.fillStyle = "#E5DCD6"; ctx.fillRect(tx, stripY0, tileW, stripH); }
+    });
+    const headshotX = tileW * 3;
+    if (headshot.img) drawCover(ctx, headshot.img, headshotX, stripY0, tileW, stripH);
+    else { ctx.fillStyle = "#E5DCD6"; ctx.fillRect(headshotX, stripY0, tileW, stripH); }
+
+    // ---- Bottom message bar (single line, letter-spaced, shrinks to fit) ----
+    const barY0 = h - barH;
+    ctx.fillStyle = BLACK;
+    ctx.fillRect(0, barY0, w, barH);
+    let msgSize = barH * 0.32;
+    const spacedMsg = form.bottomMessage.toUpperCase().split("").join("\u2009");
+    ctx.font = `600 ${msgSize}px "Montserrat", sans-serif`;
+    let msgW = ctx.measureText(spacedMsg).width;
+    const msgMaxW = w * 0.88;
+    if (msgW > msgMaxW) {
+      msgSize *= msgMaxW / msgW;
+      ctx.font = `600 ${msgSize}px "Montserrat", sans-serif`;
+    }
+    ctx.fillStyle = WHITE;
+    ctx.textAlign = "center";
+    ctx.fillText(spacedMsg, w / 2, barY0 + barH / 2 + msgSize * 0.34);
+    ctx.textAlign = "left";
+  };
+
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -517,6 +622,7 @@ export function ListingTool({ onSwitchTool }) {
 
     if (form.layout === "editorial") drawEditorialLayout(ctx, w, h);
     else if (form.layout === "collage") drawCollageLayout(ctx, w, h);
+    else if (form.layout === "modern") drawModernLayout(ctx, w, h);
     else drawBoldLayout(ctx, w, h);
   }, [form, photo.img, photo2.img, photo3.img, headshot.img, logo.img]);
 
@@ -540,7 +646,7 @@ export function ListingTool({ onSwitchTool }) {
 
       // On phones, the native share sheet is far more reliable than a download link —
       // iOS Safari in particular often just opens the image instead of saving it.
-      if (navigator.canShare) {
+      if (isMobileDevice() && navigator.canShare) {
         const file = new File([blob], filename, { type: "image/png" });
         if (navigator.canShare({ files: [file] })) {
           await navigator.share({ files: [file] });
@@ -603,10 +709,10 @@ export function ListingTool({ onSwitchTool }) {
             <button
               onClick={downloadImage}
               disabled={downloading}
-              className="w-full sm:w-auto flex-1 py-5 px-8 rounded-lg font-body font-bold text-lg flex items-center justify-center gap-3 transition hover:opacity-90 disabled:opacity-60"
+              className="w-full sm:w-auto py-2.5 px-5 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
               style={{ background: BLACK, color: WHITE }}
             >
-              <Download size={22} /> {downloading ? "Preparing..." : "Download image"}
+              <Download size={16} /> {downloading ? "Preparing..." : "Download image"}
             </button>
             <p className="font-body text-xs text-center sm:text-left" style={{ color: UI.inkSoft, maxWidth: "22rem" }}>
               Photos stay on this device — nothing is uploaded anywhere. Add your logo once and it'll be there for every post.
@@ -621,7 +727,7 @@ export function ListingTool({ onSwitchTool }) {
         <div className="grid md:grid-cols-2 gap-x-10 gap-y-5">
           <div className="md:col-span-2">
             <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LAYOUT</span>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button onClick={() => setForm((f) => ({ ...f, layout: "bold" }))}
                 className="text-left p-3 rounded border transition font-body text-xs"
                 style={{ borderColor: form.layout === "bold" ? PINK : UI.line, background: form.layout === "bold" ? UI.card : "transparent" }}>
@@ -639,6 +745,12 @@ export function ListingTool({ onSwitchTool }) {
                 style={{ borderColor: form.layout === "collage" ? PINK : UI.line, background: form.layout === "collage" ? UI.card : "transparent" }}>
                 <span className="font-semibold block">Collage</span>
                 <span style={{ color: UI.inkSoft }}>Offset photos + signature</span>
+              </button>
+              <button onClick={() => setForm((f) => ({ ...f, layout: "modern" }))}
+                className="text-left p-3 rounded border transition font-body text-xs"
+                style={{ borderColor: form.layout === "modern" ? PINK : UI.line, background: form.layout === "modern" ? UI.card : "transparent" }}>
+                <span className="font-semibold block">Modern</span>
+                <span style={{ color: UI.inkSoft }}>Script headline + 4-up photo strip</span>
               </button>
             </div>
           </div>
@@ -681,6 +793,10 @@ export function ListingTool({ onSwitchTool }) {
             </div>
           )}
 
+          {form.layout === "modern" && (
+            <UploadBox label="HEADSHOT (4th strip photo)" icon={User} state={headshot} hint="Your photo" />
+          )}
+
           {(form.layout === "editorial" || form.layout === "collage") && (
             <label className="block">
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
@@ -709,6 +825,39 @@ export function ListingTool({ onSwitchTool }) {
                 <input className="input" value={form.price} onChange={update("price")} />
               </label>
             </div>
+          )}
+
+          {form.layout === "modern" && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SCRIPT WORD</span>
+                  <input className="input" value={form.modernScript} onChange={update("modernScript")} placeholder="just" />
+                </label>
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE WORD</span>
+                  <input className="input" value={form.modernHeadline} onChange={update("modernHeadline")} placeholder="Listed" />
+                </label>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
+                  <input className="input" value={form.beds} onChange={update("beds")} />
+                </label>
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
+                  <input className="input" value={form.baths} onChange={update("baths")} />
+                </label>
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
+                  <input className="input" value={form.sqft} onChange={update("sqft")} />
+                </label>
+              </div>
+              <label className="block md:col-span-2">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BOTTOM BAR MESSAGE</span>
+                <input className="input" value={form.bottomMessage} onChange={update("bottomMessage")} placeholder="Message for more details" />
+              </label>
+            </>
           )}
 
           <label className="block">

@@ -1,6 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Image as ImageIcon } from "lucide-react";
 
+// The Web Share API is also implemented by some desktop browsers now, which
+// makes the "share instead of download" trick misfire on laptops — gate it
+// to actual phones/tablets, where a share sheet is the more reliable path.
+export function isMobileDevice() {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 export const UI = {
   stone: "#F4EAE7",
   card: "#FDF8F5",
