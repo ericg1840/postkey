@@ -50,6 +50,36 @@ const TEMPLATES = {
     bodyLabel: "THE RECIPE",
     bodyPlaceholder: "Toss squash, carrots, and red onion in olive oil, maple syrup, and thyme. Roast at 425° for 30 minutes.",
   },
+  neighborhood: {
+    label: "Neighborhood Guide",
+    word1: "Neighborhood",
+    script: "Guide!",
+    badge: "Your Guide\nto the Area\nfrom Billy Jo",
+    subjectLabel: "NEIGHBORHOOD NAME",
+    subjectPlaceholder: "Chestnut Hill",
+    bodyLabel: "WHAT TO KNOW",
+    bodyPlaceholder: "Walkable downtown, top-rated schools, and a farmers market every Saturday from May through October.",
+  },
+  home_value: {
+    label: "Home Value Tip",
+    word1: "Value",
+    script: "Tip!",
+    badge: "Home Value\nTip from\nBilly Jo",
+    subjectLabel: "TIP TITLE",
+    subjectPlaceholder: "Skip the Full Kitchen Remodel",
+    bodyLabel: "THE TIP",
+    bodyPlaceholder: "A full kitchen remodel rarely returns more than 60% at resale — fresh paint and new hardware often does more per dollar.",
+  },
+  design_trend: {
+    label: "Design Trend",
+    word1: "Design",
+    script: "Trend!",
+    badge: "Trending Now\nfrom\nBilly Jo",
+    subjectLabel: "TREND NAME",
+    subjectPlaceholder: "Warm Minimalism",
+    bodyLabel: "WHY IT'S TRENDING",
+    bodyPlaceholder: "Soft neutrals, natural wood tones, and curved furniture — the “cozy but clean” look buyers keep asking for.",
+  },
 };
 
 const DEFAULTS = {
