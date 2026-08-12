@@ -2,10 +2,10 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Download, Image as ImageIcon, User, Building2 } from "lucide-react";
 import {
   UI, PINK, BLACK, WHITE, ASPECTS, ACCENT_PRESETS,
-  DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
+  DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
   mixWithWhite, drawCover, wrapText, roundRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
-  Accordion, PrivacyBadge, splitHeadlineLastWord, drawHouseBackdrop,
+  Accordion, PrivacyBadge, splitHeadlineLastWord, drawHouseBackdrop, useDefaultImage,
 } from "./shared.jsx";
 
 function drawStarPath(ctx, cx, cy, r) {
@@ -167,6 +167,7 @@ export function CommunityTool({ onSwitchTool }) {
   const photo = useUploadedImage();
   const headshot = useAgentAsset(DEFAULT_HEADSHOT_URL, "Billy Jo headshot");
   const logo = useAgentAsset(DEFAULT_LOGO_URL, "RE/MAX Achievers logo");
+  const houseDefault = useDefaultImage(DEFAULT_HOUSE_URL);
 
   const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
@@ -192,12 +193,27 @@ export function CommunityTool({ onSwitchTool }) {
 
   const activeTemplate = TEMPLATES[form.template];
 
+  // Empty-state backdrop for styles that need a full-bleed photo: the real
+  // house photo (softly blurred, slightly oversized to hide blur-edge
+  // transparency) once it's loaded, or the illustrated placeholder before
+  // that / if it fails to load.
+  const drawEmptyPhotoBackdrop = (ctx, w, h) => {
+    if (houseDefault) {
+      ctx.save();
+      ctx.filter = `blur(${Math.round(w * 0.012)}px)`;
+      drawCover(ctx, houseDefault, -w * 0.03, -h * 0.03, w * 1.06, h * 1.06);
+      ctx.restore();
+    } else {
+      drawHouseBackdrop(ctx, w, h);
+    }
+  };
+
   // ---- Tip List: title band + list, over a full-bleed photo ----
   const drawTipsStyle = (ctx, w, h) => {
     const contactH = h * 0.145;
 
     if (photo.img) drawCover(ctx, photo.img, 0, 0, w, h);
-    else drawHouseBackdrop(ctx, w, h);
+    else drawEmptyPhotoBackdrop(ctx, w, h);
 
     const bandX = w * 0.08, bandW = w * 0.84;
     const bandY = h * 0.1;
@@ -315,7 +331,7 @@ export function CommunityTool({ onSwitchTool }) {
     const contactH = h * 0.145;
 
     if (photo.img) drawCover(ctx, photo.img, 0, 0, w, h);
-    else drawHouseBackdrop(ctx, w, h);
+    else drawEmptyPhotoBackdrop(ctx, w, h);
     ctx.fillStyle = "rgba(20,14,10,0.45)";
     ctx.fillRect(0, 0, w, h - contactH);
 
@@ -359,7 +375,7 @@ export function CommunityTool({ onSwitchTool }) {
     const contactH = h * 0.145;
 
     if (photo.img) drawCover(ctx, photo.img, 0, 0, w, h);
-    else drawHouseBackdrop(ctx, w, h);
+    else drawEmptyPhotoBackdrop(ctx, w, h);
 
     const cardW = w * 0.8, cardX = (w - cardW) / 2;
     const cardY = h * 0.26;
@@ -548,7 +564,7 @@ export function CommunityTool({ onSwitchTool }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     drawToCanvas(canvas, form.aspect);
-  }, [form, photo.img, headshot.img, logo.img]);
+  }, [form, photo.img, headshot.img, logo.img, houseDefault]);
 
   useEffect(() => { if (fontsReady) draw(); }, [draw, fontsReady]);
 
