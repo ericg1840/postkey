@@ -55,7 +55,6 @@ const DEFAULTS = {
   brokerageCity: "Collegeville",
   officePhone: "(610) 489-5900",
   contactBg: "white",
-  headshotFocusY: 0.5,
 };
 
 function drawCover(ctx, img, dx, dy, dW, dH, focusX = 0.5, focusY = 0.5) {
@@ -326,7 +325,16 @@ export default function SocialPostCreator() {
       ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
       ctx.closePath();
       ctx.clip();
-      drawCover(ctx, headshot.img, headshotX, circleCY - circleD / 2, circleD, circleD, 0.5, form.headshotFocusY);
+      // Zoom into the shorter side so the face fills the circle instead of
+      // showing the full frame (which leaves the face sitting high above
+      // excess shoulder/torso space) — a plain "cover" crop is a no-op
+      // whenever the source image is already square, like the default photo.
+      const img = headshot.img;
+      const shortSide = Math.min(img.width, img.height);
+      const cropSize = shortSide * 0.82;
+      const sx = (img.width - cropSize) / 2;
+      const sy = (img.height - cropSize) * 0.32;
+      ctx.drawImage(img, sx, sy, cropSize, cropSize, headshotX, circleCY - circleD / 2, circleD, circleD);
       ctx.restore();
 
       ctx.beginPath();
