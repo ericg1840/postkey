@@ -52,7 +52,7 @@ const DEFAULTS = {
   agentPhone: "(610) 308-5894",
   agentEmail: "billyjosalkowski@gmail.com",
   brokerageName: "RE/MAX Main Line",
-  brokerageCity: "Collegeville",
+  brokerageCity: "Kimberton",
   officePhone: "(610) 489-5900",
   contactBg: "white",
   accentColor: "#E0298C",
