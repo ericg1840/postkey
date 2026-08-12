@@ -86,6 +86,123 @@ export function archedRect(ctx, x, y, w, h) {
   ctx.closePath();
 }
 
+// The brokerage's required contact strip — logo, agent name, phone/email,
+// brokerage/city, office phone, and a headshot circle — drawn identically
+// across every layout and every tool so the brand mark never gets dropped.
+// showHeadshot lets a layout that already features the agent's photo
+// elsewhere (e.g. a testimonial's reviewer photo) skip the redundant circle
+// while still keeping the required logo/name/contact info.
+export function drawContactBand(ctx, w, bandY, bandH, form, headshot, logo, showHeadshot = true) {
+  const isDark = form.contactBg === "black";
+  ctx.fillStyle = isDark ? BLACK : WHITE;
+  ctx.fillRect(0, bandY, w, bandH);
+  const contactTextColor = isDark ? WHITE : BLACK;
+
+  const hasHeadshot = showHeadshot && !!headshot.img;
+  const circleD = hasHeadshot ? bandH * 0.82 : 0;
+  const circleCX = w - w * 0.03 - circleD / 2;
+  const circleCY = bandY + bandH / 2;
+  const headshotX = circleCX - circleD / 2;
+
+  if (hasHeadshot) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    const img = headshot.img;
+    const shortSide = Math.min(img.width, img.height);
+    const cropSize = shortSide * 0.82;
+    const sx = (img.width - cropSize) / 2;
+    ctx.drawImage(img, sx, 0, cropSize, cropSize, headshotX, circleCY - circleD / 2, circleD, circleD);
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
+    ctx.strokeStyle = form.accentColor;
+    ctx.lineWidth = Math.max(2, w * 0.004);
+    ctx.stroke();
+  }
+
+  let textStartX = w * 0.045;
+  if (logo.img) {
+    const logoSize = bandH * 0.6;
+    const logoY = bandY + (bandH - logoSize) / 2;
+    const ratio = logo.img.width / logo.img.height;
+    const logoW = logoSize * ratio;
+    ctx.drawImage(logo.img, textStartX, logoY, logoW, logoSize);
+    textStartX += logoW + w * 0.03;
+  }
+
+  const textMaxW = (hasHeadshot ? headshotX : w) - textStartX - w * 0.03;
+  const mutedColor = isDark ? "rgba(255,255,255,0.6)" : UI.inkSoft;
+
+  const fitFont = (text, weight, baseSize) => {
+    let size = baseSize;
+    ctx.font = `${weight} ${size}px "Montserrat", sans-serif`;
+    const measured = ctx.measureText(text).width;
+    if (measured > textMaxW) {
+      size = size * (textMaxW / measured);
+      ctx.font = `${weight} ${size}px "Montserrat", sans-serif`;
+    }
+    return size;
+  };
+
+  ctx.textAlign = "left";
+
+  const nameSize = fitFont(form.agentName, 800, bandH * 0.175);
+  const nameY = bandY + bandH * 0.32;
+  ctx.fillStyle = contactTextColor;
+  ctx.fillText(form.agentName, textStartX, nameY);
+
+  ctx.strokeStyle = form.accentColor;
+  ctx.lineWidth = Math.max(2, w * 0.0035);
+  ctx.beginPath();
+  ctx.moveTo(textStartX, nameY + bandH * 0.075);
+  ctx.lineTo(textStartX + w * 0.055, nameY + bandH * 0.075);
+  ctx.stroke();
+
+  const contactY = bandY + bandH * 0.55;
+  const contactSize = bandH * 0.11;
+  const sep = "   •   ";
+  if (form.agentPhone && form.agentEmail) {
+    ctx.font = `600 ${contactSize}px "Montserrat", sans-serif`;
+    let full = form.agentPhone + sep + form.agentEmail;
+    let size = contactSize;
+    let measured = ctx.measureText(full).width;
+    if (measured > textMaxW) {
+      size = size * (textMaxW / measured);
+      ctx.font = `600 ${size}px "Montserrat", sans-serif`;
+    }
+    ctx.fillStyle = contactTextColor;
+    ctx.fillText(form.agentPhone, textStartX, contactY);
+    const phoneW = ctx.measureText(form.agentPhone).width;
+    ctx.fillStyle = mutedColor;
+    ctx.fillText(sep, textStartX + phoneW, contactY);
+    const sepW = ctx.measureText(sep).width;
+    ctx.fillStyle = form.accentColor;
+    ctx.fillText(form.agentEmail, textStartX + phoneW + sepW, contactY);
+  } else if (form.agentPhone || form.agentEmail) {
+    ctx.fillStyle = form.agentPhone ? contactTextColor : form.accentColor;
+    fitFont(form.agentPhone || form.agentEmail, 600, contactSize);
+    ctx.fillText(form.agentPhone || form.agentEmail, textStartX, contactY);
+  }
+
+  const brokerLine = [form.brokerageName, form.brokerageCity].filter(Boolean).join("   ·   ");
+  if (brokerLine) {
+    fitFont(brokerLine, 700, bandH * 0.115);
+    ctx.fillStyle = contactTextColor;
+    ctx.fillText(brokerLine, textStartX, bandY + bandH * 0.76);
+  }
+
+  if (form.officePhone) {
+    const officeText = `Office  ${form.officePhone}`;
+    fitFont(officeText, 500, bandH * 0.09);
+    ctx.fillStyle = mutedColor;
+    ctx.fillText(officeText, textStartX, bandY + bandH * 0.9);
+  }
+}
+
 export function useUploadedImage() {
   const [img, setImg] = useState(null);
   const [name, setName] = useState("");
