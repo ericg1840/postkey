@@ -179,7 +179,7 @@ export function UploadBox({ label, icon: Icon, state, hint }) {
 export function GlobalStyles() {
   return (
     <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Permanent+Marker&family=Montserrat:wght@400;600;700;800;900&family=Fraunces:opsz,wght@9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Dancing+Script:wght@700&family=Montserrat:wght@400;600;700;800;900&family=Fraunces:opsz,wght@9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
       .font-display { font-family: 'Fraunces', serif; }
       .font-body { font-family: 'Public Sans', sans-serif; }
       .font-mono { font-family: 'IBM Plex Mono', monospace; }

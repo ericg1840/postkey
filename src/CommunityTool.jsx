@@ -113,7 +113,7 @@ export function CommunityTool({ onSwitchTool }) {
   useEffect(() => {
     Promise.all([
       document.fonts.load('900 60px "Playfair Display"'),
-      document.fonts.load('400 40px "Permanent Marker"'),
+      document.fonts.load('700 40px "Dancing Script"'),
       document.fonts.load('800 30px "Montserrat"'),
       document.fonts.load('600 16px "Public Sans"'),
     ]).catch(() => {}).finally(() => setFontsReady(true));
@@ -174,7 +174,7 @@ export function CommunityTool({ onSwitchTool }) {
     let scriptSize = bandH * 0.62;
     ctx.font = `900 ${word1Size}px "Playfair Display", serif`;
     let w1Width = ctx.measureText(form.word1).width;
-    ctx.font = `400 ${scriptSize}px "Permanent Marker", cursive`;
+    ctx.font = `700 ${scriptSize}px "Dancing Script", cursive`;
     let scriptWidth = ctx.measureText(form.script).width;
     const headlineTotalW = w1Width + headlineGap + scriptWidth;
     if (headlineTotalW > headlineMaxW) {
@@ -191,7 +191,7 @@ export function CommunityTool({ onSwitchTool }) {
     const w1y = bandY + bandH * 0.62;
     ctx.fillText(form.word1, w1x, w1y);
 
-    ctx.font = `400 ${scriptSize}px "Permanent Marker", cursive`;
+    ctx.font = `700 ${scriptSize}px "Dancing Script", cursive`;
     ctx.fillStyle = form.accentColor;
     ctx.fillText(form.script, w1x + w1Width + headlineGap, bandY + bandH * 0.78);
 
@@ -203,7 +203,7 @@ export function CommunityTool({ onSwitchTool }) {
 
       let badgeFont = h * 0.032;
       const measure = (font) => {
-        ctx.font = `400 ${font}px "Permanent Marker", cursive`;
+        ctx.font = `700 ${font}px "Dancing Script", cursive`;
         const maxLineW = Math.max(...badgeLines.map((l) => ctx.measureText(l).width));
         return maxLineW + font * 0.7;
       };
@@ -227,7 +227,7 @@ export function CommunityTool({ onSwitchTool }) {
 
       ctx.fillStyle = WHITE;
       ctx.textAlign = "center";
-      ctx.font = `400 ${badgeFont}px "Permanent Marker", cursive`;
+      ctx.font = `700 ${badgeFont}px "Dancing Script", cursive`;
       badgeLines.forEach((line, i) => ctx.fillText(line, badgeX + badgeW / 2, badgeY + badgeFont * 1.15 * (i + 1)));
       ctx.textAlign = "left";
     }
