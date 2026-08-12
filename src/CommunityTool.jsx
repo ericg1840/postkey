@@ -3,9 +3,52 @@ import { Download, Image as ImageIcon, User, Building2 } from "lucide-react";
 import {
   UI, PINK, BLACK, WHITE, ASPECTS, ACCENT_PRESETS,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
-  mixWithWhite, drawCover, wrapText, roundRect,
+  mixWithWhite, drawCover, wrapText, roundRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
 } from "./shared.jsx";
+
+function drawStarPath(ctx, cx, cy, r) {
+  const spikes = 5;
+  const step = Math.PI / spikes;
+  let rot = -Math.PI / 2;
+  ctx.beginPath();
+  for (let i = 0; i < spikes; i++) {
+    ctx.lineTo(cx + Math.cos(rot) * r, cy + Math.sin(rot) * r);
+    rot += step;
+    ctx.lineTo(cx + Math.cos(rot) * (r * 0.42), cy + Math.sin(rot) * (r * 0.42));
+    rot += step;
+  }
+  ctx.closePath();
+}
+
+function drawCheckIcon(ctx, cx, cy, r, color) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = WHITE;
+  ctx.lineWidth = Math.max(1.5, r * 0.18);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.45, cy + r * 0.05);
+  ctx.lineTo(cx - r * 0.12, cy + r * 0.38);
+  ctx.lineTo(cx + r * 0.48, cy - r * 0.32);
+  ctx.stroke();
+}
+
+function drawHouseIcon(ctx, x, y, size, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(1.5, size * 0.09);
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x + size * 0.08, y + size * 0.5);
+  ctx.lineTo(x + size * 0.5, y + size * 0.08);
+  ctx.lineTo(x + size * 0.92, y + size * 0.5);
+  ctx.stroke();
+  ctx.strokeRect(x + size * 0.2, y + size * 0.5, size * 0.6, size * 0.42);
+}
 
 // Four kinds of community goodwill posts — each just changes the headline,
 // script word, corner badge, and the placeholder copy in the body field.
@@ -82,14 +125,30 @@ const TEMPLATES = {
   },
 };
 
+// Visual structures a post can take — independent of TEMPLATES above, which
+// only supplies headline copy for the "card" style.
+const STYLES = {
+  card: { label: "Classic Card", description: "Photo, headline band, description" },
+  tips: { label: "Tip List", description: "Title band + list over a photo" },
+  testimonial: { label: "Testimonial", description: "Star rating + client quote" },
+  stats: { label: "Big Number List", description: "Big numeral + icon list" },
+  checklist: { label: "Checklist", description: "Headline card + checkmarks" },
+};
+
 const DEFAULTS = {
   template: "spotlight",
+  style: "card",
   aspect: "square",
   word1: "Local",
   script: "Favorite!",
   badgeText: "Shared with\nlove by\nBilly Jo",
   subject: "The Kettle & Vine",
   body: "Best cortado in Warminster, and they remember your order. Tell them Billy Jo sent you!",
+  listItems: "Turn on the AC\nOffer cold refreshments\nHighlight outdoor spaces",
+  bigNumber: "5",
+  quote: "Mariella was a joy to work with when I chose to sell my starter home. Her negotiation skills were amazing and we will definitely work with her in the future!",
+  clientName: "Client Name",
+  rating: 5,
   agentName: "Billy Jo Salkowski, Realtor",
   agentPhone: "(610) 308-5894",
   agentEmail: "billyjosalkowski@gmail.com",
@@ -132,14 +191,218 @@ export function CommunityTool({ onSwitchTool }) {
 
   const activeTemplate = TEMPLATES[form.template];
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const { w, h } = ASPECTS[form.aspect];
-    canvas.width = w; canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, w, h);
+  // ---- Tip List: title band + list, over a full-bleed photo ----
+  const drawTipsStyle = (ctx, w, h) => {
+    const contactH = h * 0.145;
 
+    if (photo.img) drawCover(ctx, photo.img, 0, 0, w, h);
+    else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(0, 0, w, h); }
+
+    const bandX = w * 0.08, bandW = w * 0.84;
+    const bandY = h * 0.1;
+    const titleSize = h * 0.034;
+    ctx.font = `700 ${titleSize}px "Montserrat", sans-serif`;
+    ctx.textAlign = "center";
+    const titleLines = wrapText(ctx, (form.subject || "").toUpperCase(), bandW * 0.82);
+    const titleLineH = titleSize * 1.5;
+    const bandH = titleLineH * titleLines.length + h * 0.05;
+
+    ctx.fillStyle = form.accentColor;
+    ctx.fillRect(bandX, bandY, bandW, bandH);
+    ctx.fillStyle = WHITE;
+    const titleStartY = bandY + (bandH - titleLineH * titleLines.length) / 2 + titleSize * 0.85;
+    titleLines.forEach((line, i) => ctx.fillText(line, w / 2, titleStartY + i * titleLineH));
+
+    const cardY = bandY + bandH;
+    const items = (form.listItems || "").split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 8);
+    const itemSize = h * 0.026;
+    const itemGap = h * 0.075;
+    const cardPadY = h * 0.045;
+    const cardMaxH = h - contactH - h * 0.03 - cardY;
+    const cardH = Math.min(cardMaxH, Math.max(h * 0.24, cardPadY * 2 + items.length * itemGap));
+    ctx.fillStyle = WHITE;
+    ctx.fillRect(bandX, cardY, bandW, cardH);
+
+    ctx.font = `600 ${itemSize}px "Montserrat", sans-serif`;
+    ctx.fillStyle = UI.ink;
+    let cy = cardY + cardPadY + itemSize * 0.5;
+    items.forEach((item) => {
+      const lines = wrapText(ctx, item.toUpperCase(), bandW * 0.8);
+      lines.forEach((line, li) => ctx.fillText(line, w / 2, cy + li * itemSize * 1.35));
+      cy += Math.max(itemGap, lines.length * itemSize * 1.35 + h * 0.02);
+    });
+    ctx.textAlign = "left";
+
+    drawContactBand(ctx, w, h - contactH, contactH, form, headshot, logo);
+  };
+
+  // ---- Testimonial: tinted quadrant background, headshot, stars, quote, signature ----
+  const drawTestimonialStyle = (ctx, w, h) => {
+    const tints = [0.3, 0.5, 0.15, 0.4];
+    const qw = w / 2, qh = h / 2;
+    [[0, 0], [qw, 0], [0, qh], [qw, qh]].forEach(([x, y], i) => {
+      ctx.fillStyle = mixWithWhite(form.accentColor, tints[i]);
+      ctx.fillRect(x, y, qw, qh);
+    });
+
+    const contactH = h * 0.145;
+    const cardW = w * 0.74, cardH = h * 0.54;
+    const cardX = (w - cardW) / 2, cardY = h * 0.16;
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.18)";
+    ctx.shadowBlur = w * 0.02;
+    ctx.fillStyle = WHITE;
+    roundRect(ctx, cardX, cardY, cardW, cardH, w * 0.012);
+    ctx.fill();
+    ctx.restore();
+
+    const circleD = w * 0.19;
+    const circleCX = w / 2, circleCY = cardY;
+    ctx.beginPath();
+    ctx.arc(circleCX, circleCY, circleD / 2 + w * 0.012, 0, Math.PI * 2);
+    ctx.fillStyle = WHITE;
+    ctx.fill();
+    if (headshot.img) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      const img = headshot.img;
+      const shortSide = Math.min(img.width, img.height);
+      const cropSize = shortSide * 0.82;
+      const sx = (img.width - cropSize) / 2;
+      ctx.drawImage(img, sx, 0, cropSize, cropSize, circleCX - circleD / 2, circleCY - circleD / 2, circleD, circleD);
+      ctx.restore();
+    }
+
+    const starR = w * 0.02;
+    const starGap = starR * 2.6;
+    const rating = Math.max(0, Math.min(5, parseInt(form.rating, 10) || 0));
+    let starX = w / 2 - (starGap * 4) / 2;
+    const starY = cardY + circleD * 0.62 + h * 0.05;
+    for (let i = 0; i < 5; i++) {
+      drawStarPath(ctx, starX, starY, starR);
+      ctx.fillStyle = i < rating ? form.accentColor : mixWithWhite(form.accentColor, 0.75);
+      ctx.fill();
+      starX += starGap;
+    }
+
+    const quoteSize = w * 0.03;
+    ctx.font = `italic 500 ${quoteSize}px "Playfair Display", serif`;
+    ctx.fillStyle = UI.ink;
+    ctx.textAlign = "center";
+    const quoteLines = wrapText(ctx, `"${form.quote}"`, cardW * 0.82).slice(0, 6);
+    const quoteLineH = quoteSize * 1.42;
+    const qy = starY + h * 0.075;
+    quoteLines.forEach((line, i) => ctx.fillText(line, w / 2, qy + i * quoteLineH));
+
+    const sigY = qy + quoteLines.length * quoteLineH + h * 0.05;
+    ctx.font = `700 ${w * 0.045}px "Dancing Script", cursive`;
+    ctx.fillStyle = form.accentColor;
+    ctx.fillText(form.clientName, w / 2, sigY);
+
+    ctx.textAlign = "left";
+
+    // The reviewer's photo is already shown above, so skip the headshot
+    // circle here to avoid showing the same photo twice.
+    drawContactBand(ctx, w, h - contactH, contactH, form, headshot, logo, false);
+  };
+
+  // ---- Big Number List: dark-tinted photo, giant numeral, headline, icon list ----
+  const drawStatsStyle = (ctx, w, h) => {
+    const contactH = h * 0.145;
+
+    if (photo.img) drawCover(ctx, photo.img, 0, 0, w, h);
+    else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(0, 0, w, h); }
+    ctx.fillStyle = "rgba(20,14,10,0.45)";
+    ctx.fillRect(0, 0, w, h - contactH);
+
+    const numSize = h * 0.3;
+    ctx.font = `900 ${numSize}px "Playfair Display", serif`;
+    ctx.fillStyle = WHITE;
+    ctx.textAlign = "left";
+    const numX = w * 0.07;
+    const numY = h * 0.4;
+    ctx.fillText(form.bigNumber, numX, numY);
+    const numW = ctx.measureText(form.bigNumber).width;
+
+    const headX = numX + numW + w * 0.04;
+    const headSize = h * 0.032;
+    ctx.font = `700 ${headSize}px "Montserrat", sans-serif`;
+    const headLines = wrapText(ctx, (form.subject || "").toUpperCase(), w - headX - w * 0.06);
+    const headLineH = headSize * 1.3;
+    headLines.forEach((line, i) => ctx.fillText(line, headX, h * 0.16 + i * headLineH));
+
+    const items = (form.listItems || "").split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 7);
+    const itemSize = h * 0.021;
+    const itemGap = h * 0.05;
+    const iconSize = h * 0.026;
+    const itemMaxY = h - contactH - h * 0.04;
+    let itemY = h * 0.16 + headLines.length * headLineH + h * 0.05;
+    items.forEach((item) => {
+      if (itemY > itemMaxY) return;
+      drawHouseIcon(ctx, headX, itemY - iconSize * 0.75, iconSize, form.accentColor);
+      ctx.font = `600 ${itemSize}px "Montserrat", sans-serif`;
+      ctx.fillStyle = WHITE;
+      const lines = wrapText(ctx, item.toUpperCase(), w - headX - iconSize * 1.4 - w * 0.06);
+      lines.forEach((line, li) => ctx.fillText(line, headX + iconSize * 1.4, itemY + li * itemSize * 1.3));
+      itemY += Math.max(itemGap, lines.length * itemSize * 1.3 + h * 0.015);
+    });
+
+    drawContactBand(ctx, w, h - contactH, contactH, form, headshot, logo);
+  };
+
+  // ---- Checklist: photo, agent tag top-right, headline card with checkmark list ----
+  const drawChecklistStyle = (ctx, w, h) => {
+    const contactH = h * 0.145;
+
+    if (photo.img) drawCover(ctx, photo.img, 0, 0, w, h);
+    else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(0, 0, w, h); }
+
+    const cardW = w * 0.8, cardX = (w - cardW) / 2;
+    const cardY = h * 0.26;
+    const items = (form.listItems || "").split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 6);
+    const headSize = h * 0.036;
+    ctx.font = `700 ${headSize}px "Playfair Display", serif`;
+    ctx.textAlign = "center";
+    const headLines = wrapText(ctx, form.subject || "", cardW * 0.85);
+    const headLineH = headSize * 1.25;
+    const itemSize = h * 0.023;
+    const itemGap = h * 0.07;
+    const cardPadY = h * 0.045;
+    const cardMaxH = h - contactH - h * 0.03 - cardY;
+    const cardH = Math.min(cardMaxH, cardPadY * 2 + headLines.length * headLineH + h * 0.03 + items.length * itemGap);
+
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.18)";
+    ctx.shadowBlur = w * 0.015;
+    ctx.fillStyle = WHITE;
+    roundRect(ctx, cardX, cardY, cardW, cardH, w * 0.01);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = UI.ink;
+    let cy = cardY + cardPadY + headSize * 0.85;
+    headLines.forEach((line, i) => ctx.fillText(line, w / 2, cy + i * headLineH));
+    cy += headLines.length * headLineH + h * 0.03;
+
+    ctx.textAlign = "left";
+    const iconR = h * 0.018;
+    const textX = cardX + cardW * 0.12 + iconR * 2;
+    items.forEach((item) => {
+      drawCheckIcon(ctx, cardX + cardW * 0.12, cy - iconR * 0.3, iconR, form.accentColor);
+      ctx.font = `600 ${itemSize}px "Montserrat", sans-serif`;
+      ctx.fillStyle = UI.ink;
+      const lines = wrapText(ctx, item.toUpperCase(), cardW * 0.7);
+      lines.forEach((line, li) => ctx.fillText(line, textX, cy + li * itemSize * 1.3));
+      cy += Math.max(itemGap, lines.length * itemSize * 1.3 + h * 0.02);
+    });
+
+    drawContactBand(ctx, w, h - contactH, contactH, form, headshot, logo);
+  };
+
+  const drawCardStyle = (ctx, w, h) => {
     const addressH = h * 0.075;
     const contactH = h * 0.165;
     const bodyH = h * 0.16;
@@ -262,116 +525,24 @@ export function CommunityTool({ onSwitchTool }) {
       bodyLines.forEach((line, i) => ctx.fillText(line, w * 0.06, startY + i * lineH));
     }
 
-    // ---- Contact band ----
+    // ---- Contact band (brokerage-required, shared across every template) ----
     const contactY0 = bodyY0 + bodyH;
-    const isDark = form.contactBg === "black";
-    ctx.fillStyle = isDark ? BLACK : WHITE;
-    ctx.fillRect(0, contactY0, w, contactH);
-    const contactTextColor = isDark ? WHITE : BLACK;
+    drawContactBand(ctx, w, contactY0, contactH, form, headshot, logo);
+  };
 
-    const circleD = headshot.img ? contactH * 0.82 : 0;
-    const circleCX = w - w * 0.03 - circleD / 2;
-    const circleCY = contactY0 + contactH / 2;
-    const headshotX = circleCX - circleD / 2;
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const { w, h } = ASPECTS[form.aspect];
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, w, h);
 
-    if (headshot.img) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-      const img = headshot.img;
-      const shortSide = Math.min(img.width, img.height);
-      const cropSize = shortSide * 0.82;
-      const sx = (img.width - cropSize) / 2;
-      const sy = 0;
-      ctx.drawImage(img, sx, sy, cropSize, cropSize, headshotX, circleCY - circleD / 2, circleD, circleD);
-      ctx.restore();
-
-      ctx.beginPath();
-      ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
-      ctx.strokeStyle = form.accentColor;
-      ctx.lineWidth = Math.max(2, w * 0.004);
-      ctx.stroke();
-    }
-
-    let textStartX = w * 0.045;
-    if (logo.img) {
-      const logoSize = contactH * 0.6;
-      const logoY = contactY0 + (contactH - logoSize) / 2;
-      const ratio = logo.img.width / logo.img.height;
-      const logoW = logoSize * ratio;
-      ctx.drawImage(logo.img, textStartX, logoY, logoW, logoSize);
-      textStartX += logoW + w * 0.03;
-    }
-
-    const textMaxW = (headshot.img ? headshotX : w) - textStartX - w * 0.03;
-    const mutedColor = isDark ? "rgba(255,255,255,0.6)" : UI.inkSoft;
-
-    const fitFont = (text, weight, baseSize) => {
-      let size = baseSize;
-      ctx.font = `${weight} ${size}px "Montserrat", sans-serif`;
-      const measured = ctx.measureText(text).width;
-      if (measured > textMaxW) {
-        size = size * (textMaxW / measured);
-        ctx.font = `${weight} ${size}px "Montserrat", sans-serif`;
-      }
-      return size;
-    };
-
-    ctx.textAlign = "left";
-
-    const nameSize = fitFont(form.agentName, 800, contactH * 0.175);
-    const nameY = contactY0 + contactH * 0.32;
-    ctx.fillStyle = contactTextColor;
-    ctx.fillText(form.agentName, textStartX, nameY);
-
-    ctx.strokeStyle = form.accentColor;
-    ctx.lineWidth = Math.max(2, w * 0.0035);
-    ctx.beginPath();
-    ctx.moveTo(textStartX, nameY + contactH * 0.075);
-    ctx.lineTo(textStartX + w * 0.055, nameY + contactH * 0.075);
-    ctx.stroke();
-
-    const contactY = contactY0 + contactH * 0.55;
-    const contactSize = contactH * 0.11;
-    const sep = "   •   ";
-    if (form.agentPhone && form.agentEmail) {
-      ctx.font = `600 ${contactSize}px "Montserrat", sans-serif`;
-      let full = form.agentPhone + sep + form.agentEmail;
-      let size = contactSize;
-      let measured = ctx.measureText(full).width;
-      if (measured > textMaxW) {
-        size = size * (textMaxW / measured);
-        ctx.font = `600 ${size}px "Montserrat", sans-serif`;
-      }
-      ctx.fillStyle = contactTextColor;
-      ctx.fillText(form.agentPhone, textStartX, contactY);
-      const phoneW = ctx.measureText(form.agentPhone).width;
-      ctx.fillStyle = mutedColor;
-      ctx.fillText(sep, textStartX + phoneW, contactY);
-      const sepW = ctx.measureText(sep).width;
-      ctx.fillStyle = form.accentColor;
-      ctx.fillText(form.agentEmail, textStartX + phoneW + sepW, contactY);
-    } else if (form.agentPhone || form.agentEmail) {
-      ctx.fillStyle = form.agentPhone ? contactTextColor : form.accentColor;
-      fitFont(form.agentPhone || form.agentEmail, 600, contactSize);
-      ctx.fillText(form.agentPhone || form.agentEmail, textStartX, contactY);
-    }
-
-    const brokerLine = [form.brokerageName, form.brokerageCity].filter(Boolean).join("   ·   ");
-    if (brokerLine) {
-      fitFont(brokerLine, 700, contactH * 0.115);
-      ctx.fillStyle = contactTextColor;
-      ctx.fillText(brokerLine, textStartX, contactY0 + contactH * 0.76);
-    }
-
-    if (form.officePhone) {
-      const officeText = `Office  ${form.officePhone}`;
-      fitFont(officeText, 500, contactH * 0.09);
-      ctx.fillStyle = mutedColor;
-      ctx.fillText(officeText, textStartX, contactY0 + contactH * 0.9);
-    }
+    if (form.style === "tips") drawTipsStyle(ctx, w, h);
+    else if (form.style === "testimonial") drawTestimonialStyle(ctx, w, h);
+    else if (form.style === "stats") drawStatsStyle(ctx, w, h);
+    else if (form.style === "checklist") drawChecklistStyle(ctx, w, h);
+    else drawCardStyle(ctx, w, h);
   }, [form, photo.img, headshot.img, logo.img]);
 
   useEffect(() => { if (fontsReady) draw(); }, [draw, fontsReady]);
@@ -472,18 +643,34 @@ export function CommunityTool({ onSwitchTool }) {
         {/* CONTROLS */}
         <div className="grid md:grid-cols-2 gap-x-10 gap-y-5">
           <div className="md:col-span-2">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>POST TYPE</span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {Object.entries(TEMPLATES).map(([key, t]) => (
-                <button key={key} onClick={() => applyTemplate(key)}
+            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>STYLE</span>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {Object.entries(STYLES).map(([key, s]) => (
+                <button key={key} onClick={() => setForm((f) => ({ ...f, style: key }))}
                   className="text-left p-3 rounded border transition font-body text-xs"
-                  style={{ borderColor: form.template === key ? PINK : UI.line, background: form.template === key ? UI.card : "transparent" }}>
-                  <span className="font-semibold block">{t.label}</span>
-                  <span style={{ color: UI.inkSoft }}>{t.word1} {t.script}</span>
+                  style={{ borderColor: form.style === key ? PINK : UI.line, background: form.style === key ? UI.card : "transparent" }}>
+                  <span className="font-semibold block">{s.label}</span>
+                  <span style={{ color: UI.inkSoft }}>{s.description}</span>
                 </button>
               ))}
             </div>
           </div>
+
+          {form.style === "card" && (
+            <div className="md:col-span-2">
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>POST TYPE</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {Object.entries(TEMPLATES).map(([key, t]) => (
+                  <button key={key} onClick={() => applyTemplate(key)}
+                    className="text-left p-3 rounded border transition font-body text-xs"
+                    style={{ borderColor: form.template === key ? PINK : UI.line, background: form.template === key ? UI.card : "transparent" }}>
+                    <span className="font-semibold block">{t.label}</span>
+                    <span style={{ color: UI.inkSoft }}>{t.word1} {t.script}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="md:col-span-2">
             <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT COLOR</span>
@@ -507,38 +694,98 @@ export function CommunityTool({ onSwitchTool }) {
             </div>
           </div>
 
-          <UploadBox label="PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add a photo" />
+          {form.style !== "testimonial" && (
+            <UploadBox label="PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add a photo" />
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
             <UploadBox label="LOGO" icon={Building2} state={logo} hint="Brokerage logo" />
           </div>
 
-          <label className="block">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>{activeTemplate.subjectLabel}</span>
-            <input className="input" value={form.subject} onChange={update("subject")} placeholder={activeTemplate.subjectPlaceholder} />
-          </label>
-
-          <div className="grid grid-cols-2 gap-3">
+          {form.style === "card" && (
             <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE WORD 1</span>
-              <input className="input" value={form.word1} onChange={update("word1")} />
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>{activeTemplate.subjectLabel}</span>
+              <input className="input" value={form.subject} onChange={update("subject")} placeholder={activeTemplate.subjectPlaceholder} />
             </label>
+          )}
+
+          {form.style === "card" && (
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE WORD 1</span>
+                <input className="input" value={form.word1} onChange={update("word1")} />
+              </label>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SCRIPT WORD</span>
+                <input className="input" value={form.script} onChange={update("script")} />
+              </label>
+            </div>
+          )}
+
+          {form.style === "card" && (
+            <label className="block md:col-span-2">
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>{activeTemplate.bodyLabel}</span>
+              <textarea className="input" rows={3} value={form.body} onChange={update("body")} placeholder={activeTemplate.bodyPlaceholder} />
+            </label>
+          )}
+
+          {form.style === "card" && (
+            <label className="block md:col-span-2">
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CORNER BADGE TEXT</span>
+              <textarea className="input" rows={3} value={form.badgeText} onChange={update("badgeText")} />
+            </label>
+          )}
+
+          {(form.style === "tips" || form.style === "stats" || form.style === "checklist") && (
             <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SCRIPT WORD</span>
-              <input className="input" value={form.script} onChange={update("script")} />
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
+                {form.style === "tips" ? "TITLE" : "HEADLINE"}
+              </span>
+              <input className="input" value={form.subject} onChange={update("subject")} placeholder="Summer Open House Tips" />
             </label>
-          </div>
+          )}
 
-          <label className="block md:col-span-2">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>{activeTemplate.bodyLabel}</span>
-            <textarea className="input" rows={3} value={form.body} onChange={update("body")} placeholder={activeTemplate.bodyPlaceholder} />
-          </label>
+          {form.style === "stats" && (
+            <label className="block">
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BIG NUMBER</span>
+              <input className="input" value={form.bigNumber} onChange={update("bigNumber")} placeholder="5" />
+            </label>
+          )}
 
-          <label className="block md:col-span-2">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CORNER BADGE TEXT</span>
-            <textarea className="input" rows={3} value={form.badgeText} onChange={update("badgeText")} />
-          </label>
+          {(form.style === "tips" || form.style === "stats" || form.style === "checklist") && (
+            <label className="block md:col-span-2">
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
+                LIST ITEMS (one per line)
+              </span>
+              <textarea className="input" rows={4} value={form.listItems} onChange={update("listItems")} placeholder={"Turn on the AC\nOffer cold refreshments\nHighlight outdoor spaces"} />
+            </label>
+          )}
+
+          {form.style === "testimonial" && (
+            <>
+              <label className="block md:col-span-2">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>QUOTE</span>
+                <textarea className="input" rows={4} value={form.quote} onChange={update("quote")} placeholder="Mariella was a joy to work with..." />
+              </label>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CLIENT NAME</span>
+                <input className="input" value={form.clientName} onChange={update("clientName")} placeholder="Client Name" />
+              </label>
+              <div className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>RATING</span>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button key={n} type="button" onClick={() => setForm((f) => ({ ...f, rating: n }))}
+                      aria-label={`${n} star${n === 1 ? "" : "s"}`}
+                      style={{ color: n <= form.rating ? form.accentColor : UI.line, fontSize: "1.4rem", lineHeight: 1 }}>
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="md:col-span-2">
             <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SIZE</span>
@@ -553,21 +800,23 @@ export function CommunityTool({ onSwitchTool }) {
             </div>
           </div>
 
-          <div>
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CONTACT BAND</span>
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setForm((f) => ({ ...f, contactBg: "black" }))}
-                className="p-2 rounded border font-body text-xs font-semibold transition"
-                style={{ borderColor: form.contactBg === "black" ? PINK : UI.line, background: form.contactBg === "black" ? UI.card : "transparent" }}>
-                Black background
-              </button>
-              <button onClick={() => setForm((f) => ({ ...f, contactBg: "white" }))}
-                className="p-2 rounded border font-body text-xs font-semibold transition"
-                style={{ borderColor: form.contactBg === "white" ? PINK : UI.line, background: form.contactBg === "white" ? UI.card : "transparent" }}>
-                White background
-              </button>
+          {form.style === "card" && (
+            <div>
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CONTACT BAND</span>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => setForm((f) => ({ ...f, contactBg: "black" }))}
+                  className="p-2 rounded border font-body text-xs font-semibold transition"
+                  style={{ borderColor: form.contactBg === "black" ? PINK : UI.line, background: form.contactBg === "black" ? UI.card : "transparent" }}>
+                  Black background
+                </button>
+                <button onClick={() => setForm((f) => ({ ...f, contactBg: "white" }))}
+                  className="p-2 rounded border font-body text-xs font-semibold transition"
+                  style={{ borderColor: form.contactBg === "white" ? PINK : UI.line, background: form.contactBg === "white" ? UI.card : "transparent" }}>
+                  White background
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3 md:col-span-2">
             <label className="block">

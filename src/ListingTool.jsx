@@ -3,7 +3,7 @@ import { Download, Image as ImageIcon, User, Building2 } from "lucide-react";
 import {
   UI, PINK, BLACK, WHITE, ASPECTS, ACCENT_PRESETS,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
-  mixWithWhite, drawCover, wrapText, roundRect, archedRect,
+  mixWithWhite, drawCover, wrapText, roundRect, archedRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
 } from "./shared.jsx";
 
@@ -171,125 +171,9 @@ export function ListingTool({ onSwitchTool }) {
     }
     ctx.fillText(addrText, w * 0.045, photoH + addressH / 2 + addrSize * 0.35);
 
-    // ---- Contact band ----
+    // ---- Contact band (brokerage-required, shared across every layout) ----
     const contactY0 = photoH + addressH;
-    const isDark = form.contactBg === "black";
-    ctx.fillStyle = isDark ? BLACK : WHITE;
-    ctx.fillRect(0, contactY0, w, contactH);
-    const contactTextColor = isDark ? WHITE : BLACK;
-
-    const circleD = headshot.img ? contactH * 0.82 : 0;
-    const circleCX = w - w * 0.03 - circleD / 2;
-    const circleCY = contactY0 + contactH / 2;
-    const headshotX = circleCX - circleD / 2; // left edge, used below for text width + badge position
-
-    if (headshot.img) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-      // Zoom into the shorter side so the face fills the circle instead of
-      // showing the full frame (which leaves the face sitting high above
-      // excess shoulder/torso space) — a plain "cover" crop is a no-op
-      // whenever the source image is already square, like the default photo.
-      const img = headshot.img;
-      const shortSide = Math.min(img.width, img.height);
-      const cropSize = shortSide * 0.82;
-      const sx = (img.width - cropSize) / 2;
-      const sy = 0;
-      ctx.drawImage(img, sx, sy, cropSize, cropSize, headshotX, circleCY - circleD / 2, circleD, circleD);
-      ctx.restore();
-
-      ctx.beginPath();
-      ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
-      ctx.strokeStyle = form.accentColor;
-      ctx.lineWidth = Math.max(2, w * 0.004);
-      ctx.stroke();
-    }
-
-    let textStartX = w * 0.045;
-    if (logo.img) {
-      const logoSize = contactH * 0.6;
-      const logoY = contactY0 + (contactH - logoSize) / 2;
-      const ratio = logo.img.width / logo.img.height;
-      const logoW = logoSize * ratio;
-      ctx.drawImage(logo.img, textStartX, logoY, logoW, logoSize);
-      textStartX += logoW + w * 0.03;
-    }
-
-    const textMaxW = (headshot.img ? headshotX : w) - textStartX - w * 0.03;
-    const mutedColor = isDark ? "rgba(255,255,255,0.6)" : UI.inkSoft;
-
-    const fitFont = (text, weight, baseSize) => {
-      let size = baseSize;
-      ctx.font = `${weight} ${size}px "Montserrat", sans-serif`;
-      const measured = ctx.measureText(text).width;
-      if (measured > textMaxW) {
-        size = size * (textMaxW / measured);
-        ctx.font = `${weight} ${size}px "Montserrat", sans-serif`;
-      }
-      return size;
-    };
-
-    ctx.textAlign = "left";
-
-    // Name
-    const nameSize = fitFont(form.agentName, 800, contactH * 0.175);
-    const nameY = contactY0 + contactH * 0.32;
-    ctx.fillStyle = contactTextColor;
-    ctx.fillText(form.agentName, textStartX, nameY);
-
-    // Short pink underline beneath the name
-    ctx.strokeStyle = form.accentColor;
-    ctx.lineWidth = Math.max(2, w * 0.0035);
-    ctx.beginPath();
-    ctx.moveTo(textStartX, nameY + contactH * 0.075);
-    ctx.lineTo(textStartX + w * 0.055, nameY + contactH * 0.075);
-    ctx.stroke();
-
-    // Phone  •  Email (two-color, same line)
-    const contactY = contactY0 + contactH * 0.55;
-    const contactSize = contactH * 0.11;
-    const sep = "   •   ";
-    if (form.agentPhone && form.agentEmail) {
-      ctx.font = `600 ${contactSize}px "Montserrat", sans-serif`;
-      let full = form.agentPhone + sep + form.agentEmail;
-      let size = contactSize;
-      let measured = ctx.measureText(full).width;
-      if (measured > textMaxW) {
-        size = size * (textMaxW / measured);
-        ctx.font = `600 ${size}px "Montserrat", sans-serif`;
-      }
-      ctx.fillStyle = contactTextColor;
-      ctx.fillText(form.agentPhone, textStartX, contactY);
-      const phoneW = ctx.measureText(form.agentPhone).width;
-      ctx.fillStyle = mutedColor;
-      ctx.fillText(sep, textStartX + phoneW, contactY);
-      const sepW = ctx.measureText(sep).width;
-      ctx.fillStyle = form.accentColor;
-      ctx.fillText(form.agentEmail, textStartX + phoneW + sepW, contactY);
-    } else if (form.agentPhone || form.agentEmail) {
-      ctx.fillStyle = form.agentPhone ? contactTextColor : form.accentColor;
-      fitFont(form.agentPhone || form.agentEmail, 600, contactSize);
-      ctx.fillText(form.agentPhone || form.agentEmail, textStartX, contactY);
-    }
-
-    // Brokerage · City
-    const brokerLine = [form.brokerageName, form.brokerageCity].filter(Boolean).join("   ·   ");
-    if (brokerLine) {
-      fitFont(brokerLine, 700, contactH * 0.115);
-      ctx.fillStyle = contactTextColor;
-      ctx.fillText(brokerLine, textStartX, contactY0 + contactH * 0.76);
-    }
-
-    // Office phone — small, muted caption
-    if (form.officePhone) {
-      const officeText = `Office  ${form.officePhone}`;
-      fitFont(officeText, 500, contactH * 0.09);
-      ctx.fillStyle = mutedColor;
-      ctx.fillText(officeText, textStartX, contactY0 + contactH * 0.9);
-    }
+    drawContactBand(ctx, w, contactY0, contactH, form, headshot, logo);
 
     // ---- Pink badge: top-right corner of the property photo ----
     if (form.badgeText) {
@@ -399,9 +283,9 @@ export function ListingTool({ onSwitchTool }) {
     ctx.fillStyle = form.accentColor;
     ctx.fillText(priceText, cursorX, statsY0 + statsH * 0.62);
 
-    const footerH = h * 0.075;
+    const contactH = h * 0.145;
     const stripY0 = statsY0 + statsH + h * 0.02;
-    const stripH = h - stripY0 - h * 0.015 - footerH;
+    const stripH = h - stripY0 - h * 0.015 - contactH;
     const gap = w * 0.02;
     const tileW = (w - gap * 4) / 3;
     const tiles = [photo, photo2, photo3];
@@ -423,18 +307,8 @@ export function ListingTool({ onSwitchTool }) {
     });
 
     const footerY0 = stripY0 + stripH + h * 0.015;
-    ctx.textAlign = "center";
-    ctx.font = `700 ${footerH * 0.26}px "Montserrat", sans-serif`;
-    ctx.fillStyle = UI.ink;
-    ctx.fillText(form.agentName, w / 2, footerY0 + footerH * 0.32);
-    ctx.font = `500 ${footerH * 0.2}px "Montserrat", sans-serif`;
-    ctx.fillStyle = form.accentColor;
-    const line2 = [form.agentPhone, form.agentEmail].filter(Boolean).join("   •   ");
-    ctx.fillText(line2, w / 2, footerY0 + footerH * 0.62);
-    ctx.font = `500 ${footerH * 0.18}px "Montserrat", sans-serif`;
-    ctx.fillStyle = UI.inkSoft;
-    ctx.fillText(form.brokerageName, w / 2, footerY0 + footerH * 0.88);
     ctx.textAlign = "left";
+    drawContactBand(ctx, w, footerY0, contactH, form, headshot, logo);
   };
 
   // ---- Collage layout: bold top headline, offset photo collage, script signature ----
@@ -449,8 +323,9 @@ export function ListingTool({ onSwitchTool }) {
     const spacedHeadline = form.bigHeadline.toUpperCase().split("").join("\u2009");
     ctx.fillText(spacedHeadline, w / 2, topH * 0.72);
 
+    const contactH = h * 0.145;
     const collageY0 = topH;
-    const collageH = h * 0.58;
+    const collageH = h * 0.5;
     const pad = w * 0.06;
     const mainW = w * 0.56 - pad;
     const sideW = w - pad * 2 - mainW - w * 0.02;
@@ -488,26 +363,25 @@ export function ListingTool({ onSwitchTool }) {
     else { ctx.fillStyle = "#DED4CC"; ctx.fillRect(sideX, tile2Y, sideW, sideTileH); }
 
     const sigY0 = collageY0 + collageH;
-    const sigH = h - sigY0;
+    const sigH = h - sigY0 - contactH;
 
     ctx.strokeStyle = form.accentColor;
     ctx.lineWidth = Math.max(2, w * 0.003);
     ctx.beginPath();
-    ctx.moveTo(w / 2 - w * 0.06, sigY0 + sigH * 0.12);
-    ctx.lineTo(w / 2 + w * 0.06, sigY0 + sigH * 0.12);
+    ctx.moveTo(w / 2 - w * 0.06, sigY0 + sigH * 0.18);
+    ctx.lineTo(w / 2 + w * 0.06, sigY0 + sigH * 0.18);
     ctx.stroke();
 
     ctx.fillStyle = form.accentColor;
-    ctx.font = `italic 700 ${sigH * 0.42}px "Playfair Display", serif`;
+    ctx.font = `italic 700 ${sigH * 0.5}px "Playfair Display", serif`;
     ctx.textAlign = "center";
-    ctx.fillText(form.agentName.replace(/, Realtor$/i, ""), w / 2, sigY0 + sigH * 0.5);
-    ctx.font = `600 ${sigH * 0.13}px "Montserrat", sans-serif`;
+    ctx.fillText(form.agentName.replace(/, Realtor$/i, ""), w / 2, sigY0 + sigH * 0.62);
+    ctx.font = `600 ${sigH * 0.16}px "Montserrat", sans-serif`;
     ctx.fillStyle = UI.ink;
-    ctx.fillText("REAL ESTATE AGENT", w / 2, sigY0 + sigH * 0.68);
-    ctx.font = `500 ${sigH * 0.14}px "Montserrat", sans-serif`;
-    const collageContact = [form.agentPhone, form.agentEmail].filter(Boolean).join("   •   ");
-    ctx.fillText(collageContact, w / 2, sigY0 + sigH * 0.86);
+    ctx.fillText("REAL ESTATE AGENT", w / 2, sigY0 + sigH * 0.86);
     ctx.textAlign = "left";
+
+    drawContactBand(ctx, w, h - contactH, contactH, form, headshot, logo);
   };
 
   // ---- Modern layout: script + serif headline, stat line, 4-up photo strip (incl. headshot), black message bar ----
@@ -519,8 +393,9 @@ export function ListingTool({ onSwitchTool }) {
     const headlineH = h * 0.145;
     const stripGap = h * 0.045;
     const stripH = h * 0.22;
+    const contactH = h * 0.145;
     const barH = h * 0.09;
-    const heroH = h - headlineH - stripGap - stripH - barH;
+    const heroH = h - headlineH - stripGap - stripH - contactH - barH;
 
     if (photo.img) drawCover(ctx, photo.img, 0, 0, w, heroH);
     else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(0, 0, w, heroH); }
@@ -592,6 +467,12 @@ export function ListingTool({ onSwitchTool }) {
     const headshotX = tileW * 3;
     if (headshot.img) drawCover(ctx, headshot.img, headshotX, stripY0, tileW, stripH);
     else { ctx.fillStyle = "#E5DCD6"; ctx.fillRect(headshotX, stripY0, tileW, stripH); }
+
+    // ---- Contact band (brokerage-required, shared across every layout) ----
+    // The agent's photo is already the 4th strip tile above, so skip the
+    // headshot circle here to avoid showing it twice.
+    const contactY0 = stripY0 + stripH;
+    drawContactBand(ctx, w, contactY0, contactH, form, headshot, logo, false);
 
     // ---- Bottom message bar (single line, letter-spaced, shrinks to fit) ----
     const barY0 = h - barH;
