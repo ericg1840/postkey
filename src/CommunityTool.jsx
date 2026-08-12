@@ -212,8 +212,12 @@ export function CommunityTool({ onSwitchTool }) {
   const drawTipsStyle = (ctx, w, h) => {
     const contactH = h * 0.145;
 
-    if (photo.img) drawCover(ctx, photo.img, 0, 0, w, h);
-    else drawEmptyPhotoBackdrop(ctx, w, h);
+    if (photo.img) {
+      ctx.save();
+      ctx.filter = `blur(${Math.round(w * 0.012)}px)`;
+      drawCover(ctx, photo.img, -w * 0.03, -h * 0.03, w * 1.06, h * 1.06);
+      ctx.restore();
+    } else drawEmptyPhotoBackdrop(ctx, w, h);
 
     const bandX = w * 0.08, bandW = w * 0.84;
     const bandY = h * 0.1;
@@ -374,8 +378,12 @@ export function CommunityTool({ onSwitchTool }) {
   const drawChecklistStyle = (ctx, w, h) => {
     const contactH = h * 0.145;
 
-    if (photo.img) drawCover(ctx, photo.img, 0, 0, w, h);
-    else drawEmptyPhotoBackdrop(ctx, w, h);
+    if (photo.img) {
+      ctx.save();
+      ctx.filter = `blur(${Math.round(w * 0.012)}px)`;
+      drawCover(ctx, photo.img, -w * 0.03, -h * 0.03, w * 1.06, h * 1.06);
+      ctx.restore();
+    } else drawEmptyPhotoBackdrop(ctx, w, h);
 
     const cardW = w * 0.8, cardX = (w - cardW) / 2;
     const cardY = h * 0.26;
