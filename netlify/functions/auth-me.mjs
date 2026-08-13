@@ -20,9 +20,12 @@ export default async (req) => {
           brokerageName: kit.brokerage_name,
           brokerageCity: kit.brokerage_city,
           officePhone: kit.office_phone,
+          website: kit.website,
+          licenseNumber: kit.license_number,
           accentColor: kit.accent_color,
           headshotUrl: kit.headshot_url,
           logoUrl: kit.logo_url,
+          onboarded: kit.onboarded,
         }
       : null,
   });

@@ -17,9 +17,12 @@ export default async (req) => {
       brokerageName = "",
       brokerageCity = "",
       officePhone = "",
+      website = "",
+      licenseNumber = "",
       accentColor = "#E0298C",
       headshotUrl = null,
       logoUrl = null,
+      onboarded,
     } = body;
 
     await db.sql`
@@ -30,9 +33,12 @@ export default async (req) => {
         brokerage_name = ${brokerageName},
         brokerage_city = ${brokerageCity},
         office_phone = ${officePhone},
+        website = ${website},
+        license_number = ${licenseNumber},
         accent_color = ${accentColor},
         headshot_url = ${headshotUrl},
         logo_url = ${logoUrl},
+        onboarded = COALESCE(${onboarded ?? null}, onboarded),
         updated_at = NOW()
       WHERE user_id = ${userId}
     `;

@@ -1,0 +1,4 @@
+ALTER TABLE brand_kits
+  ADD COLUMN website TEXT NOT NULL DEFAULT '',
+  ADD COLUMN license_number TEXT NOT NULL DEFAULT '',
+  ADD COLUMN onboarded BOOLEAN NOT NULL DEFAULT false;
