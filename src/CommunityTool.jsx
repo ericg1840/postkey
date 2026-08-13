@@ -280,7 +280,7 @@ export function CommunityTool({ onSwitchTool }) {
 
   // ---- Tip List: title band + list, over a full-bleed photo ----
   const drawTipsStyle = (ctx, w, h) => {
-    const contactH = h * 0.145;
+    const contactH = Math.min(w, h) * 0.145;
 
     if (photo.img) {
       ctx.save();
@@ -336,7 +336,7 @@ export function CommunityTool({ onSwitchTool }) {
       ctx.fillRect(x, y, qw, qh);
     });
 
-    const contactH = h * 0.145;
+    const contactH = Math.min(w, h) * 0.145;
     const cardW = w * 0.74, cardH = h * 0.54;
     const cardX = (w - cardW) / 2, cardY = h * 0.16;
     ctx.save();
@@ -402,7 +402,7 @@ export function CommunityTool({ onSwitchTool }) {
 
   // ---- Big Number List: dark-tinted photo, giant numeral, headline, icon list ----
   const drawStatsStyle = (ctx, w, h) => {
-    const contactH = h * 0.145;
+    const contactH = Math.min(w, h) * 0.145;
 
     if (photo.img) drawCover(ctx, photo.img, 0, 0, w, h);
     else drawEmptyPhotoBackdrop(ctx, w, h);
@@ -446,7 +446,7 @@ export function CommunityTool({ onSwitchTool }) {
 
   // ---- Checklist: photo, agent tag top-right, headline card with checkmark list ----
   const drawChecklistStyle = (ctx, w, h) => {
-    const contactH = h * 0.145;
+    const contactH = Math.min(w, h) * 0.145;
 
     if (photo.img) {
       ctx.save();
@@ -499,7 +499,7 @@ export function CommunityTool({ onSwitchTool }) {
 
   const drawCardStyle = (ctx, w, h) => {
     const addressH = h * 0.075;
-    const contactH = h * 0.165;
+    const contactH = Math.min(w, h) * 0.165;
     const bodyH = h * 0.16;
     const photoH = h - addressH - contactH - bodyH;
 

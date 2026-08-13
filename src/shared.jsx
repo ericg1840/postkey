@@ -219,11 +219,14 @@ export function drawContactBand(ctx, w, bandY, bandH, form, headshot, logo, show
     ctx.fillText(brokerLine, textStartX, bandY + bandH * 0.76);
   }
 
-  if (form.officePhone) {
-    const officeText = `Office  ${form.officePhone}`;
-    fitFont(officeText, 500, bandH * 0.09);
+  const officeParts = [];
+  if (form.officePhone) officeParts.push(`Office  ${form.officePhone}`);
+  if (form.website) officeParts.push(form.website);
+  const officeLine = officeParts.join("   ·   ");
+  if (officeLine) {
+    fitFont(officeLine, 500, bandH * 0.09);
     ctx.fillStyle = mutedColor;
-    ctx.fillText(officeText, textStartX, bandY + bandH * 0.9);
+    ctx.fillText(officeLine, textStartX, bandY + bandH * 0.9);
   }
 }
 
