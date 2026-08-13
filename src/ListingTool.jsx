@@ -7,6 +7,7 @@ import {
   useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
   Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord,
 } from "./shared.jsx";
+import { useAuth } from "./auth/AuthContext.jsx";
 
 // "What are you posting?" — the event, independent of which visual Style
 // draws it. Applying one fills in every layout's headline representation
@@ -49,16 +50,45 @@ const DEFAULTS = {
 };
 
 export function ListingTool({ onSwitchTool }) {
-  const [form, setForm] = useState(DEFAULTS);
+  const { user, brandKit, logout, saveBrandKit } = useAuth();
+  const [form, setForm] = useState(() => ({
+    ...DEFAULTS,
+    agentName: brandKit?.agentName ?? DEFAULTS.agentName,
+    agentPhone: brandKit?.agentPhone ?? "",
+    agentEmail: brandKit?.agentEmail ?? "",
+    brokerageName: brandKit?.brokerageName ?? "",
+    brokerageCity: brandKit?.brokerageCity ?? "",
+    accentColor: brandKit?.accentColor || DEFAULTS.accentColor,
+  }));
   const [fontsReady, setFontsReady] = useState(false);
+  const [brandStatus, setBrandStatus] = useState("idle"); // idle | saving | saved | error
   const canvasRef = useRef(null);
   const photo = useUploadedImage();
   const photo2 = useUploadedImage();
   const photo3 = useUploadedImage();
-  const headshot = useAgentAsset(DEFAULT_HEADSHOT_URL, "Billy Jo headshot");
-  const logo = useAgentAsset(DEFAULT_LOGO_URL, "RE/MAX Achievers logo");
+  const headshot = useAgentAsset(DEFAULT_HEADSHOT_URL, "Headshot", brandKit?.headshotUrl);
+  const logo = useAgentAsset(DEFAULT_LOGO_URL, "Brokerage logo", brandKit?.logoUrl);
 
   const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const handleSaveBrand = async () => {
+    setBrandStatus("saving");
+    try {
+      await saveBrandKit({
+        agentName: form.agentName,
+        agentPhone: form.agentPhone,
+        agentEmail: form.agentEmail,
+        brokerageName: form.brokerageName,
+        brokerageCity: form.brokerageCity,
+        accentColor: form.accentColor,
+        headshotUrl: headshot.source === "custom" ? headshot.url : null,
+        logoUrl: logo.source === "custom" ? logo.url : null,
+      });
+      setBrandStatus("saved");
+    } catch {
+      setBrandStatus("error");
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -609,7 +639,7 @@ export function ListingTool({ onSwitchTool }) {
 
   return (
     <div className="min-h-screen" style={{ background: UI.stone, color: UI.ink }}>
-      <TopNav active="listings" onSwitch={onSwitchTool} />
+      <TopNav active="listings" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} />
 
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-10">
@@ -905,6 +935,23 @@ export function ListingTool({ onSwitchTool }) {
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OFFICE PHONE</span>
               <input className="input" value={form.officePhone} onChange={update("officePhone")} />
             </label>
+            <div className="col-span-2 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleSaveBrand}
+                disabled={brandStatus === "saving"}
+                className="font-body text-xs font-semibold rounded px-4 py-2 transition disabled:opacity-60"
+                style={{ background: PINK, color: WHITE }}
+              >
+                {brandStatus === "saving" ? "Saving…" : "Save brand settings"}
+              </button>
+              {brandStatus === "saved" && (
+                <span className="font-body text-xs" style={{ color: UI.inkSoft }}>Saved to your account.</span>
+              )}
+              {brandStatus === "error" && (
+                <span className="font-body text-xs" style={{ color: "#C0392B" }}>Couldn't save — try again.</span>
+              )}
+            </div>
           </Accordion>
         </div>
       </main>

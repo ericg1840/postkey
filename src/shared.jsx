@@ -222,20 +222,31 @@ export function useUploadedImage() {
   return { img, name, load, clear };
 }
 
-// Loads a default hosted image (e.g. her standing headshot/logo) but still lets her
-// swap in a different file any time — upload always takes priority over the default.
-export function useAgentAsset(defaultUrl, defaultLabel) {
+// Loads a default hosted image (e.g. a standing headshot/logo) but still lets the
+// agent swap in a different file any time — upload always takes priority over the
+// default. If initialCustomUrl is given (e.g. loaded from a saved brand kit), that
+// takes priority over the built-in default on first load.
+export function useAgentAsset(defaultUrl, defaultLabel, initialCustomUrl) {
   const [img, setImg] = useState(null);
   const [source, setSource] = useState("loading"); // loading | default | custom | error
   const [name, setName] = useState(defaultLabel);
+  const [url, setUrl] = useState(null); // raw data URL when source === "custom"
 
   useEffect(() => {
+    if (initialCustomUrl) {
+      const image = new Image();
+      image.onload = () => { setImg(image); setSource("custom"); setUrl(initialCustomUrl); };
+      image.onerror = () => setSource("error");
+      image.src = initialCustomUrl;
+      setName("Saved photo");
+      return;
+    }
     const image = new Image();
     image.crossOrigin = "anonymous";
     image.onload = () => { setImg(image); setSource("default"); };
     image.onerror = () => setSource("error");
     image.src = defaultUrl;
-  }, [defaultUrl]);
+  }, [defaultUrl, initialCustomUrl]);
 
   const load = (file) => {
     if (!file || !file.type.startsWith("image/")) return;
@@ -244,6 +255,7 @@ export function useAgentAsset(defaultUrl, defaultLabel) {
       const image = new Image();
       image.onload = () => setImg(image);
       image.src = e.target.result;
+      setUrl(e.target.result);
     };
     setName(file.name);
     setSource("custom");
@@ -252,6 +264,7 @@ export function useAgentAsset(defaultUrl, defaultLabel) {
 
   const clear = () => {
     setName(defaultLabel);
+    setUrl(null);
     const image = new Image();
     image.crossOrigin = "anonymous";
     image.onload = () => { setImg(image); setSource("default"); };
@@ -259,7 +272,7 @@ export function useAgentAsset(defaultUrl, defaultLabel) {
     image.src = defaultUrl;
   };
 
-  return { img, name, source, load, clear };
+  return { img, name, source, url, load, clear };
 }
 
 // A plain background image with no upload UI of its own — used as a nicer
@@ -330,7 +343,7 @@ export function GlobalStyles() {
 }
 
 // Shared top bar: brand mark + the tab switcher between the two tools.
-export function TopNav({ active, onSwitch }) {
+export function TopNav({ active, onSwitch, userName, onLogout }) {
   return (
     <header className="border-b" style={{ borderColor: UI.line }}>
       <div className="max-w-7xl mx-auto px-6 py-5 flex flex-wrap items-center justify-between gap-4">
@@ -362,9 +375,25 @@ export function TopNav({ active, onSwitch }) {
             Community
           </button>
         </nav>
-        <span className="font-mono text-xs" style={{ color: UI.inkSoft }}>
-          {active === "listings" ? "PHOTO IN, POST OUT" : "LOCAL LOVE, POSTED"}
-        </span>
+        <div className="flex items-center gap-4">
+          <span className="font-mono text-xs hidden sm:inline" style={{ color: UI.inkSoft }}>
+            {active === "listings" ? "PHOTO IN, POST OUT" : "LOCAL LOVE, POSTED"}
+          </span>
+          {onLogout && (
+            <div className="flex items-center gap-2">
+              {userName && (
+                <span className="font-body text-xs" style={{ color: UI.inkSoft }}>{userName}</span>
+              )}
+              <button
+                onClick={onLogout}
+                className="font-body text-xs font-semibold underline"
+                style={{ color: UI.inkSoft }}
+              >
+                Log out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
@@ -400,13 +429,13 @@ export function Accordion({ title, subtitle, children, defaultOpen = false }) {
 }
 
 // A one-line, always-plain-language reassurance — this is a real
-// differentiator (no upload, no server), so it earns a visible badge
-// instead of small print under the download button.
+// differentiator (listing photos never touch a server), so it earns a
+// visible badge instead of small print under the download button.
 export function PrivacyBadge() {
   return (
     <div className="flex items-center gap-1.5 font-body text-xs" style={{ color: UI.inkSoft }}>
       <Lock size={12} />
-      Private by design — photos never leave your device
+      Private by design — listing photos never leave your device
     </div>
   );
 }
