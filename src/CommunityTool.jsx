@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Download, Image as ImageIcon, User, Building2 } from "lucide-react";
+import { Download, Image as ImageIcon, User, Building2, Sparkles, SlidersHorizontal, MoreHorizontal } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
@@ -137,6 +137,22 @@ const STYLES = {
   checklist: { label: "Checklist", description: "Headline card + checkmarks" },
 };
 
+// Curated prompts for agents who know they should post but can't think of
+// what — each points at the template that best fits so "Create this post"
+// can jump straight into a filled-out starting point.
+const IDEAS = [
+  { text: "Spotlight a local coffee shop you always recommend to clients.", template: "spotlight" },
+  { text: "Share a quick home-maintenance tip your clients thank you for.", template: "reno_tip" },
+  { text: "Highlight a favorite restaurant in the neighborhood.", template: "spotlight" },
+  { text: "Give a mini guide to a neighborhood you sell in often.", template: "neighborhood" },
+  { text: "Share a home value tip that surprises people.", template: "home_value" },
+  { text: "Post this season's must-try paint color.", template: "paint" },
+  { text: "Share a simple recipe for the weekend.", template: "recipe" },
+  { text: "Highlight a design trend your buyers keep asking about.", template: "design_trend" },
+  { text: "Recommend a local park or weekend spot for families.", template: "spotlight" },
+  { text: "Shout out a small business worth checking out this week.", template: "spotlight" },
+];
+
 const DEFAULTS = {
   template: "spotlight",
   style: "card",
@@ -229,10 +245,20 @@ export function CommunityTool({ onSwitchTool }) {
     setForm((f) => ({
       ...f,
       template: key,
+      style: "card",
       word1: t.word1,
       script: t.script,
       badgeText: t.badge.replace("{agent}", firstNameOf(f.agentName)),
     }));
+  };
+
+  const [idea, setIdea] = useState(null);
+  const giveIdea = () => {
+    const others = IDEAS.filter((i) => i !== idea);
+    setIdea(others[Math.floor(Math.random() * others.length)]);
+  };
+  const createFromIdea = () => {
+    if (idea) applyTemplate(idea.template);
   };
 
   const activeTemplate = TEMPLATES[form.template];
@@ -620,6 +646,41 @@ export function CommunityTool({ onSwitchTool }) {
 
   useEffect(() => { if (fontsReady) draw(); }, [draw, fontsReady]);
 
+  // Small live thumbnails for the layout picker — each renders the current
+  // content in that style, so picking a layout is a visual choice instead
+  // of reading a description.
+  const drawStyleThumb = (canvas, styleKey) => {
+    if (!canvas) return;
+    const { w, h } = ASPECTS.square;
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, w, h);
+    if (styleKey === "tips") drawTipsStyle(ctx, w, h);
+    else if (styleKey === "testimonial") drawTestimonialStyle(ctx, w, h);
+    else if (styleKey === "stats") drawStatsStyle(ctx, w, h);
+    else if (styleKey === "checklist") drawChecklistStyle(ctx, w, h);
+    else drawCardStyle(ctx, w, h);
+  };
+  const styleThumbRefs = useRef({});
+  useEffect(() => {
+    if (!fontsReady) return;
+    Object.keys(STYLES).forEach((key) => drawStyleThumb(styleThumbRefs.current[key], key));
+  }, [form, photo.img, headshot.img, logo.img, houseDefault, fontsReady]);
+
+  // Small live previews of the other sizes in the social set.
+  const THUMB_ASPECTS = ["square", "story", "landscape"];
+  const setThumbRefs = useRef({});
+  useEffect(() => {
+    if (!fontsReady) return;
+    THUMB_ASPECTS.forEach((key) => {
+      const canvas = setThumbRefs.current[key];
+      if (canvas) drawToCanvas(canvas, key);
+    });
+  }, [form, photo.img, headshot.img, logo.img, houseDefault, fontsReady]);
+
+  const [showCustomize, setShowCustomize] = useState(false);
+  const [wantSocialSet, setWantSocialSet] = useState(true);
+
   const [downloadError, setDownloadError] = useState("");
   const [downloading, setDownloading] = useState(false);
 
@@ -697,172 +758,214 @@ export function CommunityTool({ onSwitchTool }) {
     setDownloadingAll(false);
   };
 
+  const primaryDownload = wantSocialSet ? downloadAllSizes : downloadImage;
+  const primaryDownloadBusy = wantSocialSet ? downloadingAll : downloading;
+
   return (
     <div className="min-h-screen" style={{ background: UI.stone, color: UI.ink }}>
       <TopNav active="community" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} />
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-10">
-        {/* HERO PREVIEW */}
-        <div className="mb-8 sm:mb-12">
-          <div
-            className="rounded-lg border flex items-center justify-center p-2 sm:p-6"
-            style={{ background: UI.card, borderColor: UI.line }}
-          >
-            <canvas
-              ref={canvasRef}
-              style={{
-                display: "block",
-                width: "100%",
-                maxWidth: "720px",
-                height: "auto",
-                borderRadius: "4px",
-                boxShadow: "0 28px 64px rgba(27,36,48,0.3)",
-              }}
-            />
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-3 mt-6">
-            <button
-              onClick={downloadImage}
-              disabled={downloading}
-              className="w-full sm:w-auto py-2.5 px-5 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
-              style={{ background: BLACK, color: WHITE }}
-            >
-              <Download size={16} /> {downloading ? "Preparing..." : "Download image"}
-            </button>
-            <button
-              onClick={downloadAllSizes}
-              disabled={downloadingAll}
-              className="w-full sm:w-auto py-2.5 px-5 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60 border"
-              style={{ borderColor: UI.line, color: UI.ink }}
-            >
-              {downloadingAll ? "Preparing all sizes..." : "Create the whole set"}
-            </button>
-          </div>
-          <p className="font-body text-xs mt-2" style={{ color: UI.inkSoft }}>
-            "Whole set" downloads Feed, Story, FB Landscape, and FB Portrait sizes at once.
-          </p>
-          <div className="mt-3">
-            <PrivacyBadge />
-          </div>
-          {downloadError && (
-            <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
-          )}
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-8 sm:py-10">
+        {/* PAGE HEADER */}
+        <div className="mb-6">
+          <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Community Posts</h1>
+          <p className="font-body text-sm mt-1" style={{ color: UI.inkSoft }}>Stay visible even when you don't have a listing to share.</p>
         </div>
 
-        {/* CONTROLS */}
-        <div className="grid md:grid-cols-2 gap-x-10 gap-y-5">
-          <div className="md:col-span-2">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>WHAT KIND OF POST?</span>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              {Object.entries(STYLES).map(([key, s]) => (
-                <button key={key} onClick={() => setForm((f) => ({ ...f, style: key }))}
-                  className="text-left p-3 rounded border transition font-body text-xs"
-                  style={{ borderColor: form.style === key ? ACCENT : UI.line, background: form.style === key ? UI.card : "transparent" }}>
-                  <span className="font-semibold block">{s.label}</span>
-                  <span style={{ color: UI.inkSoft }}>{s.description}</span>
-                </button>
-              ))}
-            </div>
+        {/* GIVE ME AN IDEA */}
+        <div className="rounded-2xl border p-5 mb-8 flex flex-col sm:flex-row sm:items-center gap-4" style={{ background: UI.card, borderColor: UI.line }}>
+          <div className="flex items-center justify-center rounded-xl flex-shrink-0" style={{ width: 40, height: 40, background: ACCENT }}>
+            <Sparkles size={18} color={WHITE} />
           </div>
+          <div className="flex-1">
+            {idea ? (
+              <>
+                <p className="font-mono text-xs font-semibold" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>TODAY'S IDEA</p>
+                <p className="font-body text-sm mt-0.5" style={{ color: UI.ink }}>{idea.text}</p>
+              </>
+            ) : (
+              <>
+                <p className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Not sure what to post?</p>
+                <p className="font-body text-xs mt-0.5" style={{ color: UI.inkSoft }}>Get a quick idea — a coffee shop, a neighborhood tip, a weekend event.</p>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={giveIdea}
+              className="py-2 px-4 rounded-lg border font-body text-xs font-semibold transition"
+              style={{ borderColor: UI.line, color: UI.ink }}
+            >
+              {idea ? "Another idea" : "Give Me an Idea"}
+            </button>
+            {idea && (
+              <button
+                onClick={createFromIdea}
+                className="py-2 px-4 rounded-lg font-body text-xs font-semibold transition"
+                style={{ background: ACCENT, color: WHITE }}
+              >
+                Create this post →
+              </button>
+            )}
+          </div>
+        </div>
 
-          {form.style === "card" && (
-            <div className="md:col-span-2">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>WHAT ARE YOU POSTING?</span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {/* MAIN GRID: controls + preview */}
+        <div className="grid lg:grid-cols-[2fr_3fr] gap-8 items-start">
+          {/* LEFT: CONTROLS */}
+          <div className="grid gap-6">
+            <section>
+              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>1. What are you posting?</h3>
+              <div className="grid grid-cols-2 gap-2">
                 {Object.entries(TEMPLATES).map(([key, t]) => (
                   <button key={key} onClick={() => applyTemplate(key)}
-                    className="text-left p-3 rounded border transition font-body text-xs"
+                    className="text-left p-3 rounded-lg border transition font-body text-xs"
                     style={{ borderColor: form.template === key ? ACCENT : UI.line, background: form.template === key ? UI.card : "transparent" }}>
                     <span className="font-semibold block">{t.label}</span>
                     <span style={{ color: UI.inkSoft }}>{t.word1} {t.script}</span>
                   </button>
                 ))}
               </div>
-            </div>
-          )}
+            </section>
 
-          {form.style !== "testimonial" && (
-            <UploadBox label="PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add a photo" />
-          )}
-
-          {form.style === "card" && (
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>{activeTemplate.subjectLabel}</span>
-              <input className="input" value={form.subject} onChange={update("subject")} placeholder={activeTemplate.subjectPlaceholder} />
-            </label>
-          )}
-
-          {form.style === "card" && (
-            <label className="block md:col-span-2">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
-              <input className="input" value={`${form.word1} ${form.script}`.trim()}
-                onChange={(e) => {
-                  const { lead, emphasis } = splitHeadlineLastWord(e.target.value);
-                  setForm((f) => ({ ...f, word1: lead, script: emphasis }));
-                }} placeholder="Local Favorite!" />
-              <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The last word gets your accent color and script font.</span>
-            </label>
-          )}
-
-          {form.style === "card" && (
-            <label className="block md:col-span-2">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>{activeTemplate.bodyLabel}</span>
-              <textarea className="input" rows={3} value={form.body} onChange={update("body")} placeholder={activeTemplate.bodyPlaceholder} />
-            </label>
-          )}
-
-          {(form.style === "tips" || form.style === "stats" || form.style === "checklist") && (
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
-                {form.style === "tips" ? "TITLE" : "HEADLINE"}
-              </span>
-              <input className="input" value={form.subject} onChange={update("subject")} placeholder="Summer Open House Tips" />
-            </label>
-          )}
-
-          {form.style === "stats" && (
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BIG NUMBER</span>
-              <input className="input" value={form.bigNumber} onChange={update("bigNumber")} placeholder="5" />
-            </label>
-          )}
-
-          {(form.style === "tips" || form.style === "stats" || form.style === "checklist") && (
-            <label className="block md:col-span-2">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
-                LIST ITEMS (one per line)
-              </span>
-              <textarea className="input" rows={4} value={form.listItems} onChange={update("listItems")} placeholder={"Turn on the AC\nOffer cold refreshments\nHighlight outdoor spaces"} />
-            </label>
-          )}
-
-          {form.style === "testimonial" && (
-            <>
-              <label className="block md:col-span-2">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>QUOTE</span>
-                <textarea className="input" rows={4} value={form.quote} onChange={update("quote")} placeholder="Mariella was a joy to work with..." />
-              </label>
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CLIENT NAME</span>
-                <input className="input" value={form.clientName} onChange={update("clientName")} placeholder="Mariella Torres" />
-              </label>
-              <div className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>RATING</span>
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <button key={n} type="button" onClick={() => setForm((f) => ({ ...f, rating: n }))}
-                      aria-label={`${n} star${n === 1 ? "" : "s"}`}
-                      style={{ color: n <= form.rating ? form.accentColor : UI.line, fontSize: "1.4rem", lineHeight: 1 }}>
-                      ★
-                    </button>
-                  ))}
-                </div>
+            <section>
+              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>2. Choose a layout</h3>
+              <div className="grid grid-cols-3 gap-2">
+                {Object.entries(STYLES).map(([key, s]) => (
+                  <button key={key} onClick={() => setForm((f) => ({ ...f, style: key }))}
+                    className="text-left rounded-lg border overflow-hidden transition"
+                    style={{ borderColor: form.style === key ? ACCENT : UI.line }}>
+                    <canvas
+                      ref={(el) => { styleThumbRefs.current[key] = el; }}
+                      style={{ display: "block", width: "100%", height: "auto" }}
+                    />
+                    <span className="font-body font-semibold block px-2 py-1.5" style={{ color: UI.ink, background: UI.card, fontSize: "0.68rem" }}>{s.label}</span>
+                  </button>
+                ))}
               </div>
-            </>
-          )}
+            </section>
 
-          <Accordion title="Customize design" subtitle="Accent color, personal note, size, contact band">
+            <section>
+              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>3. Add the details</h3>
+              <div className="grid gap-3">
+                {form.style !== "testimonial" && (
+                  <UploadBox label="PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add a photo" />
+                )}
+
+                {form.style === "card" && (
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>{activeTemplate.subjectLabel}</span>
+                    <input className="input" value={form.subject} onChange={update("subject")} placeholder={activeTemplate.subjectPlaceholder} />
+                  </label>
+                )}
+
+                {form.style === "card" && (
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
+                    <input className="input" value={`${form.word1} ${form.script}`.trim()}
+                      onChange={(e) => {
+                        const { lead, emphasis } = splitHeadlineLastWord(e.target.value);
+                        setForm((f) => ({ ...f, word1: lead, script: emphasis }));
+                      }} placeholder="Local Favorite!" />
+                    <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The last word gets your accent color and script font.</span>
+                  </label>
+                )}
+
+                {form.style === "card" && (
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>{activeTemplate.bodyLabel}</span>
+                    <textarea className="input" rows={3} value={form.body} onChange={update("body")} placeholder={activeTemplate.bodyPlaceholder} />
+                  </label>
+                )}
+
+                {(form.style === "tips" || form.style === "stats" || form.style === "checklist") && (
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
+                      {form.style === "tips" ? "TITLE" : "HEADLINE"}
+                    </span>
+                    <input className="input" value={form.subject} onChange={update("subject")} placeholder="Summer Open House Tips" />
+                  </label>
+                )}
+
+                {form.style === "stats" && (
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BIG NUMBER</span>
+                    <input className="input" value={form.bigNumber} onChange={update("bigNumber")} placeholder="5" />
+                  </label>
+                )}
+
+                {(form.style === "tips" || form.style === "stats" || form.style === "checklist") && (
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
+                      LIST ITEMS (one per line)
+                    </span>
+                    <textarea className="input" rows={4} value={form.listItems} onChange={update("listItems")} placeholder={"Turn on the AC\nOffer cold refreshments\nHighlight outdoor spaces"} />
+                  </label>
+                )}
+
+                {form.style === "testimonial" && (
+                  <>
+                    <label className="block">
+                      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>QUOTE</span>
+                      <textarea className="input" rows={4} value={form.quote} onChange={update("quote")} placeholder="Mariella was a joy to work with..." />
+                    </label>
+                    <label className="block">
+                      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CLIENT NAME</span>
+                      <input className="input" value={form.clientName} onChange={update("clientName")} placeholder="Mariella Torres" />
+                    </label>
+                    <div className="block">
+                      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>RATING</span>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button key={n} type="button" onClick={() => setForm((f) => ({ ...f, rating: n }))}
+                            aria-label={`${n} star${n === 1 ? "" : "s"}`}
+                            style={{ color: n <= form.rating ? form.accentColor : UI.line, fontSize: "1.4rem", lineHeight: 1 }}>
+                            ★
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </section>
+
+            <label
+              className="flex items-center gap-3 p-4 rounded-xl border cursor-pointer"
+              style={{ borderColor: UI.line, background: UI.card }}
+            >
+              <input type="checkbox" checked={wantSocialSet} onChange={(e) => setWantSocialSet(e.target.checked)} className="hidden" />
+              <span className="flex-1">
+                <span className="flex items-center gap-2">
+                  <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Create My Social Set</span>
+                  <span className="font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.04em", color: WHITE, background: ACCENT, padding: "1px 6px", borderRadius: 999 }}>NEW</span>
+                </span>
+                <span className="font-body text-xs block mt-0.5" style={{ color: UI.inkSoft }}>Get square, story, and landscape versions in seconds.</span>
+              </span>
+              <span
+                className="flex-shrink-0 rounded-full transition"
+                style={{ width: 40, height: 24, background: wantSocialSet ? ACCENT : UI.line, position: "relative" }}
+              >
+                <span
+                  className="absolute rounded-full transition"
+                  style={{ width: 18, height: 18, top: 3, left: wantSocialSet ? 19 : 3, background: WHITE }}
+                />
+              </span>
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setShowCustomize((s) => !s)}
+              className="flex items-center justify-center gap-2 py-2.5 rounded-lg border font-body text-sm font-semibold transition"
+              style={{ borderColor: UI.line, color: UI.ink }}
+            >
+              <SlidersHorizontal size={15} />
+              {showCustomize ? "Hide customize options" : "Customize More"}
+            </button>
+
+            {showCustomize && (
+              <div className="grid gap-5">
+                <Accordion title="Customize design" subtitle="Accent color, personal note, size, contact band" defaultOpen>
             <div className="md:col-span-2">
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT COLOR</span>
               <div className="flex items-center gap-2 flex-wrap">
@@ -993,7 +1096,124 @@ export function CommunityTool({ onSwitchTool }) {
                 <span className="font-body text-xs" style={{ color: "#C0392B" }}>Couldn't save — try again.</span>
               )}
             </div>
-          </Accordion>
+                </Accordion>
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT: PREVIEW */}
+          <div className="lg:sticky" style={{ top: "1.5rem" }}>
+            <div className="rounded-2xl border p-3 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Preview</span>
+                <div className="flex items-center gap-1 p-1 rounded-full flex-wrap" style={{ background: UI.stone }}>
+                  {Object.entries(ASPECTS).map(([key, a]) => (
+                    <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
+                      className="px-3 py-1 rounded-full font-body text-xs font-semibold transition"
+                      style={{
+                        background: form.aspect === key ? UI.card : "transparent",
+                        color: form.aspect === key ? UI.ink : UI.inkSoft,
+                        boxShadow: form.aspect === key ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+                      }}>
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border flex items-center justify-center p-2 sm:p-4" style={{ background: UI.stone, borderColor: UI.line }}>
+                <canvas
+                  ref={canvasRef}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    maxWidth: "480px",
+                    height: "auto",
+                    borderRadius: "4px",
+                    boxShadow: "0 20px 40px rgba(27,36,48,0.22)",
+                  }}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowCustomize(true)}
+                className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 rounded-lg border font-body text-sm font-semibold transition"
+                style={{ borderColor: UI.line, color: UI.ink }}
+              >
+                <SlidersHorizontal size={15} /> Customize More
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* READY TO DOWNLOAD */}
+        <div className="mt-8 rounded-2xl border p-5 sm:p-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" style={{ background: UI.card, borderColor: UI.line }}>
+          <div>
+            <h3 className="font-body text-base font-semibold" style={{ color: UI.ink }}>Ready to download your post?</h3>
+            <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>
+              {wantSocialSet ? "We'll generate Feed, Story, and Landscape sizes at once." : "Once you're happy with your design, download it below."}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={primaryDownload}
+              disabled={primaryDownloadBusy}
+              className="py-2.5 px-5 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+              style={{ background: ACCENT, color: WHITE }}
+            >
+              <Download size={16} /> {primaryDownloadBusy ? "Preparing…" : "Download Image"}
+            </button>
+            <button
+              onClick={wantSocialSet ? downloadImage : downloadAllSizes}
+              title={wantSocialSet ? "Download just this size" : "Download the whole set"}
+              className="p-2.5 rounded-lg border transition"
+              style={{ borderColor: UI.line, color: UI.ink }}
+            >
+              <MoreHorizontal size={16} />
+            </button>
+          </div>
+        </div>
+        {downloadError && (
+          <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
+        )}
+        <div className="mt-3">
+          <PrivacyBadge />
+        </div>
+
+        {/* SOCIAL SET PREVIEW */}
+        <div className="mt-10">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+            <div>
+              <h3 className="font-body text-base font-semibold flex items-center gap-2" style={{ color: UI.ink }}>
+                Your Social Set (Preview)
+                <span className="font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.04em", color: WHITE, background: ACCENT, padding: "1px 6px", borderRadius: 999 }}>NEW</span>
+              </h3>
+              <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>We'll generate multiple sizes for all your platforms.</p>
+            </div>
+            <button
+              onClick={downloadAllSizes}
+              disabled={downloadingAll}
+              className="flex items-center gap-1.5 py-2 px-4 rounded-lg border font-body text-xs font-semibold transition disabled:opacity-60"
+              style={{ borderColor: UI.line, color: UI.ink }}
+            >
+              {downloadingAll ? "Preparing…" : "Download All"}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {THUMB_ASPECTS.map((key) => (
+              <div key={key}>
+                <div className="rounded-lg border overflow-hidden flex items-center justify-center p-2" style={{ background: UI.card, borderColor: UI.line }}>
+                  <canvas
+                    ref={(el) => { setThumbRefs.current[key] = el; }}
+                    style={{ display: "block", width: "100%", height: "auto", borderRadius: "3px" }}
+                  />
+                </div>
+                <p className="font-body text-xs font-semibold mt-2" style={{ color: UI.ink }}>{ASPECTS[key].label}</p>
+                <p className="font-mono text-xs" style={{ color: UI.inkSoft }}>{ASPECTS[key].w} x {ASPECTS[key].h}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </main>
     </div>
