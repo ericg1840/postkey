@@ -173,6 +173,8 @@ export function CommunityTool({ onSwitchTool }) {
       brokerageName: brandKit?.brokerageName ?? "",
       brokerageCity: brandKit?.brokerageCity ?? "",
       officePhone: brandKit?.officePhone ?? "",
+      website: brandKit?.website ?? "",
+      licenseNumber: brandKit?.licenseNumber ?? "",
       accentColor: brandKit?.accentColor || DEFAULTS.accentColor,
       badgeText: DEFAULTS.badgeText.replace("{agent}", firstNameOf(agentName)),
     };
@@ -197,9 +199,12 @@ export function CommunityTool({ onSwitchTool }) {
         brokerageName: form.brokerageName,
         brokerageCity: form.brokerageCity,
         officePhone: form.officePhone,
+        website: form.website,
+        licenseNumber: form.licenseNumber,
         accentColor: form.accentColor,
         headshotUrl: headshot.source === "custom" ? headshot.url : null,
         logoUrl: logo.source === "custom" ? logo.url : null,
+        onboarded: true,
       });
       setBrandStatus("saved");
     } catch {
@@ -941,9 +946,17 @@ export function CommunityTool({ onSwitchTool }) {
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OFFICE CITY</span>
               <input className="input" value={form.brokerageCity} onChange={update("brokerageCity")} />
             </label>
-            <label className="block col-span-2">
+            <label className="block">
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OFFICE PHONE</span>
               <input className="input" value={form.officePhone} onChange={update("officePhone")} />
+            </label>
+            <label className="block">
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>WEBSITE</span>
+              <input className="input" value={form.website} onChange={update("website")} />
+            </label>
+            <label className="block col-span-2">
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LICENSE NUMBER</span>
+              <input className="input" value={form.licenseNumber} onChange={update("licenseNumber")} />
             </label>
             <div className="col-span-2 flex items-center gap-3">
               <button

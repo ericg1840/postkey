@@ -5,6 +5,7 @@ import { CommunityTool } from "./CommunityTool.jsx";
 import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
 import { AuthScreen } from "./auth/AuthScreen.jsx";
 import { ResetPasswordScreen } from "./auth/ResetPasswordScreen.jsx";
+import { OnboardingWizard } from "./onboarding/OnboardingWizard.jsx";
 
 function getResetParams() {
   const params = new URLSearchParams(window.location.search);
@@ -16,7 +17,7 @@ function getResetParams() {
 function AppShell() {
   const [activeTool, setActiveTool] = useState("listings");
   const [resetParams, setResetParams] = useState(getResetParams);
-  const { user, loading } = useAuth();
+  const { user, brandKit, loading } = useAuth();
 
   if (resetParams) {
     return (
@@ -33,6 +34,7 @@ function AppShell() {
 
   if (loading) return null;
   if (!user) return <AuthScreen />;
+  if (brandKit && !brandKit.onboarded) return <OnboardingWizard />;
 
   return activeTool === "listings" ? (
     <ListingTool onSwitchTool={setActiveTool} />
