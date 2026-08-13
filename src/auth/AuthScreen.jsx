@@ -1,13 +1,63 @@
 import { useState } from "react";
-import { LogIn, User, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
-import { AUTH, AuthShell, AuthField } from "./AuthShell.jsx";
+import { AUTH, AUTH_BLUE, AuthShell, AuthField } from "./AuthShell.jsx";
 
 const COPY = {
-  login: { title: "Sign in with email", subtitle: "Turn your listings into share-ready posts in seconds.", cta: "Log in" },
-  signup: { title: "Create your account", subtitle: "Set up your own brand kit and start posting in minutes.", cta: "Create account" },
-  forgot: { title: "Reset your password", subtitle: "Enter your account email and we'll send a link to reset it.", cta: "Send reset link" },
+  login: { title: "Welcome back", subtitle: "Log in to pick up where you left off." },
+  signup: { title: "Create your free account", subtitle: "Set up your brand and create your first post in just a few minutes." },
+  forgot: { title: "Reset your password", subtitle: "Enter your account email and we'll send a link to reset it." },
 };
+
+const STEPS = ["Account", "Brand", "First Post"];
+
+function ModeTabs({ mode, onChange }) {
+  return (
+    <div className="flex items-center rounded-full p-1 mb-6" style={{ background: AUTH.field, border: `1px solid ${AUTH.border}` }}>
+      {["signup", "login"].map((m) => (
+        <button
+          key={m}
+          type="button"
+          onClick={() => onChange(m)}
+          className="flex-1 font-body text-sm font-semibold rounded-full py-2 transition"
+          style={{
+            background: mode === m ? "#FFFFFF" : "transparent",
+            color: mode === m ? AUTH_BLUE : AUTH.muted,
+            boxShadow: mode === m ? "0 1px 4px rgba(27,36,48,0.12)" : "none",
+          }}
+        >
+          {m === "signup" ? "Sign Up" : "Log In"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function StepIndicator() {
+  return (
+    <div className="flex items-center justify-center gap-2 mt-6">
+      {STEPS.map((label, i) => (
+        <div key={label} className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <span
+              className="flex items-center justify-center rounded-full font-body font-semibold flex-shrink-0"
+              style={{
+                width: 20, height: 20, fontSize: "0.68rem",
+                background: i === 0 ? AUTH_BLUE : AUTH.field,
+                color: i === 0 ? "#FFFFFF" : AUTH.muted,
+                border: i === 0 ? "none" : `1px solid ${AUTH.border}`,
+              }}
+            >
+              {i + 1}
+            </span>
+            <span className="font-body text-xs font-semibold" style={{ color: i === 0 ? AUTH.ink : AUTH.muted }}>{label}</span>
+          </div>
+          {i < STEPS.length - 1 && <div style={{ width: 24, height: 1, background: AUTH.border }} />}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function AuthScreen({ initialMode = "login", onBack }) {
   const { login, signup, requestPasswordReset } = useAuth();
@@ -42,10 +92,17 @@ export function AuthScreen({ initialMode = "login", onBack }) {
     }
   };
 
-  const { title, subtitle, cta } = COPY[mode];
+  const { title, subtitle } = COPY[mode];
 
   return (
-    <AuthShell icon={LogIn} title={title} subtitle={subtitle} onBack={onBack}>
+    <AuthShell onBack={onBack}>
+      {mode !== "forgot" && <ModeTabs mode={mode} onChange={switchMode} />}
+
+      <div className={mode === "forgot" ? "mb-6" : "mb-6 text-center"}>
+        <h1 className="font-display font-bold text-xl" style={{ color: AUTH.ink }}>{title}</h1>
+        {subtitle && <p className="font-body text-sm mt-1.5" style={{ color: AUTH.muted }}>{subtitle}</p>}
+      </div>
+
       {mode === "forgot" && resetMessage ? (
         <div className="grid gap-4">
           <p className="font-body text-sm" style={{ color: AUTH.ink }}>{resetMessage}</p>
@@ -80,6 +137,9 @@ export function AuthScreen({ initialMode = "login", onBack }) {
               />
             </AuthField>
           )}
+          {mode === "signup" && (
+            <span className="font-body text-xs -mt-2" style={{ color: AUTH.muted }}>8+ characters</span>
+          )}
 
           {mode === "login" && (
             <button type="button" onClick={() => switchMode("forgot")} className="font-body text-xs text-right -mt-1" style={{ color: AUTH.muted }}>
@@ -90,18 +150,20 @@ export function AuthScreen({ initialMode = "login", onBack }) {
           {error && <div className="font-body text-xs" style={{ color: "#C0392B" }}>{error}</div>}
 
           <button type="submit" disabled={busy} className="auth-cta">
-            {busy ? "Please wait…" : cta}
+            {busy ? "Please wait…" : mode === "signup" ? "Get Started Free" : "Log in"}
           </button>
 
+          {mode === "signup" && <StepIndicator />}
+
           {mode === "forgot" ? (
-            <button type="button" onClick={() => switchMode("login")} className="font-body text-xs font-semibold underline text-center" style={{ color: AUTH.muted }}>
+            <button type="button" onClick={() => switchMode("login")} className="font-body text-xs font-semibold underline text-center mt-1" style={{ color: AUTH.muted }}>
               Back to log in
             </button>
           ) : (
             <button
               type="button"
               onClick={() => switchMode(mode === "login" ? "signup" : "login")}
-              className="font-body text-xs text-center"
+              className="font-body text-xs text-center mt-1"
               style={{ color: AUTH.muted }}
             >
               {mode === "login" ? "New here? " : "Already have an account? "}
