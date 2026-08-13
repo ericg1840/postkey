@@ -23,6 +23,7 @@ export default async (req) => {
           website: kit.website,
           licenseNumber: kit.license_number,
           accentColor: kit.accent_color,
+          scriptFont: kit.script_font,
           headshotUrl: kit.headshot_url,
           logoUrl: kit.logo_url,
           onboarded: kit.onboarded,

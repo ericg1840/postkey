@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Download, Image as ImageIcon, User, Building2, SlidersHorizontal, MoreHorizontal } from "lucide-react";
 import {
-  UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS,
+  UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
   mixWithWhite, drawCover, wrapText, roundRect, archedRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
@@ -47,6 +47,7 @@ const DEFAULTS = {
   officePhone: "(555) 987-6543",
   contactBg: "white",
   accentColor: "#E0298C",
+  scriptFont: "Dancing Script",
 };
 
 export function ListingTool({ onSwitchTool }) {
@@ -64,6 +65,7 @@ export function ListingTool({ onSwitchTool }) {
       website: brandKit?.website ?? "",
       licenseNumber: brandKit?.licenseNumber ?? "",
       accentColor: brandKit?.accentColor || DEFAULTS.accentColor,
+      scriptFont: brandKit?.scriptFont || DEFAULTS.scriptFont,
       badgeText: DEFAULTS.badgeText.replace("{agent}", firstNameOf(agentName)),
     };
   });
@@ -91,6 +93,7 @@ export function ListingTool({ onSwitchTool }) {
         website: form.website,
         licenseNumber: form.licenseNumber,
         accentColor: form.accentColor,
+        scriptFont: form.scriptFont,
         headshotUrl: headshot.source === "custom" ? headshot.url : null,
         logoUrl: logo.source === "custom" ? logo.url : null,
         onboarded: true,
@@ -104,9 +107,9 @@ export function ListingTool({ onSwitchTool }) {
   useEffect(() => {
     Promise.all([
       document.fonts.load('900 60px "Playfair Display"'),
-      document.fonts.load('700 40px "Dancing Script"'),
       document.fonts.load('800 30px "Montserrat"'),
       document.fonts.load('600 16px "Public Sans"'),
+      ...SCRIPT_FONTS.map((f) => document.fonts.load(`${f.weight} 40px "${f.name}"`)),
     ]).catch(() => {}).finally(() => setFontsReady(true));
   }, []);
 
@@ -177,7 +180,7 @@ export function ListingTool({ onSwitchTool }) {
     let scriptSize = bandH * 0.62;
     ctx.font = `900 ${word1Size}px "Playfair Display", serif`;
     let w1Width = ctx.measureText(form.word1).width;
-    ctx.font = `700 ${scriptSize}px "Dancing Script", cursive`;
+    ctx.font = scriptFontCss(form.scriptFont, scriptSize);
     let scriptWidth = ctx.measureText(form.script).width;
     const headlineTotalW = w1Width + headlineGap + scriptWidth;
     if (headlineTotalW > headlineMaxW) {
@@ -194,7 +197,7 @@ export function ListingTool({ onSwitchTool }) {
     const w1y = bandY + bandH * 0.62;
     ctx.fillText(form.word1, w1x, w1y);
 
-    ctx.font = `700 ${scriptSize}px "Dancing Script", cursive`;
+    ctx.font = scriptFontCss(form.scriptFont, scriptSize);
     ctx.fillStyle = form.accentColor;
     ctx.fillText(form.script, w1x + w1Width + headlineGap, bandY + bandH * 0.78);
 
@@ -237,7 +240,7 @@ export function ListingTool({ onSwitchTool }) {
 
       let badgeFont = h * 0.032;
       const measure = (font) => {
-        ctx.font = `700 ${font}px "Dancing Script", cursive`;
+        ctx.font = scriptFontCss(form.scriptFont, font);
         const maxLineW = Math.max(...badgeLines.map((l) => ctx.measureText(l).width));
         return maxLineW + font * 0.7;
       };
@@ -261,7 +264,7 @@ export function ListingTool({ onSwitchTool }) {
 
       ctx.fillStyle = WHITE;
       ctx.textAlign = "center";
-      ctx.font = `700 ${badgeFont}px "Dancing Script", cursive`;
+      ctx.font = scriptFontCss(form.scriptFont, badgeFont);
       badgeLines.forEach((line, i) => ctx.fillText(line, badgeX + badgeW / 2, badgeY + badgeFont * 1.15 * (i + 1)));
       ctx.textAlign = "left";
     }
@@ -464,7 +467,7 @@ export function ListingTool({ onSwitchTool }) {
     const gap = w * 0.02;
     const spacedCaps = () => form.modernHeadline.toUpperCase().split("").join(" ");
 
-    ctx.font = `700 ${scriptSize}px "Dancing Script", cursive`;
+    ctx.font = scriptFontCss(form.scriptFont, scriptSize);
     let scriptW = ctx.measureText(form.modernScript).width;
     ctx.font = `700 ${capsSize}px "Playfair Display", serif`;
     let capsW = ctx.measureText(spacedCaps()).width;
@@ -474,7 +477,7 @@ export function ListingTool({ onSwitchTool }) {
       const scale = headlineMaxW / headlineTotalW;
       scriptSize *= scale;
       capsSize *= scale;
-      ctx.font = `700 ${scriptSize}px "Dancing Script", cursive`;
+      ctx.font = scriptFontCss(form.scriptFont, scriptSize);
       scriptW = ctx.measureText(form.modernScript).width;
       ctx.font = `700 ${capsSize}px "Playfair Display", serif`;
       capsW = ctx.measureText(spacedCaps()).width;
@@ -482,7 +485,7 @@ export function ListingTool({ onSwitchTool }) {
 
     let hx = w / 2 - (scriptW + gap + capsW) / 2;
     const hy = headlineY0 + headlineH * 0.64;
-    ctx.font = `700 ${scriptSize}px "Dancing Script", cursive`;
+    ctx.font = scriptFontCss(form.scriptFont, scriptSize);
     ctx.fillStyle = form.accentColor;
     ctx.fillText(form.modernScript, hx, hy);
     hx += scriptW + gap;
@@ -866,6 +869,21 @@ export function ListingTool({ onSwitchTool }) {
                 </div>
               </div>
 
+              <div className="md:col-span-2">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SCRIPT FONT</span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {SCRIPT_FONTS.map((f) => (
+                    <button key={f.name} onClick={() => setForm((prev) => ({ ...prev, scriptFont: f.name }))}
+                      className="text-left p-2.5 rounded border transition"
+                      style={{ borderColor: form.scriptFont === f.name ? ACCENT : UI.line, background: form.scriptFont === f.name ? UI.card : "transparent" }}>
+                      <span style={{ fontFamily: `"${f.name}", cursive`, fontWeight: f.weight, fontSize: "1.15rem", color: UI.ink, lineHeight: 1.2, display: "block" }}>
+                        {f.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {form.layout === "bold" && (
                 <label className="block md:col-span-2">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
@@ -955,119 +973,7 @@ export function ListingTool({ onSwitchTool }) {
               </div>
                 </Accordion>
 
-                <Accordion title="Brand settings" subtitle="Set this up once — it carries to every post">
-            <div className="md:col-span-2">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT COLOR</span>
-              <div className="flex items-center gap-2 flex-wrap">
-                {ACCENT_PRESETS.map((c) => (
-                  <button key={c} onClick={() => setForm((f) => ({ ...f, accentColor: c }))}
-                    aria-label={c}
-                    className="rounded-full transition"
-                    style={{
-                      width: "1.75rem", height: "1.75rem", background: c,
-                      border: form.accentColor.toLowerCase() === c.toLowerCase() ? `2px solid ${UI.ink}` : "2px solid transparent",
-                      boxShadow: form.accentColor.toLowerCase() === c.toLowerCase() ? `0 0 0 2px ${UI.card}` : "none",
-                    }} />
-                ))}
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input type="color" value={form.accentColor}
-                    onChange={(e) => setForm((f) => ({ ...f, accentColor: e.target.value }))}
-                    style={{ width: "1.75rem", height: "1.75rem", padding: 0, border: `1px solid ${UI.line}`, borderRadius: "0.35rem", background: "none" }} />
-                  <span className="font-mono text-xs" style={{ color: UI.inkSoft }}>Custom</span>
-                </label>
-              </div>
-            </div>
-
-            {form.layout === "bold" && (
-              <label className="block md:col-span-2">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
-                <input className="input" value={`${form.word1} ${form.script}`.trim()}
-                  onChange={(e) => {
-                    const { lead, emphasis } = splitHeadlineLastWord(e.target.value);
-                    setForm((f) => ({ ...f, word1: lead, script: emphasis }));
-                  }} placeholder="Just SOLD!" />
-                <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The last word gets your accent color and script font.</span>
-              </label>
-            )}
-
-            {(form.layout === "editorial" || form.layout === "collage") && (
-              <label className="block md:col-span-2">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
-                <input className="input" value={form.bigHeadline} onChange={update("bigHeadline")} placeholder={form.layout === "editorial" ? "JUST LISTED" : "FOR SALE"} />
-              </label>
-            )}
-
-            {form.layout === "modern" && (
-              <label className="block md:col-span-2">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
-                <input className="input" value={`${form.modernScript} ${form.modernHeadline}`.trim()}
-                  onChange={(e) => {
-                    const { emphasis, lead } = splitHeadlineFirstWord(e.target.value);
-                    setForm((f) => ({ ...f, modernScript: emphasis, modernHeadline: lead }));
-                  }} placeholder="just Listed" />
-                <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The first word gets the cursive script treatment.</span>
-              </label>
-            )}
-
-            {form.layout === "modern" && (
-              <label className="block md:col-span-2">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BOTTOM BAR MESSAGE</span>
-                <input className="input" value={form.bottomMessage} onChange={update("bottomMessage")} placeholder="Message for more details" />
-              </label>
-            )}
-
-            {form.layout === "bold" && (
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>TOP BANNER (optional)</span>
-                <input className="input" value={form.banner} onChange={update("banner")} placeholder="$571,000 in 8 days!" />
-              </label>
-            )}
-
-            {form.layout === "bold" && (
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HIGHLIGHT LINE (optional)</span>
-                <input className="input" value={form.highlight} onChange={update("highlight")} placeholder="Highest Sale Price in the Community!" />
-              </label>
-            )}
-
-            {form.layout === "bold" && (
-              <label className="block md:col-span-2">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PERSONAL NOTE</span>
-                <textarea className="input" rows={3} value={form.badgeText} onChange={update("badgeText")} />
-              </label>
-            )}
-
-            <div>
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CONTACT BAND</span>
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => setForm((f) => ({ ...f, contactBg: "black" }))}
-                  className="p-2 rounded border font-body text-xs font-semibold transition"
-                  style={{ borderColor: form.contactBg === "black" ? ACCENT : UI.line, background: form.contactBg === "black" ? UI.card : "transparent" }}>
-                  Black background
-                </button>
-                <button onClick={() => setForm((f) => ({ ...f, contactBg: "white" }))}
-                  className="p-2 rounded border font-body text-xs font-semibold transition"
-                  style={{ borderColor: form.contactBg === "white" ? ACCENT : UI.line, background: form.contactBg === "white" ? UI.card : "transparent" }}>
-                  White background
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SIZE (for single-image download)</span>
-              <div className="grid grid-cols-4 gap-2">
-                {Object.entries(ASPECTS).map(([key, a]) => (
-                  <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
-                    className="p-2 rounded border font-body text-xs font-semibold transition"
-                    style={{ borderColor: form.aspect === key ? ACCENT : UI.line, background: form.aspect === key ? UI.card : "transparent" }}>
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </Accordion>
-
-          <Accordion title="Brand settings" subtitle="Set this up once — it carries to every post">
+              <Accordion title="Brand settings" subtitle="Set this up once — it carries to every post">
             <div className="grid grid-cols-2 gap-3 md:col-span-2">
               <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
               <UploadBox label="LOGO" icon={Building2} state={logo} hint="Brokerage logo" />

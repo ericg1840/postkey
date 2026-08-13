@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Download, Image as ImageIcon, User, Building2 } from "lucide-react";
 import {
-  UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS,
+  UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
   mixWithWhite, drawCover, wrapText, roundRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
@@ -159,6 +159,7 @@ const DEFAULTS = {
   officePhone: "(555) 987-6543",
   contactBg: "white",
   accentColor: "#E0298C",
+  scriptFont: "Dancing Script",
 };
 
 export function CommunityTool({ onSwitchTool }) {
@@ -176,6 +177,7 @@ export function CommunityTool({ onSwitchTool }) {
       website: brandKit?.website ?? "",
       licenseNumber: brandKit?.licenseNumber ?? "",
       accentColor: brandKit?.accentColor || DEFAULTS.accentColor,
+      scriptFont: brandKit?.scriptFont || DEFAULTS.scriptFont,
       badgeText: DEFAULTS.badgeText.replace("{agent}", firstNameOf(agentName)),
     };
   });
@@ -202,6 +204,7 @@ export function CommunityTool({ onSwitchTool }) {
         website: form.website,
         licenseNumber: form.licenseNumber,
         accentColor: form.accentColor,
+        scriptFont: form.scriptFont,
         headshotUrl: headshot.source === "custom" ? headshot.url : null,
         logoUrl: logo.source === "custom" ? logo.url : null,
         onboarded: true,
@@ -215,9 +218,9 @@ export function CommunityTool({ onSwitchTool }) {
   useEffect(() => {
     Promise.all([
       document.fonts.load('900 60px "Playfair Display"'),
-      document.fonts.load('700 40px "Dancing Script"'),
       document.fonts.load('800 30px "Montserrat"'),
       document.fonts.load('600 16px "Public Sans"'),
+      ...SCRIPT_FONTS.map((f) => document.fonts.load(`${f.weight} 40px "${f.name}"`)),
     ]).catch(() => {}).finally(() => setFontsReady(true));
   }, []);
 
@@ -360,7 +363,7 @@ export function CommunityTool({ onSwitchTool }) {
     quoteLines.forEach((line, i) => ctx.fillText(line, w / 2, qy + i * quoteLineH));
 
     const sigY = qy + quoteLines.length * quoteLineH + h * 0.05;
-    ctx.font = `700 ${w * 0.045}px "Dancing Script", cursive`;
+    ctx.font = scriptFontCss(form.scriptFont, w * 0.045);
     ctx.fillStyle = form.accentColor;
     ctx.fillText(form.clientName, w / 2, sigY);
 
@@ -503,7 +506,7 @@ export function CommunityTool({ onSwitchTool }) {
     let scriptSize = bandH * 0.62;
     ctx.font = `900 ${word1Size}px "Playfair Display", serif`;
     let w1Width = ctx.measureText(form.word1).width;
-    ctx.font = `700 ${scriptSize}px "Dancing Script", cursive`;
+    ctx.font = scriptFontCss(form.scriptFont, scriptSize);
     let scriptWidth = ctx.measureText(form.script).width;
     const headlineTotalW = w1Width + headlineGap + scriptWidth;
     if (headlineTotalW > headlineMaxW) {
@@ -520,7 +523,7 @@ export function CommunityTool({ onSwitchTool }) {
     const w1y = bandY + bandH * 0.62;
     ctx.fillText(form.word1, w1x, w1y);
 
-    ctx.font = `700 ${scriptSize}px "Dancing Script", cursive`;
+    ctx.font = scriptFontCss(form.scriptFont, scriptSize);
     ctx.fillStyle = form.accentColor;
     ctx.fillText(form.script, w1x + w1Width + headlineGap, bandY + bandH * 0.78);
 
@@ -532,7 +535,7 @@ export function CommunityTool({ onSwitchTool }) {
 
       let badgeFont = h * 0.032;
       const measure = (font) => {
-        ctx.font = `700 ${font}px "Dancing Script", cursive`;
+        ctx.font = scriptFontCss(form.scriptFont, font);
         const maxLineW = Math.max(...badgeLines.map((l) => ctx.measureText(l).width));
         return maxLineW + font * 0.7;
       };
@@ -556,7 +559,7 @@ export function CommunityTool({ onSwitchTool }) {
 
       ctx.fillStyle = WHITE;
       ctx.textAlign = "center";
-      ctx.font = `700 ${badgeFont}px "Dancing Script", cursive`;
+      ctx.font = scriptFontCss(form.scriptFont, badgeFont);
       badgeLines.forEach((line, i) => ctx.fillText(line, badgeX + badgeW / 2, badgeY + badgeFont * 1.15 * (i + 1)));
       ctx.textAlign = "left";
     }
@@ -879,6 +882,21 @@ export function CommunityTool({ onSwitchTool }) {
                     style={{ width: "1.75rem", height: "1.75rem", padding: 0, border: `1px solid ${UI.line}`, borderRadius: "0.35rem", background: "none" }} />
                   <span className="font-mono text-xs" style={{ color: UI.inkSoft }}>Custom</span>
                 </label>
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SCRIPT FONT</span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {SCRIPT_FONTS.map((f) => (
+                  <button key={f.name} onClick={() => setForm((prev) => ({ ...prev, scriptFont: f.name }))}
+                    className="text-left p-2.5 rounded border transition"
+                    style={{ borderColor: form.scriptFont === f.name ? ACCENT : UI.line, background: form.scriptFont === f.name ? UI.card : "transparent" }}>
+                    <span style={{ fontFamily: `"${f.name}", cursive`, fontWeight: f.weight, fontSize: "1.15rem", color: UI.ink, lineHeight: 1.2, display: "block" }}>
+                      {f.name}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
 
