@@ -9,9 +9,9 @@ const COPY = {
   forgot: { title: "Reset your password", subtitle: "Enter your account email and we'll send a link to reset it.", cta: "Send reset link" },
 };
 
-export function AuthScreen() {
+export function AuthScreen({ initialMode = "login", onBack }) {
   const { login, signup, requestPasswordReset } = useAuth();
-  const [mode, setMode] = useState("login"); // login | signup | forgot
+  const [mode, setMode] = useState(initialMode); // login | signup | forgot
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -45,7 +45,7 @@ export function AuthScreen() {
   const { title, subtitle, cta } = COPY[mode];
 
   return (
-    <AuthShell icon={LogIn} title={title} subtitle={subtitle}>
+    <AuthShell icon={LogIn} title={title} subtitle={subtitle} onBack={onBack}>
       {mode === "forgot" && resetMessage ? (
         <div className="grid gap-4">
           <p className="font-body text-sm" style={{ color: AUTH.ink }}>{resetMessage}</p>

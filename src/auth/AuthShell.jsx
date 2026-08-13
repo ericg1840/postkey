@@ -54,7 +54,7 @@ function BrandPanel() {
   );
 }
 
-export function AuthShell({ icon: Icon, title, subtitle, children }) {
+export function AuthShell({ icon: Icon, title, subtitle, onBack, children }) {
   return (
     <div
       className="min-h-screen flex items-center justify-center px-6 py-10 relative overflow-hidden"
@@ -62,6 +62,15 @@ export function AuthShell({ icon: Icon, title, subtitle, children }) {
         background: "linear-gradient(180deg, #BFE0F5 0%, #DCEEFA 45%, #F3F9FD 100%)",
       }}
     >
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="absolute top-6 left-6 font-body text-xs font-semibold flex items-center gap-1.5 z-10"
+          style={{ color: AUTH.ink }}
+        >
+          ← Back to home
+        </button>
+      )}
       <style>{`
         .auth-input { width: 100%; background: transparent; border: none; outline: none; font-family: 'Public Sans', sans-serif; font-size: 0.9rem; color: ${AUTH.ink}; }
         .auth-input::placeholder { color: ${AUTH.muted}; }

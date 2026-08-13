@@ -60,8 +60,12 @@ export function AuthProvider({ children }) {
     return api("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ email, token, newPassword }) });
   };
 
+  const changePassword = async (currentPassword, newPassword) => {
+    return api("/api/auth/change-password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, brandKit, loading, signup, login, logout, saveBrandKit, requestPasswordReset, resetPassword }}>
+    <AuthContext.Provider value={{ user, brandKit, loading, signup, login, logout, saveBrandKit, requestPasswordReset, resetPassword, changePassword }}>
       {children}
     </AuthContext.Provider>
   );
