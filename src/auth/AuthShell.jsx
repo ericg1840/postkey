@@ -13,9 +13,9 @@ export const AUTH = {
 };
 
 const FEATURES = [
-  { icon: Sparkles, text: "Turn a listing photo into a branded post in seconds" },
-  { icon: Palette, text: "Your logo, headshot, and colors — saved to your account" },
-  { icon: Lock, text: "Listing photos never leave your device" },
+  { icon: Sparkles, title: "Create posts in seconds", text: "Turn listing photos into polished social content." },
+  { icon: Palette, title: "Always on-brand", text: "Your logo, headshot, colors, and contact info are ready to go." },
+  { icon: Lock, title: "Your photos stay private", text: "Listing photos stay on your device." },
 ];
 
 function BrandPanel() {
@@ -33,17 +33,20 @@ function BrandPanel() {
         </div>
         <h2 className="font-display font-bold text-2xl" style={{ color: "#FFFFFF" }}>PostKey</h2>
         <p className="font-body text-sm mt-2" style={{ color: "rgba(255,255,255,0.65)", maxWidth: 240 }}>
-          Branded social posts for real estate agents, ready in minutes.
+          Built specifically for real estate agents.
         </p>
       </div>
 
       <div className="relative grid gap-4">
-        {FEATURES.map(({ icon: Icon, text }, i) => (
+        {FEATURES.map(({ icon: Icon, title, text }, i) => (
           <div key={i} className="flex items-start gap-3">
-            <div className="flex items-center justify-center rounded-lg flex-shrink-0" style={{ width: 28, height: 28, background: "rgba(255,255,255,0.1)" }}>
+            <div className="flex items-center justify-center rounded-lg flex-shrink-0 mt-0.5" style={{ width: 28, height: 28, background: "rgba(255,255,255,0.1)" }}>
               <Icon size={14} color="#FFFFFF" />
             </div>
-            <p className="font-body text-xs mt-1" style={{ color: "rgba(255,255,255,0.75)" }}>{text}</p>
+            <div>
+              <p className="font-body text-xs font-semibold" style={{ color: "#FFFFFF" }}>{title}</p>
+              <p className="font-body text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.65)" }}>{text}</p>
+            </div>
           </div>
         ))}
       </div>
