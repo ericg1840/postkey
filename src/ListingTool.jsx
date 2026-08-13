@@ -5,7 +5,7 @@ import {
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
   mixWithWhite, drawCover, wrapText, roundRect, archedRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
-  Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord,
+  Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord, firstNameOf,
 } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 
@@ -13,12 +13,12 @@ import { useAuth } from "./auth/AuthContext.jsx";
 // draws it. Applying one fills in every layout's headline representation
 // at once, so switching Style afterward never loses the chosen wording.
 const TEMPLATES = {
-  sold: { label: "Just Sold", word1: "Just", script: "SOLD!", badge: "Another Home\nSold by\nBilly Jo" },
-  just_listed: { label: "Just Listed", word1: "Just", script: "Listed!", badge: "New on the\nMarket with\nBilly Jo" },
-  open_house: { label: "Open House", word1: "Open", script: "House!", badge: "See You\nThere with\nBilly Jo" },
-  price_improvement: { label: "New Price", word1: "New", script: "Price!", badge: "Priced to\nMove with\nBilly Jo" },
+  sold: { label: "Just Sold", word1: "Just", script: "SOLD!", badge: "Another Home\nSold by\n{agent}" },
+  just_listed: { label: "Just Listed", word1: "Just", script: "Listed!", badge: "New on the\nMarket with\n{agent}" },
+  open_house: { label: "Open House", word1: "Open", script: "House!", badge: "See You\nThere with\n{agent}" },
+  price_improvement: { label: "New Price", word1: "New", script: "Price!", badge: "Priced to\nMove with\n{agent}" },
   under_contract: { label: "Under Contract", word1: "Under", script: "Contract!", badge: "Another One\nUnder Contract" },
-  coming_soon: { label: "Coming Soon", word1: "Coming", script: "Soon!", badge: "Coming Soon\nwith\nBilly Jo" },
+  coming_soon: { label: "Coming Soon", word1: "Coming", script: "Soon!", badge: "Coming Soon\nwith\n{agent}" },
 };
 
 const DEFAULTS = {
@@ -35,31 +35,36 @@ const DEFAULTS = {
   baths: "4",
   sqft: "3,028",
   price: "$2,295,000",
-  badgeText: "Another Home\nSold by\nBilly Jo",
+  badgeText: "Another Home\nSold by\n{agent}",
   modernScript: "just",
   modernHeadline: "Listed",
   bottomMessage: "Message for more details",
-  agentName: "Billy Jo Salkowski, Realtor",
-  agentPhone: "(610) 308-5894",
-  agentEmail: "billyjosalkowski@gmail.com",
-  brokerageName: "RE/MAX Main Line",
-  brokerageCity: "Kimberton",
-  officePhone: "(610) 489-5900",
+  agentName: "Your Name, Realtor",
+  agentPhone: "(555) 123-4567",
+  agentEmail: "you@example.com",
+  brokerageName: "Your Brokerage",
+  brokerageCity: "Your City",
+  officePhone: "(555) 987-6543",
   contactBg: "white",
   accentColor: "#E0298C",
 };
 
 export function ListingTool({ onSwitchTool }) {
   const { user, brandKit, logout, saveBrandKit } = useAuth();
-  const [form, setForm] = useState(() => ({
-    ...DEFAULTS,
-    agentName: brandKit?.agentName ?? DEFAULTS.agentName,
-    agentPhone: brandKit?.agentPhone ?? "",
-    agentEmail: brandKit?.agentEmail ?? "",
-    brokerageName: brandKit?.brokerageName ?? "",
-    brokerageCity: brandKit?.brokerageCity ?? "",
-    accentColor: brandKit?.accentColor || DEFAULTS.accentColor,
-  }));
+  const [form, setForm] = useState(() => {
+    const agentName = brandKit?.agentName ?? DEFAULTS.agentName;
+    return {
+      ...DEFAULTS,
+      agentName,
+      agentPhone: brandKit?.agentPhone ?? "",
+      agentEmail: brandKit?.agentEmail ?? "",
+      brokerageName: brandKit?.brokerageName ?? "",
+      brokerageCity: brandKit?.brokerageCity ?? "",
+      officePhone: brandKit?.officePhone ?? "",
+      accentColor: brandKit?.accentColor || DEFAULTS.accentColor,
+      badgeText: DEFAULTS.badgeText.replace("{agent}", firstNameOf(agentName)),
+    };
+  });
   const [fontsReady, setFontsReady] = useState(false);
   const [brandStatus, setBrandStatus] = useState("idle"); // idle | saving | saved | error
   const canvasRef = useRef(null);
@@ -80,6 +85,7 @@ export function ListingTool({ onSwitchTool }) {
         agentEmail: form.agentEmail,
         brokerageName: form.brokerageName,
         brokerageCity: form.brokerageCity,
+        officePhone: form.officePhone,
         accentColor: form.accentColor,
         headshotUrl: headshot.source === "custom" ? headshot.url : null,
         logoUrl: logo.source === "custom" ? logo.url : null,
@@ -106,7 +112,7 @@ export function ListingTool({ onSwitchTool }) {
       template: key,
       word1: t.word1,
       script: t.script,
-      badgeText: t.badge,
+      badgeText: t.badge.replace("{agent}", firstNameOf(f.agentName)),
       bigHeadline: `${t.word1} ${t.script}`.toUpperCase(),
       modernScript: t.word1.toLowerCase(),
       modernHeadline: t.script.replace(/!+$/, ""),
