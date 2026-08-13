@@ -2,16 +2,19 @@ import { Key, Sparkles, Palette, Lock, Users, Star } from "lucide-react";
 import { AUTH } from "../auth/AuthShell.jsx";
 import { ACCENT_PRESETS } from "../shared.jsx";
 
+// Primary landing-page accent — swapped from the pink post-accent preset to blue.
+const PRIMARY = ACCENT_PRESETS[1];
+
 const FEATURES = [
-  { icon: Sparkles, title: "Create posts in seconds", text: "Turn a listing photo into a polished, on-brand graphic without opening a design tool.", color: ACCENT_PRESETS[0] },
-  { icon: Palette, title: "Always on-brand", text: "Your logo, headshot, colors, and contact info are set up once and applied to every post.", color: ACCENT_PRESETS[1] },
+  { icon: Sparkles, title: "Create posts in seconds", text: "Turn a listing photo into a polished, on-brand graphic without opening a design tool.", color: PRIMARY },
+  { icon: Palette, title: "Always on-brand", text: "Your logo, headshot, colors, and contact info are set up once and applied to every post.", color: ACCENT_PRESETS[4] },
   { icon: Lock, title: "Your photos stay private", text: "Listing photos are rendered right in your browser and never uploaded anywhere.", color: ACCENT_PRESETS[2] },
   { icon: Users, title: "Listings and Community", text: "Just Sold and Just Listed graphics, plus local-spotlight and market-tip posts to stay visible between listings.", color: ACCENT_PRESETS[3] },
 ];
 
 const MOCK_CARDS = [
-  { label: "Just SOLD!", color: ACCENT_PRESETS[0], rotate: -9, top: 10, left: 0 },
-  { label: "Open House!", color: ACCENT_PRESETS[1], rotate: 6, top: 70, left: 150 },
+  { label: "Just SOLD!", color: PRIMARY, rotate: -9, top: 10, left: 0 },
+  { label: "Open House!", color: ACCENT_PRESETS[4], rotate: 6, top: 70, left: 150 },
   { label: "Local Favorite!", color: ACCENT_PRESETS[3], rotate: -4, top: 190, left: 20 },
 ];
 
@@ -79,7 +82,7 @@ export function HomePage({ onGetStarted, onLogIn }) {
             <button
               onClick={onGetStarted}
               className="font-body text-sm font-semibold rounded-full px-4 py-2 transition hover:opacity-88"
-              style={{ background: ACCENT_PRESETS[0], color: "#FFFFFF" }}
+              style={{ background: PRIMARY, color: "#FFFFFF" }}
             >
               Sign up
             </button>
@@ -89,8 +92,8 @@ export function HomePage({ onGetStarted, onLogIn }) {
 
       {/* HERO */}
       <section className="relative overflow-hidden">
-        <div className="absolute rounded-full" style={{ width: 460, height: 460, top: -220, left: -180, background: `${ACCENT_PRESETS[1]}12`, filter: "blur(20px)" }} />
-        <div className="absolute rounded-full" style={{ width: 360, height: 360, bottom: -180, right: -120, background: `${ACCENT_PRESETS[0]}14`, filter: "blur(20px)" }} />
+        <div className="absolute rounded-full" style={{ width: 460, height: 460, top: -220, left: -180, background: `${ACCENT_PRESETS[4]}12`, filter: "blur(20px)" }} />
+        <div className="absolute rounded-full" style={{ width: 360, height: 360, bottom: -180, right: -120, background: `${PRIMARY}14`, filter: "blur(20px)" }} />
 
         <div className="max-w-6xl mx-auto px-6 py-16 sm:py-24 relative grid lg:grid-cols-2 gap-14 items-center">
           <div>
@@ -98,13 +101,13 @@ export function HomePage({ onGetStarted, onLogIn }) {
               className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-6"
               style={{ background: "#FFFFFF", boxShadow: "0 4px 14px rgba(27,36,48,0.08)" }}
             >
-              <Key size={13} color={ACCENT_PRESETS[0]} style={{ transform: "rotate(-45deg)" }} />
+              <Key size={13} color={PRIMARY} style={{ transform: "rotate(-45deg)" }} />
               <span className="font-body text-xs font-semibold" style={{ color: AUTH.ink }}>Built for real estate agents</span>
             </div>
 
             <h1 className="font-display font-bold" style={{ color: AUTH.ink, fontSize: "clamp(2.1rem, 4.8vw, 3.4rem)", lineHeight: 1.08 }}>
               Turn listing photos into{" "}
-              <span style={{ fontFamily: "'Dancing Script', cursive", color: ACCENT_PRESETS[0], fontWeight: 700 }}>
+              <span style={{ fontFamily: "'Dancing Script', cursive", color: PRIMARY, fontWeight: 700 }}>
                 scroll-stopping
               </span>{" "}
               posts.
@@ -117,7 +120,7 @@ export function HomePage({ onGetStarted, onLogIn }) {
               <button
                 onClick={onGetStarted}
                 className="font-body font-semibold rounded-full px-6 py-3.5 transition hover:opacity-88"
-                style={{ background: ACCENT_PRESETS[0], color: "#FFFFFF", fontSize: "0.95rem", boxShadow: `0 10px 24px ${ACCENT_PRESETS[0]}40` }}
+                style={{ background: PRIMARY, color: "#FFFFFF", fontSize: "0.95rem", boxShadow: `0 10px 24px ${PRIMARY}40` }}
               >
                 Get Started — it's free
               </button>
@@ -144,7 +147,7 @@ export function HomePage({ onGetStarted, onLogIn }) {
             <FloatingSparkle top={-6} right={40} size={26} color={ACCENT_PRESETS[3]} rotate={-10} />
             <FloatingSparkle bottom={20} left={0} size={18} color={ACCENT_PRESETS[1]} rotate={12} />
             <FloatingDot top={30} right={0} size={12} color={ACCENT_PRESETS[2]} />
-            <FloatingDot bottom={60} right={60} size={8} color={ACCENT_PRESETS[0]} />
+            <FloatingDot bottom={60} right={60} size={8} color={PRIMARY} />
             <Star size={16} color={AUTH.border} fill={AUTH.border} strokeWidth={0} className="absolute" style={{ top: 130, right: 10 }} />
 
             <div className="relative mx-auto" style={{ width: 340, height: 400 }}>
@@ -189,7 +192,7 @@ export function HomePage({ onGetStarted, onLogIn }) {
           <button
             onClick={onGetStarted}
             className="font-body font-semibold rounded-full px-6 py-3.5 mt-7 relative transition hover:opacity-88"
-            style={{ background: ACCENT_PRESETS[0], color: "#FFFFFF", fontSize: "0.95rem" }}
+            style={{ background: PRIMARY, color: "#FFFFFF", fontSize: "0.95rem" }}
           >
             Create your account
           </button>
