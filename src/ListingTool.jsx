@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Download, Image as ImageIcon, User, Building2 } from "lucide-react";
+import { Download, Image as ImageIcon, User, Building2, SlidersHorizontal, MoreHorizontal } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
@@ -562,6 +562,21 @@ export function ListingTool({ onSwitchTool }) {
 
   useEffect(() => { if (fontsReady) draw(); }, [draw, fontsReady]);
 
+  // Small live previews of the other sizes in the social set, so the promise
+  // of "we'll generate every size" is visible before anyone downloads.
+  const THUMB_ASPECTS = ["square", "story", "landscape"];
+  const thumbRefs = useRef({});
+  useEffect(() => {
+    if (!fontsReady) return;
+    THUMB_ASPECTS.forEach((key) => {
+      const canvas = thumbRefs.current[key];
+      if (canvas) drawToCanvas(canvas, key);
+    });
+  }, [form, photo.img, photo2.img, photo3.img, headshot.img, logo.img, fontsReady]);
+
+  const [showCustomize, setShowCustomize] = useState(false);
+  const [wantSocialSet, setWantSocialSet] = useState(true);
+
   const [downloadError, setDownloadError] = useState("");
   const [downloading, setDownloading] = useState(false);
 
@@ -643,164 +658,299 @@ export function ListingTool({ onSwitchTool }) {
     setDownloadingAll(false);
   };
 
+  const currentStep = !photo.img ? 1 : downloadError || downloading || downloadingAll ? 3 : 2;
+  const primaryDownload = wantSocialSet ? downloadAllSizes : downloadImage;
+  const primaryDownloadBusy = wantSocialSet ? downloadingAll : downloading;
+
   return (
     <div className="min-h-screen" style={{ background: UI.stone, color: UI.ink }}>
       <TopNav active="listings" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} />
 
-
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-10">
-        {/* HERO PREVIEW */}
-        <div className="mb-8 sm:mb-12">
-          <div
-            className="rounded-lg border flex items-center justify-center p-2 sm:p-6"
-            style={{ background: UI.card, borderColor: UI.line }}
-          >
-            <canvas
-              ref={canvasRef}
-              style={{
-                display: "block",
-                width: "100%",
-                maxWidth: "720px",
-                height: "auto",
-                borderRadius: "4px",
-                boxShadow: "0 28px 64px rgba(27,36,48,0.3)",
-              }}
-            />
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-3 mt-6">
-            <button
-              onClick={downloadImage}
-              disabled={downloading}
-              className="w-full sm:w-auto py-2.5 px-5 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
-              style={{ background: BLACK, color: WHITE }}
-            >
-              <Download size={16} /> {downloading ? "Preparing..." : "Download image"}
-            </button>
-            <button
-              onClick={downloadAllSizes}
-              disabled={downloadingAll}
-              className="w-full sm:w-auto py-2.5 px-5 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60 border"
-              style={{ borderColor: UI.line, color: UI.ink }}
-            >
-              {downloadingAll ? "Preparing all sizes..." : "Create the whole set"}
-            </button>
-          </div>
-          <p className="font-body text-xs mt-2" style={{ color: UI.inkSoft }}>
-            "Whole set" downloads Feed, Story, FB Landscape, and FB Portrait sizes at once.
-          </p>
-          <div className="mt-3">
-            <PrivacyBadge />
-          </div>
-          {downloadError && (
-            <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
-          )}
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-8 sm:py-10">
+        {/* PAGE HEADER */}
+        <div className="mb-6">
+          <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Create a Post</h1>
+          <p className="font-body text-sm mt-1" style={{ color: UI.inkSoft }}>One photo. Your brand. Done.</p>
         </div>
 
-        {/* CONTROLS */}
-        <div className="grid md:grid-cols-2 gap-x-10 gap-y-5">
-          <div className="md:col-span-2">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>WHAT ARE YOU POSTING?</span>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {Object.entries(TEMPLATES).map(([key, t]) => (
-                <button key={key} onClick={() => applyTemplate(key)}
-                  className="text-left p-3 rounded border transition font-body text-xs font-semibold"
-                  style={{ borderColor: form.template === key ? ACCENT : UI.line, background: form.template === key ? UI.card : "transparent" }}>
-                  {t.label}
-                </button>
-              ))}
+        {/* STEP INDICATOR */}
+        <div className="flex items-center gap-3 mb-8 overflow-x-auto">
+          {[{ n: 1, label: "Add Photo" }, { n: 2, label: "Customize" }, { n: 3, label: "Download" }].map((s, i, arr) => (
+            <div key={s.n} className="flex items-center gap-3 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <span
+                  className="flex items-center justify-center rounded-full font-body text-xs font-semibold flex-shrink-0"
+                  style={{
+                    width: 26, height: 26,
+                    background: currentStep >= s.n ? ACCENT : "transparent",
+                    color: currentStep >= s.n ? WHITE : UI.inkSoft,
+                    border: currentStep >= s.n ? "none" : `1.5px solid ${UI.line}`,
+                  }}
+                >
+                  {s.n}
+                </span>
+                <span className="font-body text-sm font-semibold" style={{ color: currentStep >= s.n ? UI.ink : UI.inkSoft }}>{s.label}</span>
+              </div>
+              {i < arr.length - 1 && <div style={{ width: 48, height: 1.5, background: UI.line }} />}
             </div>
-          </div>
+          ))}
+        </div>
 
-          <div className="md:col-span-2">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADD THE PROPERTY</span>
-            <div className="grid md:grid-cols-2 gap-3">
-              <UploadBox label="PROPERTY PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add the main photo" />
+        {/* MAIN GRID: controls + preview */}
+        <div className="grid lg:grid-cols-2 gap-8 items-start">
+          {/* LEFT: CONTROLS */}
+          <div className="grid gap-6">
+            <section>
+              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>1. What are you posting?</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {Object.entries(TEMPLATES).map(([key, t]) => (
+                  <button key={key} onClick={() => applyTemplate(key)}
+                    className="text-left p-3 rounded-lg border transition font-body text-xs font-semibold"
+                    style={{ borderColor: form.template === key ? ACCENT : UI.line, background: form.template === key ? UI.card : "transparent" }}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <h3 className="font-body text-sm font-semibold mb-1" style={{ color: UI.ink }}>2. Add your photo</h3>
+              <p className="font-body text-xs mb-2.5" style={{ color: UI.inkSoft }}>Upload a listing photo and we'll create your branded post.</p>
+              <UploadBox label="PROPERTY PHOTO" icon={ImageIcon} state={photo} hint="Choose listing photo, or drag and drop here" />
+
               {form.layout !== "modern" && (
-                <label className="block">
+                <label className="block mt-3">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
                   <input className="input" value={form.address} onChange={update("address")} />
                 </label>
               )}
-            </div>
 
-            {form.layout !== "bold" && (
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                <UploadBox label={form.layout === "collage" ? "PHOTO 2 (top right)" : "PHOTO 2 (strip)"} icon={ImageIcon} state={photo2} hint="Second photo" />
-                <UploadBox label={form.layout === "collage" ? "PHOTO 3 (bottom right)" : "PHOTO 3 (strip)"} icon={ImageIcon} state={photo3} hint="Third photo" />
+              {form.layout !== "bold" && (
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <UploadBox label={form.layout === "collage" ? "PHOTO 2 (top right)" : "PHOTO 2 (strip)"} icon={ImageIcon} state={photo2} hint="Second photo" />
+                  <UploadBox label={form.layout === "collage" ? "PHOTO 3 (bottom right)" : "PHOTO 3 (strip)"} icon={ImageIcon} state={photo3} hint="Third photo" />
+                </div>
+              )}
+
+              {form.layout === "editorial" && (
+                <div className="grid grid-cols-4 gap-2 mt-3">
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
+                    <input className="input" value={form.beds} onChange={update("beds")} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
+                    <input className="input" value={form.baths} onChange={update("baths")} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
+                    <input className="input" value={form.sqft} onChange={update("sqft")} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PRICE</span>
+                    <input className="input" value={form.price} onChange={update("price")} />
+                  </label>
+                </div>
+              )}
+
+              {form.layout === "modern" && (
+                <div className="grid grid-cols-3 gap-2 mt-3">
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
+                    <input className="input" value={form.beds} onChange={update("beds")} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
+                    <input className="input" value={form.baths} onChange={update("baths")} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
+                    <input className="input" value={form.sqft} onChange={update("sqft")} />
+                  </label>
+                </div>
+              )}
+
+              <p className="font-body text-xs mt-2.5" style={{ color: UI.inkSoft }}>Tip: use a bright, high-quality photo for best results.</p>
+            </section>
+
+            <section>
+              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>3. Choose a style <span className="font-normal" style={{ color: UI.inkSoft }}>(optional)</span></h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button onClick={() => setForm((f) => ({ ...f, layout: "bold" }))}
+                  className="text-left p-3 rounded-lg border transition font-body text-xs"
+                  style={{ borderColor: form.layout === "bold" ? ACCENT : UI.line, background: form.layout === "bold" ? UI.card : "transparent" }}>
+                  <span className="font-semibold block">Bold</span>
+                  <span style={{ color: UI.inkSoft }}>Photo + headline overlay</span>
+                </button>
+                <button onClick={() => setForm((f) => ({ ...f, layout: "editorial" }))}
+                  className="text-left p-3 rounded-lg border transition font-body text-xs"
+                  style={{ borderColor: form.layout === "editorial" ? ACCENT : UI.line, background: form.layout === "editorial" ? UI.card : "transparent" }}>
+                  <span className="font-semibold block">Editorial</span>
+                  <span style={{ color: UI.inkSoft }}>Hero photo, stats row, photo strip</span>
+                </button>
+                <button onClick={() => setForm((f) => ({ ...f, layout: "collage" }))}
+                  className="text-left p-3 rounded-lg border transition font-body text-xs"
+                  style={{ borderColor: form.layout === "collage" ? ACCENT : UI.line, background: form.layout === "collage" ? UI.card : "transparent" }}>
+                  <span className="font-semibold block">Collage</span>
+                  <span style={{ color: UI.inkSoft }}>Offset photos + signature</span>
+                </button>
+                <button onClick={() => setForm((f) => ({ ...f, layout: "modern" }))}
+                  className="text-left p-3 rounded-lg border transition font-body text-xs"
+                  style={{ borderColor: form.layout === "modern" ? ACCENT : UI.line, background: form.layout === "modern" ? UI.card : "transparent" }}>
+                  <span className="font-semibold block">Modern</span>
+                  <span style={{ color: UI.inkSoft }}>Script headline + 4-up photo strip</span>
+                </button>
               </div>
-            )}
+            </section>
 
-            {form.layout === "editorial" && (
-              <div className="grid grid-cols-4 gap-2 mt-3">
-                <label className="block">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
-                  <input className="input" value={form.beds} onChange={update("beds")} />
-                </label>
-                <label className="block">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
-                  <input className="input" value={form.baths} onChange={update("baths")} />
-                </label>
-                <label className="block">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
-                  <input className="input" value={form.sqft} onChange={update("sqft")} />
-                </label>
-                <label className="block">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PRICE</span>
-                  <input className="input" value={form.price} onChange={update("price")} />
-                </label>
+            <label
+              className="flex items-center gap-3 p-4 rounded-xl border cursor-pointer"
+              style={{ borderColor: UI.line, background: UI.card }}
+            >
+              <input type="checkbox" checked={wantSocialSet} onChange={(e) => setWantSocialSet(e.target.checked)} className="hidden" />
+              <span className="flex-1">
+                <span className="flex items-center gap-2">
+                  <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Create My Social Set</span>
+                  <span className="font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.04em", color: WHITE, background: ACCENT, padding: "1px 6px", borderRadius: 999 }}>NEW</span>
+                </span>
+                <span className="font-body text-xs block mt-0.5" style={{ color: UI.inkSoft }}>Get square, story, and landscape versions in seconds.</span>
+              </span>
+              <span
+                className="flex-shrink-0 rounded-full transition"
+                style={{ width: 40, height: 24, background: wantSocialSet ? ACCENT : UI.line, position: "relative" }}
+              >
+                <span
+                  className="absolute rounded-full transition"
+                  style={{ width: 18, height: 18, top: 3, left: wantSocialSet ? 19 : 3, background: WHITE }}
+                />
+              </span>
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setShowCustomize((s) => !s)}
+              className="flex items-center justify-center gap-2 py-2.5 rounded-lg border font-body text-sm font-semibold transition"
+              style={{ borderColor: UI.line, color: UI.ink }}
+            >
+              <SlidersHorizontal size={15} />
+              {showCustomize ? "Hide customize options" : "Customize More"}
+            </button>
+
+            {showCustomize && (
+              <div className="grid gap-5">
+                <Accordion title="Customize design" subtitle="Colors, wording, banners, badge" defaultOpen>
+              <div className="md:col-span-2">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT COLOR</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {ACCENT_PRESETS.map((c) => (
+                    <button key={c} onClick={() => setForm((f) => ({ ...f, accentColor: c }))}
+                      aria-label={c}
+                      className="rounded-full transition"
+                      style={{
+                        width: "1.75rem", height: "1.75rem", background: c,
+                        border: form.accentColor.toLowerCase() === c.toLowerCase() ? `2px solid ${UI.ink}` : "2px solid transparent",
+                        boxShadow: form.accentColor.toLowerCase() === c.toLowerCase() ? `0 0 0 2px ${UI.card}` : "none",
+                      }} />
+                  ))}
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="color" value={form.accentColor}
+                      onChange={(e) => setForm((f) => ({ ...f, accentColor: e.target.value }))}
+                      style={{ width: "1.75rem", height: "1.75rem", padding: 0, border: `1px solid ${UI.line}`, borderRadius: "0.35rem", background: "none" }} />
+                    <span className="font-mono text-xs" style={{ color: UI.inkSoft }}>Custom</span>
+                  </label>
+                </div>
               </div>
-            )}
 
-            {form.layout === "modern" && (
-              <div className="grid grid-cols-3 gap-2 mt-3">
-                <label className="block">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
-                  <input className="input" value={form.beds} onChange={update("beds")} />
+              {form.layout === "bold" && (
+                <label className="block md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
+                  <input className="input" value={`${form.word1} ${form.script}`.trim()}
+                    onChange={(e) => {
+                      const { lead, emphasis } = splitHeadlineLastWord(e.target.value);
+                      setForm((f) => ({ ...f, word1: lead, script: emphasis }));
+                    }} placeholder="Just SOLD!" />
+                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The last word gets your accent color and script font.</span>
                 </label>
-                <label className="block">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
-                  <input className="input" value={form.baths} onChange={update("baths")} />
+              )}
+
+              {(form.layout === "editorial" || form.layout === "collage") && (
+                <label className="block md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
+                  <input className="input" value={form.bigHeadline} onChange={update("bigHeadline")} placeholder={form.layout === "editorial" ? "JUST LISTED" : "FOR SALE"} />
                 </label>
-                <label className="block">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
-                  <input className="input" value={form.sqft} onChange={update("sqft")} />
+              )}
+
+              {form.layout === "modern" && (
+                <label className="block md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
+                  <input className="input" value={`${form.modernScript} ${form.modernHeadline}`.trim()}
+                    onChange={(e) => {
+                      const { emphasis, lead } = splitHeadlineFirstWord(e.target.value);
+                      setForm((f) => ({ ...f, modernScript: emphasis, modernHeadline: lead }));
+                    }} placeholder="just Listed" />
+                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The first word gets the cursive script treatment.</span>
                 </label>
+              )}
+
+              {form.layout === "modern" && (
+                <label className="block md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BOTTOM BAR MESSAGE</span>
+                  <input className="input" value={form.bottomMessage} onChange={update("bottomMessage")} placeholder="Message for more details" />
+                </label>
+              )}
+
+              {form.layout === "bold" && (
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>TOP BANNER (optional)</span>
+                  <input className="input" value={form.banner} onChange={update("banner")} placeholder="$571,000 in 8 days!" />
+                </label>
+              )}
+
+              {form.layout === "bold" && (
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HIGHLIGHT LINE (optional)</span>
+                  <input className="input" value={form.highlight} onChange={update("highlight")} placeholder="Highest Sale Price in the Community!" />
+                </label>
+              )}
+
+              {form.layout === "bold" && (
+                <label className="block md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PERSONAL NOTE</span>
+                  <textarea className="input" rows={3} value={form.badgeText} onChange={update("badgeText")} />
+                </label>
+              )}
+
+              <div>
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CONTACT BAND</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => setForm((f) => ({ ...f, contactBg: "black" }))}
+                    className="p-2 rounded border font-body text-xs font-semibold transition"
+                    style={{ borderColor: form.contactBg === "black" ? ACCENT : UI.line, background: form.contactBg === "black" ? UI.card : "transparent" }}>
+                    Black background
+                  </button>
+                  <button onClick={() => setForm((f) => ({ ...f, contactBg: "white" }))}
+                    className="p-2 rounded border font-body text-xs font-semibold transition"
+                    style={{ borderColor: form.contactBg === "white" ? ACCENT : UI.line, background: form.contactBg === "white" ? UI.card : "transparent" }}>
+                    White background
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
 
-          <div className="md:col-span-2">
-            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PICK A LOOK</span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <button onClick={() => setForm((f) => ({ ...f, layout: "bold" }))}
-                className="text-left p-3 rounded border transition font-body text-xs"
-                style={{ borderColor: form.layout === "bold" ? ACCENT : UI.line, background: form.layout === "bold" ? UI.card : "transparent" }}>
-                <span className="font-semibold block">Bold</span>
-                <span style={{ color: UI.inkSoft }}>Photo + headline overlay</span>
-              </button>
-              <button onClick={() => setForm((f) => ({ ...f, layout: "editorial" }))}
-                className="text-left p-3 rounded border transition font-body text-xs"
-                style={{ borderColor: form.layout === "editorial" ? ACCENT : UI.line, background: form.layout === "editorial" ? UI.card : "transparent" }}>
-                <span className="font-semibold block">Editorial</span>
-                <span style={{ color: UI.inkSoft }}>Hero photo, stats row, photo strip</span>
-              </button>
-              <button onClick={() => setForm((f) => ({ ...f, layout: "collage" }))}
-                className="text-left p-3 rounded border transition font-body text-xs"
-                style={{ borderColor: form.layout === "collage" ? ACCENT : UI.line, background: form.layout === "collage" ? UI.card : "transparent" }}>
-                <span className="font-semibold block">Collage</span>
-                <span style={{ color: UI.inkSoft }}>Offset photos + signature</span>
-              </button>
-              <button onClick={() => setForm((f) => ({ ...f, layout: "modern" }))}
-                className="text-left p-3 rounded border transition font-body text-xs"
-                style={{ borderColor: form.layout === "modern" ? ACCENT : UI.line, background: form.layout === "modern" ? UI.card : "transparent" }}>
-                <span className="font-semibold block">Modern</span>
-                <span style={{ color: UI.inkSoft }}>Script headline + 4-up photo strip</span>
-              </button>
-            </div>
-          </div>
+              <div>
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SIZE (for single-image download)</span>
+                <div className="grid grid-cols-4 gap-2">
+                  {Object.entries(ASPECTS).map(([key, a]) => (
+                    <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
+                      className="p-2 rounded border font-body text-xs font-semibold transition"
+                      style={{ borderColor: form.aspect === key ? ACCENT : UI.line, background: form.aspect === key ? UI.card : "transparent" }}>
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+                </Accordion>
 
-          <Accordion title="Customize design" subtitle="Colors, wording, banners, badge">
+                <Accordion title="Brand settings" subtitle="Set this up once — it carries to every post">
             <div className="md:col-span-2">
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT COLOR</span>
               <div className="flex items-center gap-2 flex-wrap">
@@ -958,7 +1108,124 @@ export function ListingTool({ onSwitchTool }) {
                 <span className="font-body text-xs" style={{ color: "#C0392B" }}>Couldn't save — try again.</span>
               )}
             </div>
-          </Accordion>
+                </Accordion>
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT: PREVIEW */}
+          <div className="lg:sticky" style={{ top: "1.5rem" }}>
+            <div className="rounded-2xl border p-3 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Preview</span>
+                <div className="flex items-center gap-1 p-1 rounded-full flex-wrap" style={{ background: UI.stone }}>
+                  {Object.entries(ASPECTS).map(([key, a]) => (
+                    <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
+                      className="px-3 py-1 rounded-full font-body text-xs font-semibold transition"
+                      style={{
+                        background: form.aspect === key ? UI.card : "transparent",
+                        color: form.aspect === key ? UI.ink : UI.inkSoft,
+                        boxShadow: form.aspect === key ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+                      }}>
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border flex items-center justify-center p-2 sm:p-4" style={{ background: UI.stone, borderColor: UI.line }}>
+                <canvas
+                  ref={canvasRef}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    maxWidth: "480px",
+                    height: "auto",
+                    borderRadius: "4px",
+                    boxShadow: "0 20px 40px rgba(27,36,48,0.22)",
+                  }}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowCustomize(true)}
+                className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 rounded-lg border font-body text-sm font-semibold transition"
+                style={{ borderColor: UI.line, color: UI.ink }}
+              >
+                <SlidersHorizontal size={15} /> Customize More
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* READY TO DOWNLOAD */}
+        <div className="mt-8 rounded-2xl border p-5 sm:p-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" style={{ background: UI.card, borderColor: UI.line }}>
+          <div>
+            <h3 className="font-body text-base font-semibold" style={{ color: UI.ink }}>Ready to download your post?</h3>
+            <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>
+              {wantSocialSet ? "We'll generate Feed, Story, and Landscape sizes at once." : "Once you're happy with your design, download it below."}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={primaryDownload}
+              disabled={primaryDownloadBusy}
+              className="py-2.5 px-5 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+              style={{ background: ACCENT, color: WHITE }}
+            >
+              <Download size={16} /> {primaryDownloadBusy ? "Preparing…" : "Download Image"}
+            </button>
+            <button
+              onClick={wantSocialSet ? downloadImage : downloadAllSizes}
+              title={wantSocialSet ? "Download just this size" : "Download the whole set"}
+              className="p-2.5 rounded-lg border transition"
+              style={{ borderColor: UI.line, color: UI.ink }}
+            >
+              <MoreHorizontal size={16} />
+            </button>
+          </div>
+        </div>
+        {downloadError && (
+          <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
+        )}
+        <div className="mt-3">
+          <PrivacyBadge />
+        </div>
+
+        {/* SOCIAL SET PREVIEW */}
+        <div className="mt-10">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+            <div>
+              <h3 className="font-body text-base font-semibold flex items-center gap-2" style={{ color: UI.ink }}>
+                Your Social Set (Preview)
+                <span className="font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.04em", color: WHITE, background: ACCENT, padding: "1px 6px", borderRadius: 999 }}>NEW</span>
+              </h3>
+              <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>We'll generate multiple sizes for all your platforms.</p>
+            </div>
+            <button
+              onClick={downloadAllSizes}
+              disabled={downloadingAll}
+              className="flex items-center gap-1.5 py-2 px-4 rounded-lg border font-body text-xs font-semibold transition disabled:opacity-60"
+              style={{ borderColor: UI.line, color: UI.ink }}
+            >
+              {downloadingAll ? "Preparing…" : "Download All"}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {THUMB_ASPECTS.map((key) => (
+              <div key={key}>
+                <div className="rounded-lg border overflow-hidden flex items-center justify-center p-2" style={{ background: UI.card, borderColor: UI.line }}>
+                  <canvas
+                    ref={(el) => { thumbRefs.current[key] = el; }}
+                    style={{ display: "block", width: "100%", height: "auto", borderRadius: "3px" }}
+                  />
+                </div>
+                <p className="font-body text-xs font-semibold mt-2" style={{ color: UI.ink }}>{ASPECTS[key].label}</p>
+                <p className="font-mono text-xs" style={{ color: UI.inkSoft }}>{ASPECTS[key].w} x {ASPECTS[key].h}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </main>
     </div>
