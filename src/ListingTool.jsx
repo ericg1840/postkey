@@ -129,7 +129,7 @@ export function ListingTool({ onSwitchTool }) {
 
   const drawBoldLayout = (ctx, w, h) => {
     const addressH = h * 0.075;
-    const contactH = h * 0.165;
+    const contactH = Math.min(w, h) * 0.165;
     const photoH = h - addressH - contactH;
 
     // ---- Photo ----
@@ -340,7 +340,7 @@ export function ListingTool({ onSwitchTool }) {
     ctx.fillStyle = form.accentColor;
     ctx.fillText(priceText, cursorX, statsY0 + statsH * 0.62);
 
-    const contactH = h * 0.145;
+    const contactH = Math.min(w, h) * 0.145;
     const stripY0 = statsY0 + statsH + h * 0.02;
     const stripH = h - stripY0 - h * 0.015 - contactH;
     const gap = w * 0.02;
@@ -380,7 +380,7 @@ export function ListingTool({ onSwitchTool }) {
     const spacedHeadline = form.bigHeadline.toUpperCase().split("").join("\u2009");
     ctx.fillText(spacedHeadline, w / 2, topH * 0.72);
 
-    const contactH = h * 0.145;
+    const contactH = Math.min(w, h) * 0.145;
     const collageY0 = topH;
     const collageH = h * 0.5;
     const pad = w * 0.06;
@@ -450,7 +450,7 @@ export function ListingTool({ onSwitchTool }) {
     const headlineH = h * 0.145;
     const stripGap = h * 0.045;
     const stripH = h * 0.22;
-    const contactH = h * 0.145;
+    const contactH = Math.min(w, h) * 0.145;
     const barH = h * 0.09;
     const heroH = h - headlineH - stripGap - stripH - contactH - barH;
 
