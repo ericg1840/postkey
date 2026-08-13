@@ -1,4 +1,4 @@
-import { scryptSync, randomBytes, timingSafeEqual, createHmac } from "node:crypto";
+import { scryptSync, randomBytes, timingSafeEqual, createHmac, createHash } from "node:crypto";
 
 const COOKIE_NAME = "postkey_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
@@ -73,6 +73,25 @@ export function sessionCookie(token) {
 
 export function clearSessionCookie() {
   return `${COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+}
+
+const RESET_TOKEN_MAX_AGE_MS = 60 * 60 * 1000; // 1 hour
+
+// The raw token goes in the emailed link; only its hash is stored, so a
+// database read alone can never produce a usable reset link.
+export function createResetToken() {
+  const token = randomBytes(32).toString("base64url");
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  const expires = new Date(Date.now() + RESET_TOKEN_MAX_AGE_MS);
+  return { token, tokenHash, expires };
+}
+
+export function verifyResetToken(token, storedHash, storedExpires) {
+  if (!token || !storedHash || !storedExpires) return false;
+  if (new Date(storedExpires).getTime() < Date.now()) return false;
+  const candidate = createHash("sha256").update(token).digest();
+  const expected = Buffer.from(storedHash, "hex");
+  return candidate.length === expected.length && timingSafeEqual(candidate, expected);
 }
 
 export function json(data, init = {}) {
