@@ -20,7 +20,10 @@ async function sendResetEmail(toEmail, resetUrl) {
       `,
     }),
   });
-  if (!res.ok) throw new Error(`Resend API error: ${res.status}`);
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Resend API error: ${res.status} ${detail}`);
+  }
 }
 
 export default async (req) => {
@@ -48,7 +51,8 @@ export default async (req) => {
   try {
     await sendResetEmail(email, resetUrl);
   } catch (err) {
-    return json({ error: "Couldn't send the reset email. Please try again shortly." }, { status: 502 });
+    // TEMPORARY: surfacing the real error to debug the Resend integration; revert to a generic message once fixed.
+    return json({ error: `Couldn't send the reset email: ${err.message}` }, { status: 502 });
   }
 
   return genericResponse;
