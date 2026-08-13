@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Image as ImageIcon, ChevronDown, Lock } from "lucide-react";
+import { ChangePasswordModal } from "./auth/ChangePasswordModal.jsx";
 
 // The Web Share API is also implemented by some desktop browsers now, which
 // makes the "share instead of download" trick misfire on laptops — gate it
@@ -366,6 +367,7 @@ export function GlobalStyles() {
 
 // Shared top bar: brand mark + the tab switcher between the two tools.
 export function TopNav({ active, onSwitch, userName, onLogout }) {
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   return (
     <header className="border-b" style={{ borderColor: UI.line }}>
       <div className="max-w-7xl mx-auto px-6 py-5 flex flex-wrap items-center justify-between gap-4">
@@ -407,6 +409,13 @@ export function TopNav({ active, onSwitch, userName, onLogout }) {
                 <span className="font-body text-xs" style={{ color: UI.inkSoft }}>{userName}</span>
               )}
               <button
+                onClick={() => setShowPasswordModal(true)}
+                className="font-body text-xs underline"
+                style={{ color: UI.inkSoft }}
+              >
+                Change password
+              </button>
+              <button
                 onClick={onLogout}
                 className="font-body text-xs font-semibold underline"
                 style={{ color: UI.inkSoft }}
@@ -417,6 +426,9 @@ export function TopNav({ active, onSwitch, userName, onLogout }) {
           )}
         </div>
       </div>
+      {showPasswordModal && (
+        <ChangePasswordModal ui={UI} accent={ACCENT} onClose={() => setShowPasswordModal(false)} />
+      )}
     </header>
   );
 }
