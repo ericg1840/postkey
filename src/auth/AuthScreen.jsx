@@ -1,7 +1,13 @@
 import { useState } from "react";
-import { Image as ImageIcon, Lock } from "lucide-react";
-import { UI, PINK, WHITE } from "../shared.jsx";
+import { LogIn, User, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
+import { AUTH, AuthShell, AuthField } from "./AuthShell.jsx";
+
+const COPY = {
+  login: { title: "Sign in with email", subtitle: "Turn your listings into share-ready posts in seconds.", cta: "Log in" },
+  signup: { title: "Create your account", subtitle: "Set up your own brand kit and start posting in minutes.", cta: "Create account" },
+  forgot: { title: "Reset your password", subtitle: "Enter your account email and we'll send a link to reset it.", cta: "Send reset link" },
+};
 
 export function AuthScreen() {
   const { login, signup, requestPasswordReset } = useAuth();
@@ -9,9 +15,12 @@ export function AuthScreen() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [resetMessage, setResetMessage] = useState("");
+
+  const switchMode = (next) => { setMode(next); setError(""); setResetMessage(""); };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -33,122 +42,76 @@ export function AuthScreen() {
     }
   };
 
+  const { title, subtitle, cta } = COPY[mode];
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-6" style={{ background: UI.stone }}>
-      <div className="w-full sm:w-auto" style={{ maxWidth: 400 }}>
-        <div className="flex items-center gap-2 justify-center mb-8">
-          <ImageIcon size={22} style={{ color: PINK }} />
-          <span className="font-display font-bold text-lg" style={{ color: UI.ink }}>PostKey</span>
+    <AuthShell icon={LogIn} title={title} subtitle={subtitle}>
+      {mode === "forgot" && resetMessage ? (
+        <div className="grid gap-4">
+          <p className="font-body text-sm" style={{ color: AUTH.ink }}>{resetMessage}</p>
+          <button type="button" onClick={() => switchMode("login")} className="font-body text-xs font-semibold underline text-left" style={{ color: AUTH.muted }}>
+            Back to log in
+          </button>
         </div>
-
-        <div className="rounded-lg border p-6 sm:p-6" style={{ borderColor: UI.line, background: UI.card }}>
+      ) : (
+        <form onSubmit={submit} className="grid gap-3.5">
+          {mode === "signup" && (
+            <AuthField icon={User}>
+              <input className="auth-input" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name" required />
+            </AuthField>
+          )}
+          <AuthField icon={Mail}>
+            <input type="email" className="auth-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />
+          </AuthField>
           {mode !== "forgot" && (
-            <div className="flex items-center gap-1 p-1 rounded-full mb-6" style={{ background: UI.stone }}>
-              <button
-                type="button"
-                onClick={() => { setMode("login"); setError(""); setResetMessage(""); }}
-                className="flex-1 px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
-                style={{
-                  background: mode === "login" ? UI.card : "transparent",
-                  color: mode === "login" ? UI.ink : UI.inkSoft,
-                  boxShadow: mode === "login" ? "0 1px 3px rgba(39,27,32,0.15)" : "none",
-                }}
-              >
-                Log in
+            <AuthField icon={Lock} trailing={
+              <button type="button" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? "Hide password" : "Show password"} style={{ color: AUTH.muted }}>
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-              <button
-                type="button"
-                onClick={() => { setMode("signup"); setError(""); setResetMessage(""); }}
-                className="flex-1 px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
-                style={{
-                  background: mode === "signup" ? UI.card : "transparent",
-                  color: mode === "signup" ? UI.ink : UI.inkSoft,
-                  boxShadow: mode === "signup" ? "0 1px 3px rgba(39,27,32,0.15)" : "none",
-                }}
-              >
-                Create account
-              </button>
-            </div>
+            }>
+              <input
+                type={showPassword ? "text" : "password"}
+                className="auth-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                minLength={8}
+                required
+              />
+            </AuthField>
           )}
 
-          {mode === "forgot" && resetMessage ? (
-            <div className="grid gap-4">
-              <p className="font-body text-sm" style={{ color: UI.ink }}>{resetMessage}</p>
-              <button
-                type="button"
-                onClick={() => { setMode("login"); setResetMessage(""); }}
-                className="font-body text-xs font-semibold underline text-left"
-                style={{ color: UI.inkSoft }}
-              >
-                Back to log in
-              </button>
-            </div>
+          {mode === "login" && (
+            <button type="button" onClick={() => switchMode("forgot")} className="font-body text-xs text-right -mt-1" style={{ color: AUTH.muted }}>
+              Forgot password?
+            </button>
+          )}
+
+          {error && <div className="font-body text-xs" style={{ color: "#C0392B" }}>{error}</div>}
+
+          <button type="submit" disabled={busy} className="auth-cta">
+            {busy ? "Please wait…" : cta}
+          </button>
+
+          {mode === "forgot" ? (
+            <button type="button" onClick={() => switchMode("login")} className="font-body text-xs font-semibold underline text-center" style={{ color: AUTH.muted }}>
+              Back to log in
+            </button>
           ) : (
-            <form onSubmit={submit} className="grid gap-4">
-              {mode === "forgot" && (
-                <p className="font-body text-xs" style={{ color: UI.inkSoft }}>
-                  Enter your account email and we'll send a link to reset your password.
-                </p>
-              )}
-              {mode === "signup" && (
-                <div>
-                  <label className="font-body text-xs font-semibold block mb-1.5" style={{ color: UI.inkSoft }}>Your name</label>
-                  <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Mariella Torres" required />
-                </div>
-              )}
-              <div>
-                <label className="font-body text-xs font-semibold block mb-1.5" style={{ color: UI.inkSoft }}>Email</label>
-                <input type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
-              </div>
-              {mode !== "forgot" && (
-                <div>
-                  <label className="font-body text-xs font-semibold block mb-1.5" style={{ color: UI.inkSoft }}>Password</label>
-                  <input type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" minLength={8} required />
-                </div>
-              )}
-
-              {mode === "login" && (
-                <button
-                  type="button"
-                  onClick={() => { setMode("forgot"); setError(""); }}
-                  className="font-body text-xs underline text-left -mt-2"
-                  style={{ color: UI.inkSoft }}
-                >
-                  Forgot password?
-                </button>
-              )}
-
-              {error && <div className="font-body text-xs" style={{ color: "#C0392B" }}>{error}</div>}
-
-              <button
-                type="submit"
-                disabled={busy}
-                className="font-body text-sm font-semibold rounded px-4 py-2.5 transition disabled:opacity-60"
-                style={{ background: PINK, color: WHITE }}
-              >
-                {busy ? "Please wait…" : mode === "signup" ? "Create account" : mode === "forgot" ? "Send reset link" : "Log in"}
-              </button>
-
-              {mode === "forgot" && (
-                <button
-                  type="button"
-                  onClick={() => { setMode("login"); setError(""); }}
-                  className="font-body text-xs font-semibold underline text-left"
-                  style={{ color: UI.inkSoft }}
-                >
-                  Back to log in
-                </button>
-              )}
-            </form>
+            <button
+              type="button"
+              onClick={() => switchMode(mode === "login" ? "signup" : "login")}
+              className="font-body text-xs text-center"
+              style={{ color: AUTH.muted }}
+            >
+              {mode === "login" ? "New here? " : "Already have an account? "}
+              <span className="font-semibold underline" style={{ color: AUTH.ink }}>
+                {mode === "login" ? "Create an account" : "Log in"}
+              </span>
+            </button>
           )}
-        </div>
-
-        <div className="flex items-center gap-1.5 font-body text-xs justify-center mt-4" style={{ color: UI.inkSoft }}>
-          <Lock size={12} />
-          Your brand kit is stored securely on your account — post photos never leave your device
-        </div>
-      </div>
-    </div>
+        </form>
+      )}
+    </AuthShell>
   );
 }
-
