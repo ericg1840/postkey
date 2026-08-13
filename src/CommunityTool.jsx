@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Download, Image as ImageIcon, User, Building2 } from "lucide-react";
 import {
-  UI, PINK, BLACK, WHITE, ASPECTS, ACCENT_PRESETS,
+  UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
   mixWithWhite, drawCover, wrapText, roundRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
@@ -702,7 +702,7 @@ export function CommunityTool({ onSwitchTool }) {
                 maxWidth: "720px",
                 height: "auto",
                 borderRadius: "4px",
-                boxShadow: "0 28px 64px rgba(39,27,32,0.3)",
+                boxShadow: "0 28px 64px rgba(27,36,48,0.3)",
               }}
             />
           </div>
@@ -732,7 +732,7 @@ export function CommunityTool({ onSwitchTool }) {
             <PrivacyBadge />
           </div>
           {downloadError && (
-            <p className="font-body text-xs mt-2" style={{ color: PINK }}>{downloadError}</p>
+            <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
           )}
         </div>
 
@@ -744,7 +744,7 @@ export function CommunityTool({ onSwitchTool }) {
               {Object.entries(STYLES).map(([key, s]) => (
                 <button key={key} onClick={() => setForm((f) => ({ ...f, style: key }))}
                   className="text-left p-3 rounded border transition font-body text-xs"
-                  style={{ borderColor: form.style === key ? PINK : UI.line, background: form.style === key ? UI.card : "transparent" }}>
+                  style={{ borderColor: form.style === key ? ACCENT : UI.line, background: form.style === key ? UI.card : "transparent" }}>
                   <span className="font-semibold block">{s.label}</span>
                   <span style={{ color: UI.inkSoft }}>{s.description}</span>
                 </button>
@@ -759,7 +759,7 @@ export function CommunityTool({ onSwitchTool }) {
                 {Object.entries(TEMPLATES).map(([key, t]) => (
                   <button key={key} onClick={() => applyTemplate(key)}
                     className="text-left p-3 rounded border transition font-body text-xs"
-                    style={{ borderColor: form.template === key ? PINK : UI.line, background: form.template === key ? UI.card : "transparent" }}>
+                    style={{ borderColor: form.template === key ? ACCENT : UI.line, background: form.template === key ? UI.card : "transparent" }}>
                     <span className="font-semibold block">{t.label}</span>
                     <span style={{ color: UI.inkSoft }}>{t.word1} {t.script}</span>
                   </button>
@@ -884,7 +884,7 @@ export function CommunityTool({ onSwitchTool }) {
                 {Object.entries(ASPECTS).map(([key, a]) => (
                   <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
                     className="p-2 rounded border font-body text-xs font-semibold transition"
-                    style={{ borderColor: form.aspect === key ? PINK : UI.line, background: form.aspect === key ? UI.card : "transparent" }}>
+                    style={{ borderColor: form.aspect === key ? ACCENT : UI.line, background: form.aspect === key ? UI.card : "transparent" }}>
                     {a.label}
                   </button>
                 ))}
@@ -897,12 +897,12 @@ export function CommunityTool({ onSwitchTool }) {
                 <div className="grid grid-cols-2 gap-2">
                   <button onClick={() => setForm((f) => ({ ...f, contactBg: "black" }))}
                     className="p-2 rounded border font-body text-xs font-semibold transition"
-                    style={{ borderColor: form.contactBg === "black" ? PINK : UI.line, background: form.contactBg === "black" ? UI.card : "transparent" }}>
+                    style={{ borderColor: form.contactBg === "black" ? ACCENT : UI.line, background: form.contactBg === "black" ? UI.card : "transparent" }}>
                     Black background
                   </button>
                   <button onClick={() => setForm((f) => ({ ...f, contactBg: "white" }))}
                     className="p-2 rounded border font-body text-xs font-semibold transition"
-                    style={{ borderColor: form.contactBg === "white" ? PINK : UI.line, background: form.contactBg === "white" ? UI.card : "transparent" }}>
+                    style={{ borderColor: form.contactBg === "white" ? ACCENT : UI.line, background: form.contactBg === "white" ? UI.card : "transparent" }}>
                     White background
                   </button>
                 </div>
@@ -945,7 +945,7 @@ export function CommunityTool({ onSwitchTool }) {
                 onClick={handleSaveBrand}
                 disabled={brandStatus === "saving"}
                 className="font-body text-xs font-semibold rounded px-4 py-2 transition disabled:opacity-60"
-                style={{ background: PINK, color: WHITE }}
+                style={{ background: ACCENT, color: WHITE }}
               >
                 {brandStatus === "saving" ? "Saving…" : "Save brand settings"}
               </button>

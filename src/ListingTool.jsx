@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Download, Image as ImageIcon, User, Building2 } from "lucide-react";
 import {
-  UI, PINK, BLACK, WHITE, ASPECTS, ACCENT_PRESETS,
+  UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
   mixWithWhite, drawCover, wrapText, roundRect, archedRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
@@ -657,7 +657,7 @@ export function ListingTool({ onSwitchTool }) {
                 maxWidth: "720px",
                 height: "auto",
                 borderRadius: "4px",
-                boxShadow: "0 28px 64px rgba(39,27,32,0.3)",
+                boxShadow: "0 28px 64px rgba(27,36,48,0.3)",
               }}
             />
           </div>
@@ -687,7 +687,7 @@ export function ListingTool({ onSwitchTool }) {
             <PrivacyBadge />
           </div>
           {downloadError && (
-            <p className="font-body text-xs mt-2" style={{ color: PINK }}>{downloadError}</p>
+            <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
           )}
         </div>
 
@@ -699,7 +699,7 @@ export function ListingTool({ onSwitchTool }) {
               {Object.entries(TEMPLATES).map(([key, t]) => (
                 <button key={key} onClick={() => applyTemplate(key)}
                   className="text-left p-3 rounded border transition font-body text-xs font-semibold"
-                  style={{ borderColor: form.template === key ? PINK : UI.line, background: form.template === key ? UI.card : "transparent" }}>
+                  style={{ borderColor: form.template === key ? ACCENT : UI.line, background: form.template === key ? UI.card : "transparent" }}>
                   {t.label}
                 </button>
               ))}
@@ -769,25 +769,25 @@ export function ListingTool({ onSwitchTool }) {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button onClick={() => setForm((f) => ({ ...f, layout: "bold" }))}
                 className="text-left p-3 rounded border transition font-body text-xs"
-                style={{ borderColor: form.layout === "bold" ? PINK : UI.line, background: form.layout === "bold" ? UI.card : "transparent" }}>
+                style={{ borderColor: form.layout === "bold" ? ACCENT : UI.line, background: form.layout === "bold" ? UI.card : "transparent" }}>
                 <span className="font-semibold block">Bold</span>
                 <span style={{ color: UI.inkSoft }}>Photo + headline overlay</span>
               </button>
               <button onClick={() => setForm((f) => ({ ...f, layout: "editorial" }))}
                 className="text-left p-3 rounded border transition font-body text-xs"
-                style={{ borderColor: form.layout === "editorial" ? PINK : UI.line, background: form.layout === "editorial" ? UI.card : "transparent" }}>
+                style={{ borderColor: form.layout === "editorial" ? ACCENT : UI.line, background: form.layout === "editorial" ? UI.card : "transparent" }}>
                 <span className="font-semibold block">Editorial</span>
                 <span style={{ color: UI.inkSoft }}>Hero photo, stats row, photo strip</span>
               </button>
               <button onClick={() => setForm((f) => ({ ...f, layout: "collage" }))}
                 className="text-left p-3 rounded border transition font-body text-xs"
-                style={{ borderColor: form.layout === "collage" ? PINK : UI.line, background: form.layout === "collage" ? UI.card : "transparent" }}>
+                style={{ borderColor: form.layout === "collage" ? ACCENT : UI.line, background: form.layout === "collage" ? UI.card : "transparent" }}>
                 <span className="font-semibold block">Collage</span>
                 <span style={{ color: UI.inkSoft }}>Offset photos + signature</span>
               </button>
               <button onClick={() => setForm((f) => ({ ...f, layout: "modern" }))}
                 className="text-left p-3 rounded border transition font-body text-xs"
-                style={{ borderColor: form.layout === "modern" ? PINK : UI.line, background: form.layout === "modern" ? UI.card : "transparent" }}>
+                style={{ borderColor: form.layout === "modern" ? ACCENT : UI.line, background: form.layout === "modern" ? UI.card : "transparent" }}>
                 <span className="font-semibold block">Modern</span>
                 <span style={{ color: UI.inkSoft }}>Script headline + 4-up photo strip</span>
               </button>
@@ -881,12 +881,12 @@ export function ListingTool({ onSwitchTool }) {
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => setForm((f) => ({ ...f, contactBg: "black" }))}
                   className="p-2 rounded border font-body text-xs font-semibold transition"
-                  style={{ borderColor: form.contactBg === "black" ? PINK : UI.line, background: form.contactBg === "black" ? UI.card : "transparent" }}>
+                  style={{ borderColor: form.contactBg === "black" ? ACCENT : UI.line, background: form.contactBg === "black" ? UI.card : "transparent" }}>
                   Black background
                 </button>
                 <button onClick={() => setForm((f) => ({ ...f, contactBg: "white" }))}
                   className="p-2 rounded border font-body text-xs font-semibold transition"
-                  style={{ borderColor: form.contactBg === "white" ? PINK : UI.line, background: form.contactBg === "white" ? UI.card : "transparent" }}>
+                  style={{ borderColor: form.contactBg === "white" ? ACCENT : UI.line, background: form.contactBg === "white" ? UI.card : "transparent" }}>
                   White background
                 </button>
               </div>
@@ -898,7 +898,7 @@ export function ListingTool({ onSwitchTool }) {
                 {Object.entries(ASPECTS).map(([key, a]) => (
                   <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
                     className="p-2 rounded border font-body text-xs font-semibold transition"
-                    style={{ borderColor: form.aspect === key ? PINK : UI.line, background: form.aspect === key ? UI.card : "transparent" }}>
+                    style={{ borderColor: form.aspect === key ? ACCENT : UI.line, background: form.aspect === key ? UI.card : "transparent" }}>
                     {a.label}
                   </button>
                 ))}
@@ -941,7 +941,7 @@ export function ListingTool({ onSwitchTool }) {
                 onClick={handleSaveBrand}
                 disabled={brandStatus === "saving"}
                 className="font-body text-xs font-semibold rounded px-4 py-2 transition disabled:opacity-60"
-                style={{ background: PINK, color: WHITE }}
+                style={{ background: ACCENT, color: WHITE }}
               >
                 {brandStatus === "saving" ? "Saving…" : "Save brand settings"}
               </button>

@@ -9,15 +9,20 @@ export function isMobileDevice() {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
+// App-chrome palette — cool neutral blue/ink, kept separate from the
+// per-post ACCENT_PRESETS below so a shared multi-agent app doesn't read
+// as "branded pink" while each agent's actual graphics stay customizable.
 export const UI = {
-  stone: "#F4EAE7",
-  card: "#FDF8F5",
-  ink: "#271B20",
-  inkSoft: "#5E4750",
-  line: "rgba(39,27,32,0.14)",
+  stone: "#EAF2FA",
+  card: "#FFFFFF",
+  ink: "#1B2430",
+  inkSoft: "#697386",
+  line: "rgba(27,36,48,0.12)",
 };
 
-export const PINK = "#E0298C";
+export const ACCENT = "#1B2430";
+export const ERROR = "#C0392B";
+export const PINK = "#E0298C"; // still used as a default post accent color, not app chrome
 export const PINK_PALE = "#F6C9E0";
 export const BLACK = "#111111";
 export const WHITE = "#FFFFFF";
@@ -301,9 +306,9 @@ export function UploadBox({ label, icon: Icon, state, hint }) {
         onDrop={(e) => { e.preventDefault(); setDragOver(false); state.load(e.dataTransfer.files[0]); }}
         onClick={() => inputRef.current?.click()}
         className="rounded border-2 border-dashed flex items-center gap-2 cursor-pointer transition"
-        style={{ borderColor: dragOver ? PINK : UI.line, background: UI.card, padding: "0.7rem 0.9rem" }}
+        style={{ borderColor: dragOver ? ACCENT : UI.line, background: UI.card, padding: "0.7rem 0.9rem" }}
       >
-        <Icon size={16} style={{ color: PINK, flexShrink: 0 }} />
+        <Icon size={16} style={{ color: ACCENT, flexShrink: 0 }} />
         {state.name ? (
           <div className="flex items-center gap-2 font-body text-sm flex-1 min-w-0">
             <span className="truncate">{isDefault ? `${state.name} (default)` : state.name}</span>
@@ -319,7 +324,7 @@ export function UploadBox({ label, icon: Icon, state, hint }) {
         <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => state.load(e.target.files[0])} />
       </div>
       {state.source === "error" && (
-        <p className="font-body text-xs mt-1" style={{ color: PINK }}>
+        <p className="font-body text-xs mt-1" style={{ color: ERROR }}>
           Couldn't load the default image — upload one here instead.
         </p>
       )}
@@ -337,7 +342,7 @@ export function GlobalStyles() {
       .font-mono { font-family: 'IBM Plex Mono', monospace; }
       .input { width: 100%; background: ${UI.card}; border: 1px solid ${UI.line}; border-radius: 3px; padding: 0.55rem 0.7rem; font-family: 'Public Sans', sans-serif; font-size: 0.88rem; color: ${UI.ink}; }
       textarea.input { resize: none; }
-      .input:focus { outline: 2px solid ${PINK}; outline-offset: 1px; }
+      .input:focus { outline: 2px solid ${ACCENT}; outline-offset: 1px; }
     `}</style>
   );
 }
@@ -348,7 +353,7 @@ export function TopNav({ active, onSwitch, userName, onLogout }) {
     <header className="border-b" style={{ borderColor: UI.line }}>
       <div className="max-w-7xl mx-auto px-6 py-5 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <ImageIcon size={20} style={{ color: PINK }} />
+          <ImageIcon size={20} style={{ color: ACCENT }} />
           <span className="font-display font-bold text-lg" style={{ color: UI.ink }}>PostKey</span>
         </div>
         <nav className="flex items-center gap-1 p-1 rounded-full" style={{ background: UI.stone }}>
@@ -358,7 +363,7 @@ export function TopNav({ active, onSwitch, userName, onLogout }) {
             style={{
               background: active === "listings" ? UI.card : "transparent",
               color: active === "listings" ? UI.ink : UI.inkSoft,
-              boxShadow: active === "listings" ? "0 1px 3px rgba(39,27,32,0.15)" : "none",
+              boxShadow: active === "listings" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
             }}
           >
             Listings
@@ -369,7 +374,7 @@ export function TopNav({ active, onSwitch, userName, onLogout }) {
             style={{
               background: active === "community" ? UI.card : "transparent",
               color: active === "community" ? UI.ink : UI.inkSoft,
-              boxShadow: active === "community" ? "0 1px 3px rgba(39,27,32,0.15)" : "none",
+              boxShadow: active === "community" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
             }}
           >
             Community
