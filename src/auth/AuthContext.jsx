@@ -52,8 +52,16 @@ export function AuthProvider({ children }) {
     setBrandKit(kit);
   };
 
+  const requestPasswordReset = async (email) => {
+    return api("/api/auth/request-reset", { method: "POST", body: JSON.stringify({ email }) });
+  };
+
+  const resetPassword = async (email, token, newPassword) => {
+    return api("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ email, token, newPassword }) });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, brandKit, loading, signup, login, logout, saveBrandKit }}>
+    <AuthContext.Provider value={{ user, brandKit, loading, signup, login, logout, saveBrandKit, requestPasswordReset, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );
