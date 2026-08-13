@@ -19,6 +19,7 @@ export default async (req) => {
           agentEmail: kit.agent_email,
           brokerageName: kit.brokerage_name,
           brokerageCity: kit.brokerage_city,
+          officePhone: kit.office_phone,
           accentColor: kit.accent_color,
           headshotUrl: kit.headshot_url,
           logoUrl: kit.logo_url,

@@ -5,7 +5,7 @@ import {
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
   mixWithWhite, drawCover, wrapText, roundRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
-  Accordion, PrivacyBadge, splitHeadlineLastWord, drawHouseBackdrop, useDefaultImage,
+  Accordion, PrivacyBadge, splitHeadlineLastWord, drawHouseBackdrop, useDefaultImage, firstNameOf,
 } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 
@@ -59,17 +59,17 @@ const TEMPLATES = {
     label: "Local Spotlight",
     word1: "Local",
     script: "Favorite!",
-    badge: "Shared with\nlove by\nBilly Jo",
+    badge: "Shared with\nlove by\n{agent}",
     subjectLabel: "BUSINESS NAME",
     subjectPlaceholder: "The Kettle & Vine",
     bodyLabel: "WHY YOU LOVE IT",
-    bodyPlaceholder: "Best cortado in Warminster, and they remember your order. Tell them Billy Jo sent you!",
+    bodyPlaceholder: "Best cortado in Warminster, and they remember your order every time!",
   },
   reno_tip: {
     label: "Reno Tip",
     word1: "Reno",
     script: "Tip!",
-    badge: "Home Tip\nfrom\nBilly Jo",
+    badge: "Home Tip\nfrom\n{agent}",
     subjectLabel: "TIP TITLE",
     subjectPlaceholder: "Caulk Your Baseboards",
     bodyLabel: "THE TIP",
@@ -79,7 +79,7 @@ const TEMPLATES = {
     label: "Paint Pick",
     word1: "Paint",
     script: "Pick!",
-    badge: "Color of the\nSeason from\nBilly Jo",
+    badge: "Color of the\nSeason from\n{agent}",
     subjectLabel: "COLOR NAME",
     subjectPlaceholder: "Sherwin-Williams ‘Evergreen Fog’",
     bodyLabel: "WHY IT WORKS",
@@ -89,7 +89,7 @@ const TEMPLATES = {
     label: "Recipe",
     word1: "Try This",
     script: "Recipe!",
-    badge: "Kitchen\nFavorite from\nBilly Jo",
+    badge: "Kitchen\nFavorite from\n{agent}",
     subjectLabel: "RECIPE NAME",
     subjectPlaceholder: "Sheet-Pan Fall Veggies",
     bodyLabel: "THE RECIPE",
@@ -99,7 +99,7 @@ const TEMPLATES = {
     label: "Neighborhood Guide",
     word1: "Neighborhood",
     script: "Guide!",
-    badge: "Your Guide\nto the Area\nfrom Billy Jo",
+    badge: "Your Guide\nto the Area\nfrom {agent}",
     subjectLabel: "NEIGHBORHOOD NAME",
     subjectPlaceholder: "Chestnut Hill",
     bodyLabel: "WHAT TO KNOW",
@@ -109,7 +109,7 @@ const TEMPLATES = {
     label: "Home Value Tip",
     word1: "Value",
     script: "Tip!",
-    badge: "Home Value\nTip from\nBilly Jo",
+    badge: "Home Value\nTip from\n{agent}",
     subjectLabel: "TIP TITLE",
     subjectPlaceholder: "Skip the Full Kitchen Remodel",
     bodyLabel: "THE TIP",
@@ -119,7 +119,7 @@ const TEMPLATES = {
     label: "Design Trend",
     word1: "Design",
     script: "Trend!",
-    badge: "Trending Now\nfrom\nBilly Jo",
+    badge: "Trending Now\nfrom\n{agent}",
     subjectLabel: "TREND NAME",
     subjectPlaceholder: "Warm Minimalism",
     bodyLabel: "WHY IT'S TRENDING",
@@ -143,35 +143,40 @@ const DEFAULTS = {
   aspect: "square",
   word1: "Local",
   script: "Favorite!",
-  badgeText: "Shared with\nlove by\nBilly Jo",
+  badgeText: "Shared with\nlove by\n{agent}",
   subject: "The Kettle & Vine",
-  body: "Best cortado in Warminster, and they remember your order. Tell them Billy Jo sent you!",
+  body: "Best cortado in Warminster, and they remember your order every time!",
   listItems: "Turn on the AC\nOffer cold refreshments\nHighlight outdoor spaces",
   bigNumber: "5",
   quote: "Mariella was a joy to work with when I chose to sell my starter home. Her negotiation skills were amazing and we will definitely work with her in the future!",
   clientName: "Mariella Torres",
   rating: 5,
-  agentName: "Billy Jo Salkowski, Realtor",
-  agentPhone: "(610) 308-5894",
-  agentEmail: "billyjosalkowski@gmail.com",
-  brokerageName: "RE/MAX Main Line",
-  brokerageCity: "Kimberton",
-  officePhone: "(610) 489-5900",
+  agentName: "Your Name, Realtor",
+  agentPhone: "(555) 123-4567",
+  agentEmail: "you@example.com",
+  brokerageName: "Your Brokerage",
+  brokerageCity: "Your City",
+  officePhone: "(555) 987-6543",
   contactBg: "white",
   accentColor: "#E0298C",
 };
 
 export function CommunityTool({ onSwitchTool }) {
   const { user, brandKit, logout, saveBrandKit } = useAuth();
-  const [form, setForm] = useState(() => ({
-    ...DEFAULTS,
-    agentName: brandKit?.agentName ?? DEFAULTS.agentName,
-    agentPhone: brandKit?.agentPhone ?? "",
-    agentEmail: brandKit?.agentEmail ?? "",
-    brokerageName: brandKit?.brokerageName ?? "",
-    brokerageCity: brandKit?.brokerageCity ?? "",
-    accentColor: brandKit?.accentColor || DEFAULTS.accentColor,
-  }));
+  const [form, setForm] = useState(() => {
+    const agentName = brandKit?.agentName ?? DEFAULTS.agentName;
+    return {
+      ...DEFAULTS,
+      agentName,
+      agentPhone: brandKit?.agentPhone ?? "",
+      agentEmail: brandKit?.agentEmail ?? "",
+      brokerageName: brandKit?.brokerageName ?? "",
+      brokerageCity: brandKit?.brokerageCity ?? "",
+      officePhone: brandKit?.officePhone ?? "",
+      accentColor: brandKit?.accentColor || DEFAULTS.accentColor,
+      badgeText: DEFAULTS.badgeText.replace("{agent}", firstNameOf(agentName)),
+    };
+  });
   const [fontsReady, setFontsReady] = useState(false);
   const [brandStatus, setBrandStatus] = useState("idle");
   const canvasRef = useRef(null);
@@ -191,6 +196,7 @@ export function CommunityTool({ onSwitchTool }) {
         agentEmail: form.agentEmail,
         brokerageName: form.brokerageName,
         brokerageCity: form.brokerageCity,
+        officePhone: form.officePhone,
         accentColor: form.accentColor,
         headshotUrl: headshot.source === "custom" ? headshot.url : null,
         logoUrl: logo.source === "custom" ? logo.url : null,
@@ -217,7 +223,7 @@ export function CommunityTool({ onSwitchTool }) {
       template: key,
       word1: t.word1,
       script: t.script,
-      badgeText: t.badge,
+      badgeText: t.badge.replace("{agent}", firstNameOf(f.agentName)),
     }));
   };
 

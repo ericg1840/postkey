@@ -445,6 +445,15 @@ export function PrivacyBadge() {
   );
 }
 
+// Pulls a first name out of a saved "Agent Name, Realtor" style string, for
+// personalizing template badge copy — falls back to a generic phrase for a
+// brand-new account that hasn't set an agent name yet.
+export function firstNameOf(fullName) {
+  const trimmed = (fullName || "").trim();
+  if (!trimmed) return "your agent";
+  return trimmed.split(/\s+/)[0];
+}
+
 // "Just SOLD!" -> { lead: "Just", emphasis: "SOLD!" } and back — lets the
 // UI show one plain-language Headline field while the canvas code keeps
 // treating the last word as the differently-styled/colored one.
