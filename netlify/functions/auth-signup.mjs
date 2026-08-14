@@ -7,11 +7,44 @@ async function sendWelcomeEmail(toEmail, firstName, appUrl) {
     to: toEmail,
     subject: "Welcome to PostKey!",
     html: `
-      <p>Hi ${firstName},</p>
-      <p>Welcome to PostKey — glad to have you.</p>
-      <p>Next up: set up your brand kit (logo, headshot, colors, and contact info) and you'll be ready to create your first branded post in a couple of minutes.</p>
-      <p><a href="${appUrl}">Head back to PostKey to get started →</a></p>
-      <p>— The PostKey team</p>
+      <div style="background:#F4F5F7;padding:40px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+        <div style="max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:14px;overflow:hidden;border:1px solid #E3EAF2;">
+          <div style="padding:36px 40px 8px;text-align:center;">
+            <table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto 28px;">
+              <tr>
+                <td style="width:30px;height:30px;background:#1B2430;border-radius:8px;text-align:center;vertical-align:middle;">
+                  <span style="font-size:15px;line-height:30px;color:#FFFFFF;">&#128273;</span>
+                </td>
+                <td style="padding-left:8px;font-size:19px;font-weight:700;color:#1B2430;">PostKey</td>
+              </tr>
+            </table>
+            <p style="margin:0 0 18px;font-size:15px;color:#1B2430;text-align:left;">Hey ${firstName},</p>
+            <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#1B2430;text-align:left;">
+              Welcome to PostKey! We built this so you never have to stare at a blank screen wondering what to post — set up your brand once, and every graphic comes out looking like you.
+            </p>
+          </div>
+          <div style="text-align:center;padding:0 40px 32px;">
+            <a href="${appUrl}" style="display:inline-block;background:#0043FF;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;padding:14px 32px;border-radius:8px;">
+              Set Up My Brand Kit &rarr;
+            </a>
+          </div>
+          <div style="padding:0 40px 8px;text-align:left;">
+            <p style="margin:0 0 12px;font-size:15px;color:#1B2430;">Here's how to get your first post out the door:</p>
+            <ul style="margin:0 0 28px;padding-left:20px;font-size:15px;line-height:1.9;color:#1B2430;">
+              <li>Add your logo, headshot, and colors to your brand kit</li>
+              <li>Create a Just Listed or Just Sold post in the Listings tool</li>
+              <li>Browse the Community tab for market updates and local posts</li>
+            </ul>
+            <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#1B2430;">
+              That's it — most agents have their first post ready in a couple of minutes.
+            </p>
+            <p style="margin:0;font-size:15px;color:#1B2430;">
+              Thanks for joining,<br />The PostKey Team
+            </p>
+          </div>
+        </div>
+        <p style="text-align:center;color:#9AA3B2;font-size:12px;margin:24px 0 0;">PostKey &middot; Branded social graphics for real estate agents</p>
+      </div>
     `,
   });
 }
