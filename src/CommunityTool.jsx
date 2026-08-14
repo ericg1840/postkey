@@ -137,6 +137,37 @@ const STYLES = {
   checklist: { label: "Checklist", description: "Headline card + checkmarks" },
 };
 
+// Broader groupings the individual TEMPLATES sit under — agents pick a
+// category first, then a specific idea within it, instead of scanning a
+// flat grid of every template at once.
+const CATEGORIES = {
+  local: {
+    icon: "📍", label: "Local & Trending",
+    description: "Restaurants, businesses & events",
+    options: ["spotlight", "neighborhood"],
+  },
+  client_love: {
+    icon: "⭐", label: "Client Love",
+    description: "Testimonials, reviews, closing stories",
+    isTestimonial: true,
+  },
+  design: {
+    icon: "🎨", label: "Design & Home",
+    description: "Trends, decor & renovation",
+    options: ["design_trend", "paint", "reno_tip"],
+  },
+  tips: {
+    icon: "💡", label: "Buyer & Seller Tips",
+    description: "Education that builds trust",
+    options: ["home_value"],
+  },
+  personal: {
+    icon: "👋", label: "Personal & Community",
+    description: "Recipes, life, and local flavor",
+    options: ["recipe"],
+  },
+};
+
 // Curated prompts for agents who know they should post but can't think of
 // what — each points at the template that best fits so "Create this post"
 // can jump straight into a filled-out starting point.
@@ -166,6 +197,8 @@ const DEFAULTS = {
   bigNumber: "5",
   quote: "Mariella was a joy to work with when I chose to sell my starter home. Her negotiation skills were amazing and we will definitely work with her in the future!",
   clientName: "Mariella Torres",
+  clientType: "Buyer",
+  useHeadshot: true,
   rating: 5,
   agentName: "Your Name, Realtor",
   agentPhone: "(555) 123-4567",
@@ -252,13 +285,34 @@ export function CommunityTool({ onSwitchTool }) {
     }));
   };
 
+  const categoryOfTemplate = (key) => {
+    const found = Object.entries(CATEGORIES).find(([, c]) => c.options?.includes(key));
+    return found ? found[0] : "local";
+  };
+
+  const [category, setCategory] = useState(() =>
+    form.style === "testimonial" ? "client_love" : categoryOfTemplate(form.template)
+  );
+
+  const selectCategory = (key) => {
+    setCategory(key);
+    const cat = CATEGORIES[key];
+    if (cat.isTestimonial) {
+      setForm((f) => ({ ...f, style: "testimonial" }));
+    } else if (form.style === "testimonial" || !cat.options.includes(form.template)) {
+      applyTemplate(cat.options[0]);
+    }
+  };
+
   const [idea, setIdea] = useState(null);
   const giveIdea = () => {
     const others = IDEAS.filter((i) => i !== idea);
     setIdea(others[Math.floor(Math.random() * others.length)]);
   };
   const createFromIdea = () => {
-    if (idea) applyTemplate(idea.template);
+    if (!idea) return;
+    applyTemplate(idea.template);
+    setCategory(categoryOfTemplate(idea.template));
   };
 
   const activeTemplate = TEMPLATES[form.template];
@@ -347,19 +401,24 @@ export function CommunityTool({ onSwitchTool }) {
     ctx.fill();
     ctx.restore();
 
+    // The client's own photo takes priority in the circle (this is their
+    // testimonial); the agent headshot is only a fallback. Turning off
+    // "Use headshot" skips the circle entirely and gives the quote more room.
     const circleD = w * 0.19;
     const circleCX = w / 2, circleCY = cardY;
-    ctx.beginPath();
-    ctx.arc(circleCX, circleCY, circleD / 2 + w * 0.012, 0, Math.PI * 2);
-    ctx.fillStyle = WHITE;
-    ctx.fill();
-    if (headshot.img) {
+    const circleImg = photo.img || headshot.img;
+    const showCircle = form.useHeadshot !== false && !!circleImg;
+    if (showCircle) {
+      ctx.beginPath();
+      ctx.arc(circleCX, circleCY, circleD / 2 + w * 0.012, 0, Math.PI * 2);
+      ctx.fillStyle = WHITE;
+      ctx.fill();
       ctx.save();
       ctx.beginPath();
       ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
       ctx.closePath();
       ctx.clip();
-      const img = headshot.img;
+      const img = circleImg;
       const shortSide = Math.min(img.width, img.height);
       const cropSize = shortSide * 0.82;
       const sx = (img.width - cropSize) / 2;
@@ -371,7 +430,7 @@ export function CommunityTool({ onSwitchTool }) {
     const starGap = starR * 2.6;
     const rating = Math.max(0, Math.min(5, parseInt(form.rating, 10) || 0));
     let starX = w / 2 - (starGap * 4) / 2;
-    const starY = cardY + circleD * 0.62 + h * 0.05;
+    const starY = showCircle ? cardY + circleD * 0.62 + h * 0.05 : cardY + h * 0.09;
     for (let i = 0; i < 5; i++) {
       drawStarPath(ctx, starX, starY, starR);
       ctx.fillStyle = i < rating ? form.accentColor : mixWithWhite(form.accentColor, 0.75);
@@ -385,9 +444,11 @@ export function CommunityTool({ onSwitchTool }) {
     const cardBottom = cardY + cardH;
     const sigSize = w * 0.045;
     const sigLineH = sigSize * 1.15;
+    const typeSize = w * 0.018;
+    const typeLineH = form.clientType ? typeSize * 1.6 : 0;
     const gapBeforeSig = h * 0.035;
     const bottomPad = h * 0.035;
-    const availableH = cardBottom - qy - bottomPad - gapBeforeSig - sigLineH;
+    const availableH = cardBottom - qy - bottomPad - gapBeforeSig - sigLineH - typeLineH;
 
     // Long quotes shrink to fit above the signature; if they still don't fit
     // even at the smallest readable size, truncate with an ellipsis instead
@@ -418,11 +479,18 @@ export function CommunityTool({ onSwitchTool }) {
     ctx.fillStyle = form.accentColor;
     ctx.fillText(form.clientName, w / 2, sigY);
 
+    if (form.clientType) {
+      ctx.font = `700 ${typeSize}px "Montserrat", sans-serif`;
+      ctx.fillStyle = UI.inkSoft;
+      const typeLabel = form.clientType === "Seller" ? "SELLERS" : "BUYERS";
+      ctx.fillText(typeLabel, w / 2, sigY + typeLineH * 0.72);
+    }
+
     ctx.textAlign = "left";
 
-    // The reviewer's photo is already shown above, so skip the headshot
-    // circle here to avoid showing the same photo twice.
-    drawContactBand(ctx, w, h - contactH, contactH, form, headshot, logo, false);
+    // Skip the agent headshot in the contact band when it's already shown
+    // in the circle above, so the same photo doesn't appear twice.
+    drawContactBand(ctx, w, h - contactH, contactH, form, headshot, logo, !showCircle);
   };
 
   // ---- Big Number List: dark-tinted photo, giant numeral, headline, icon list ----
@@ -838,38 +906,45 @@ export function CommunityTool({ onSwitchTool }) {
           {/* LEFT: CONTROLS */}
           <div className="grid gap-6">
             <section>
-              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>1. What are you posting?</h3>
+              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>1. What are you posting about?</h3>
               <div className="grid grid-cols-2 gap-2">
-                {Object.entries(TEMPLATES).map(([key, t]) => (
-                  <button key={key} onClick={() => applyTemplate(key)}
+                {Object.entries(CATEGORIES).map(([key, c]) => (
+                  <button key={key} onClick={() => selectCategory(key)}
                     className="text-left p-3 rounded-lg border transition font-body text-xs"
-                    style={{ borderColor: form.template === key ? ACCENT : UI.line, background: form.template === key ? UI.card : "transparent" }}>
-                    <span className="font-semibold block">{t.label}</span>
-                    <span style={{ color: UI.inkSoft }}>{t.word1} {t.script}</span>
+                    style={{ borderColor: category === key ? ACCENT : UI.line, background: category === key ? UI.card : "transparent" }}>
+                    <span className="font-semibold flex items-center gap-1.5" style={{ color: UI.ink }}>
+                      <span>{c.icon}</span> {c.label}
+                    </span>
+                    <span className="block mt-0.5" style={{ color: UI.inkSoft }}>{c.description}</span>
                   </button>
                 ))}
+                {onSwitchTool && (
+                  <button onClick={() => onSwitchTool("listings")}
+                    className="text-left p-3 rounded-lg border transition font-body text-xs"
+                    style={{ borderColor: UI.line, background: "transparent" }}>
+                    <span className="font-semibold flex items-center gap-1.5" style={{ color: UI.ink }}>
+                      <span>🏡</span> Listings &amp; Sales
+                    </span>
+                    <span className="block mt-0.5" style={{ color: UI.inkSoft }}>Just Listed, Just Sold &amp; more — in the Listings tab →</span>
+                  </button>
+                )}
               </div>
+
+              {!CATEGORIES[category].isTestimonial && CATEGORIES[category].options.length > 1 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {CATEGORIES[category].options.map((key) => (
+                    <button key={key} onClick={() => applyTemplate(key)}
+                      className="py-1.5 px-3 rounded-full border font-body text-xs font-semibold transition"
+                      style={{ borderColor: form.template === key ? ACCENT : UI.line, background: form.template === key ? UI.card : "transparent", color: UI.ink }}>
+                      {TEMPLATES[key].label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </section>
 
             <section>
-              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>2. Choose a layout</h3>
-              <div className="grid grid-cols-3 gap-2">
-                {Object.entries(STYLES).map(([key, s]) => (
-                  <button key={key} onClick={() => setForm((f) => ({ ...f, style: key }))}
-                    className="text-left rounded-lg border overflow-hidden transition"
-                    style={{ borderColor: form.style === key ? ACCENT : UI.line }}>
-                    <canvas
-                      ref={(el) => { styleThumbRefs.current[key] = el; }}
-                      style={{ display: "block", width: "100%", height: "auto" }}
-                    />
-                    <span className="font-body font-semibold block px-2 py-1.5" style={{ color: UI.ink, background: UI.card, fontSize: "0.68rem" }}>{s.label}</span>
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section>
-              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>3. Add the details</h3>
+              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>2. Add the details</h3>
               <div className="grid gap-3">
                 {form.style !== "testimonial" && (
                   <UploadBox label="PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add a photo" />
@@ -929,12 +1004,32 @@ export function CommunityTool({ onSwitchTool }) {
                 {form.style === "testimonial" && (
                   <>
                     <label className="block">
-                      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>QUOTE</span>
+                      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PASTE YOUR CLIENT'S REVIEW</span>
                       <textarea className="input" rows={4} value={form.quote} onChange={update("quote")} placeholder="Mariella was a joy to work with..." />
                     </label>
-                    <label className="block">
-                      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CLIENT NAME</span>
-                      <input className="input" value={form.clientName} onChange={update("clientName")} placeholder="Mariella Torres" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CLIENT NAME</span>
+                        <input className="input" value={form.clientName} onChange={update("clientName")} placeholder="Mariella Torres" />
+                      </label>
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BUYER OR SELLER</span>
+                        <select className="input" value={form.clientType} onChange={update("clientType")}>
+                          <option value="Buyer">Buyer</option>
+                          <option value="Seller">Seller</option>
+                        </select>
+                      </label>
+                    </div>
+                    <UploadBox label="CLIENT / PROPERTY PHOTO (optional)" icon={ImageIcon} state={photo} hint="Drop or click to add a photo" />
+                    <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer" style={{ borderColor: UI.line }}>
+                      <input type="checkbox" checked={form.useHeadshot} onChange={(e) => setForm((f) => ({ ...f, useHeadshot: e.target.checked }))} className="hidden" />
+                      <span className="flex-1 font-body text-xs font-semibold" style={{ color: UI.ink }}>
+                        Show a photo in the circle
+                        <span className="block font-normal mt-0.5" style={{ color: UI.inkSoft }}>Uses the photo above, or your headshot if none is added.</span>
+                      </span>
+                      <span className="flex-shrink-0 rounded-full transition" style={{ width: 34, height: 20, background: form.useHeadshot ? ACCENT : UI.line, position: "relative" }}>
+                        <span className="absolute rounded-full transition" style={{ width: 14, height: 14, top: 3, left: form.useHeadshot ? 17 : 3, background: WHITE }} />
+                      </span>
                     </label>
                     <div className="block">
                       <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>RATING</span>
@@ -952,6 +1047,25 @@ export function CommunityTool({ onSwitchTool }) {
                 )}
               </div>
             </section>
+
+            {form.style !== "testimonial" && (
+              <section>
+                <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>3. Choose your look</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {Object.entries(STYLES).filter(([key]) => key !== "testimonial").map(([key, s]) => (
+                    <button key={key} onClick={() => setForm((f) => ({ ...f, style: key }))}
+                      className="text-left rounded-lg border overflow-hidden transition"
+                      style={{ borderColor: form.style === key ? ACCENT : UI.line }}>
+                      <canvas
+                        ref={(el) => { styleThumbRefs.current[key] = el; }}
+                        style={{ display: "block", width: "100%", height: "auto" }}
+                      />
+                      <span className="font-body font-semibold block px-2 py-1.5" style={{ color: UI.ink, background: UI.card, fontSize: "0.68rem" }}>{s.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <label
               className="flex items-center gap-3 p-4 rounded-xl border cursor-pointer"
