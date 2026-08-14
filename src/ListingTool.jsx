@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Download, Image as ImageIcon, User, Building2, SlidersHorizontal, MoreHorizontal } from "lucide-react";
+import { Download, Image as ImageIcon, User, Building2, SlidersHorizontal } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
@@ -667,8 +667,6 @@ export function ListingTool({ onSwitchTool }) {
   };
 
   const currentStep = !photo.img ? 1 : downloadError || downloading || downloadingAll ? 3 : 2;
-  const primaryDownload = wantSocialSet ? downloadAllSizes : downloadImage;
-  const primaryDownloadBusy = wantSocialSet ? downloadingAll : downloading;
 
   return (
     <div className="min-h-screen" style={{ background: UI.stone, color: UI.ink }}>
@@ -1083,25 +1081,17 @@ export function ListingTool({ onSwitchTool }) {
           <div>
             <h3 className="font-body text-base font-semibold" style={{ color: UI.ink }}>Ready to download your post?</h3>
             <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>
-              {wantSocialSet ? "We'll generate Feed, Story, and Landscape sizes at once." : "Once you're happy with your design, download it below."}
+              Once you're happy with your design, download it below.
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
-              onClick={primaryDownload}
-              disabled={primaryDownloadBusy}
+              onClick={downloadImage}
+              disabled={downloading}
               className="py-2.5 px-5 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
               style={{ background: ACCENT, color: WHITE }}
             >
-              <Download size={16} /> {primaryDownloadBusy ? "Preparing…" : "Download Image"}
-            </button>
-            <button
-              onClick={wantSocialSet ? downloadImage : downloadAllSizes}
-              title={wantSocialSet ? "Download just this size" : "Download the whole set"}
-              className="p-2.5 rounded-lg border transition"
-              style={{ borderColor: UI.line, color: UI.ink }}
-            >
-              <MoreHorizontal size={16} />
+              <Download size={16} /> {downloading ? "Preparing…" : "Download Image"}
             </button>
           </div>
         </div>

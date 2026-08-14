@@ -1,4 +1,4 @@
-import { Key, Sparkles, Palette, Lock, Lightbulb, Zap, Repeat, Star, ArrowRight } from "lucide-react";
+import { Key, Sparkles, Palette, Lock, Lightbulb, Zap, Repeat, Star, ArrowRight, Heart, MessageCircle, Send, Bookmark, Check } from "lucide-react";
 import { AUTH } from "../auth/AuthShell.jsx";
 import { ACCENT_PRESETS } from "../shared.jsx";
 
@@ -19,10 +19,26 @@ const STEPS = [
 ];
 
 const EXAMPLES = [
-  { tag: "JUST LISTED", headline: "Just Listed!", sub: "419 Tall Oaks Dr", color: PRIMARY },
-  { tag: "JUST SOLD", headline: "Sold Fast!", sub: "Another happy client", color: ACCENT_PRESETS[3] },
-  { tag: "MARKET UPDATE", headline: "3 Things Buyers Should Know", sub: "Before making an offer", color: ACCENT_PRESETS[4] },
-  { tag: "LOCAL SPOTLIGHT", headline: "Local Favorite!", sub: "The Kettle & Vine", color: ACCENT_PRESETS[2] },
+  {
+    category: "LISTING", headline: "Just Listed!", sub: "419 Tall Oaks Dr",
+    caption: "Stunning 4 bed, 3 bath home with modern updates and a backyard oasis.", cta: "View more details →",
+    color: PRIMARY,
+  },
+  {
+    category: "SOLD", headline: "Sold Fast!", sub: "Another happy client",
+    caption: "Multiple offers and a smooth closing from start to finish.", cta: "#SoldByPostKeyRealty",
+    color: ACCENT_PRESETS[3],
+  },
+  {
+    category: "EDUCATION", headline: "3 Things Buyers Should Know", sub: "Before making an offer",
+    caption: "A little knowledge now can save time, stress, and money later.", cta: "Read more →",
+    color: ACCENT_PRESETS[4],
+  },
+  {
+    category: "LOCAL", headline: "Local Favorite!", sub: "The Kettle & Vine",
+    caption: "Great coffee, friendly faces, and the perfect spot to start your day.", cta: "#SupportLocal",
+    color: ACCENT_PRESETS[2],
+  },
 ];
 
 function PostCard({ label, color, rotate, top, left, scale = 1 }) {
@@ -68,25 +84,71 @@ function FloatingSparkle({ top, left, right, bottom, size = 22, color, rotate = 
 }
 
 // A finished-looking example post — used in the "See what you can create" gallery.
-function ExampleCard({ tag, headline, sub, color }) {
+function ExampleCard({ category, headline, sub, caption, cta, color }) {
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: "#FFFFFF", boxShadow: "0 12px 30px rgba(27,36,48,0.1)" }}>
-      <div className="relative flex flex-col justify-end p-4" style={{ height: 190, background: `linear-gradient(165deg, ${color}26, ${color}66)` }}>
+      <div className="relative flex flex-col justify-end p-5" style={{ height: 224, background: `linear-gradient(165deg, ${color}24, ${color}70)` }}>
         <span
-          className="absolute rounded-full font-mono font-semibold"
-          style={{ top: 12, left: 12, background: "#FFFFFF", color, fontSize: "0.62rem", letterSpacing: "0.04em", padding: "4px 10px" }}
+          className="absolute rounded-full font-mono font-bold"
+          style={{ top: 14, left: 14, background: color, color: "#FFFFFF", fontSize: "0.6rem", letterSpacing: "0.05em", padding: "4px 11px" }}
         >
-          {tag}
+          {category}
         </span>
-        <h4 className="font-display font-bold" style={{ color: AUTH.ink, fontSize: "1.25rem", lineHeight: 1.15 }}>{headline}</h4>
-        <p className="font-body text-xs mt-1" style={{ color: AUTH.ink, opacity: 0.7 }}>{sub}</p>
+        <h4 className="font-display font-bold" style={{ color: AUTH.ink, fontSize: "1.4rem", lineHeight: 1.12 }}>{headline}</h4>
+        <p className="font-body text-xs mt-1" style={{ color: AUTH.ink, opacity: 0.72 }}>{sub}</p>
       </div>
-      <div className="flex items-center gap-2 px-3.5 py-3">
-        <div className="rounded-full flex-shrink-0" style={{ width: 20, height: 20, background: AUTH.border }} />
-        <div className="grid gap-1 flex-1">
-          <div className="rounded-full" style={{ height: 4, width: "60%", background: AUTH.border }} />
-          <div className="rounded-full" style={{ height: 4, width: "38%", background: AUTH.border }} />
+      <div className="flex items-center gap-3 px-4 pt-3" style={{ color: AUTH.muted }}>
+        <Heart size={16} />
+        <MessageCircle size={16} />
+        <Send size={15} />
+        <Bookmark size={15} className="ml-auto" />
+      </div>
+      <div className="flex items-start gap-2 px-4 pt-2.5 pb-4">
+        <div className="rounded-full flex-shrink-0 mt-0.5" style={{ width: 20, height: 20, background: AUTH.border }} />
+        <p className="font-body text-xs" style={{ color: AUTH.muted, lineHeight: 1.55 }}>
+          {caption} <span className="font-semibold" style={{ color }}>{cta}</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function BrandKitRow({ label, children }) {
+  return (
+    <div className="flex items-center justify-between pb-3 mb-3" style={{ borderBottom: `1px solid ${AUTH.border}` }}>
+      <span className="font-mono font-semibold" style={{ color: AUTH.muted, letterSpacing: "0.04em", fontSize: "0.62rem" }}>{label.toUpperCase()}</span>
+      {children}
+    </div>
+  );
+}
+
+// A miniature preview of the brand kit UI — shows what "set it once" actually looks like.
+function BrandKitPreview() {
+  return (
+    <div className="rounded-2xl p-5 w-full" style={{ maxWidth: 260, background: "#FFFFFF", boxShadow: "0 20px 45px rgba(27,36,48,0.14)" }}>
+      <span className="font-mono font-bold block mb-4" style={{ color: AUTH.ink, letterSpacing: "0.04em", fontSize: "0.68rem" }}>YOUR BRAND KIT</span>
+      <BrandKitRow label="Logo">
+        <div className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5" style={{ background: AUTH.ink }}>
+          <Key size={10} color="#FFFFFF" style={{ transform: "rotate(-45deg)" }} />
+          <span className="font-display font-bold" style={{ color: "#FFFFFF", fontSize: "0.62rem" }}>PostKey Realty</span>
         </div>
+      </BrandKitRow>
+      <BrandKitRow label="Colors">
+        <div className="flex items-center gap-1.5">
+          {[AUTH.ink, PRIMARY, ACCENT_PRESETS[3], "#F1EFE8"].map((c, i) => (
+            <span key={i} className="rounded-full" style={{ width: 15, height: 15, background: c, border: c === "#F1EFE8" ? `1px solid ${AUTH.border}` : "none" }} />
+          ))}
+        </div>
+      </BrandKitRow>
+      <BrandKitRow label="Font">
+        <span className="font-display font-bold text-sm" style={{ color: AUTH.ink }}>Montserrat</span>
+      </BrandKitRow>
+      <BrandKitRow label="Headshot">
+        <div className="rounded-full" style={{ width: 24, height: 24, background: `linear-gradient(155deg, ${PRIMARY}33, ${PRIMARY}66)` }} />
+      </BrandKitRow>
+      <div className="flex items-center justify-between">
+        <span className="font-mono font-semibold" style={{ color: AUTH.muted, letterSpacing: "0.04em", fontSize: "0.62rem" }}>CONTACT</span>
+        <span className="font-body" style={{ color: AUTH.ink, fontSize: "0.7rem" }}>555.123.4567</span>
       </div>
     </div>
   );
@@ -131,7 +193,7 @@ export function HomePage({ onGetStarted, onLogIn }) {
         <div className="absolute rounded-full" style={{ width: 460, height: 460, top: -220, left: -180, background: `${ACCENT_PRESETS[4]}12`, filter: "blur(20px)" }} />
         <div className="absolute rounded-full" style={{ width: 360, height: 360, bottom: -180, right: -120, background: `${PRIMARY}14`, filter: "blur(20px)" }} />
 
-        <div className="max-w-6xl mx-auto px-6 pt-16 sm:pt-24 relative grid lg:grid-cols-2 gap-14 items-center">
+        <div className="max-w-6xl mx-auto px-6 pt-14 sm:pt-20 relative grid lg:grid-cols-2 gap-14 items-center">
           <div>
             <div
               className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-6"
@@ -202,7 +264,7 @@ export function HomePage({ onGetStarted, onLogIn }) {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how-it-works" className="max-w-5xl mx-auto px-6 py-20 sm:py-24">
+      <section id="how-it-works" className="max-w-5xl mx-auto px-6 py-16 sm:py-20">
         <h2 className="font-display font-bold text-center" style={{ color: AUTH.ink, fontSize: "1.75rem" }}>
           Your next post in 3 steps
         </h2>
@@ -235,7 +297,7 @@ export function HomePage({ onGetStarted, onLogIn }) {
       </section>
 
       {/* FEATURES */}
-      <section id="features" className="max-w-6xl mx-auto px-6 py-16 sm:py-20">
+      <section id="features" className="max-w-6xl mx-auto px-6 py-14 sm:py-16">
         <h2 className="font-display font-bold text-center" style={{ color: AUTH.ink, fontSize: "1.75rem" }}>
           Everything you need to stay consistent
         </h2>
@@ -253,72 +315,144 @@ export function HomePage({ onGetStarted, onLogIn }) {
       </section>
 
       {/* EXAMPLES */}
-      <section className="max-w-6xl mx-auto px-6 py-16 sm:py-20">
+      <section className="max-w-6xl mx-auto px-6 py-14 sm:py-16">
         <h2 className="font-display font-bold text-center" style={{ color: AUTH.ink, fontSize: "1.75rem" }}>
           See what you can create
         </h2>
-        <p className="font-body text-sm text-center mt-2" style={{ color: AUTH.muted }}>
-          A few examples of what PostKey generates — branded to you automatically.
+        <p className="font-body text-sm text-center mt-2 mx-auto" style={{ color: AUTH.muted, maxWidth: 440 }}>
+          Listings, closings, market updates, local content, and more — all styled to match your brand.
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-10">
           {EXAMPLES.map((e, i) => <ExampleCard key={i} {...e} />)}
         </div>
+        <div className="text-center mt-8">
+          <button
+            onClick={onGetStarted}
+            className="font-body font-semibold rounded-full px-6 py-3 transition hover:opacity-80"
+            style={{ background: "#FFFFFF", color: PRIMARY, border: `1.5px solid ${PRIMARY}40`, fontSize: "0.9rem" }}
+          >
+            Explore Post Ideas →
+          </button>
+        </div>
       </section>
 
       {/* BRAND KIT */}
-      <section className="max-w-6xl mx-auto px-6 py-4 sm:py-8">
-        <div className="rounded-3xl p-8 sm:p-12 text-center" style={{ background: "#F1EFE8" }}>
-          <h2 className="font-display font-bold" style={{ color: AUTH.ink, fontSize: "1.75rem" }}>
-            Set your brand once.
-          </h2>
-          <p className="font-display font-bold" style={{ color: PRIMARY, fontSize: "1.75rem" }}>
-            PostKey remembers the rest.
-          </p>
-          <p className="font-body text-sm mt-4" style={{ color: AUTH.muted }}>
-            Logo &nbsp;·&nbsp; Colors &nbsp;·&nbsp; Fonts &nbsp;·&nbsp; Headshot &nbsp;·&nbsp; Contact Info
-          </p>
-          <p className="font-body text-sm mt-1" style={{ color: AUTH.muted }}>
-            Every post you create automatically feels like you.
-          </p>
-          <button
-            onClick={onGetStarted}
-            className="font-body font-semibold rounded-full px-6 py-3.5 mt-7 transition hover:opacity-88"
-            style={{ background: AUTH.ink, color: "#FFFFFF", fontSize: "0.95rem" }}
-          >
-            Create My Brand Kit
-          </button>
+      <section className="max-w-6xl mx-auto px-6 py-6 sm:py-8">
+        <div className="rounded-3xl p-8 sm:p-14 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center" style={{ background: "#F1EFE8" }}>
+          <div className="text-center lg:text-left">
+            <span className="font-mono font-bold" style={{ color: AUTH.muted, letterSpacing: "0.06em", fontSize: "0.7rem" }}>
+              SET YOUR BRAND ONCE
+            </span>
+            <h2 className="font-display font-bold mt-3" style={{ color: AUTH.ink, fontSize: "1.85rem", lineHeight: 1.15 }}>
+              Set your brand once.
+            </h2>
+            <p className="font-display font-bold" style={{ color: PRIMARY, fontSize: "1.85rem", lineHeight: 1.15 }}>
+              PostKey remembers the rest.
+            </p>
+            <p className="font-body text-sm mt-4 mx-auto lg:mx-0" style={{ color: AUTH.muted, maxWidth: 360 }}>
+              Add your branding and contact info once and we'll apply it to every post you create.
+            </p>
+            <div className="flex flex-wrap justify-center lg:justify-start gap-x-5 gap-y-2 mt-6">
+              {["Logo", "Colors", "Fonts", "Headshot", "Contact Info"].map((label) => (
+                <span key={label} className="font-body text-xs font-semibold flex items-center gap-1.5" style={{ color: AUTH.ink }}>
+                  <span className="rounded-full flex-shrink-0" style={{ width: 5, height: 5, background: PRIMARY }} />
+                  {label}
+                </span>
+              ))}
+            </div>
+            <button
+              onClick={onGetStarted}
+              className="font-body font-semibold rounded-full px-6 py-3.5 mt-8 transition hover:opacity-88"
+              style={{ background: PRIMARY, color: "#FFFFFF", fontSize: "0.95rem" }}
+            >
+              Set Up My Brand
+            </button>
+          </div>
+
+          <div className="flex flex-col items-center gap-4">
+            <BrandKitPreview />
+            <div className="hidden sm:flex items-center gap-4">
+              <ArrowRight size={18} style={{ color: AUTH.muted }} />
+              <span className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>Applied automatically</span>
+              <ArrowRight size={18} style={{ color: AUTH.muted }} />
+              <div className="relative flex-shrink-0" style={{ width: 148, height: 176 }}>
+                <PostCard label="Just LISTED!" color={PRIMARY} rotate={0} top={0} left={0} scale={0.88} />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* FINAL CTA */}
-      <section className="px-6 mt-8">
+      <section className="px-6 py-14 sm:py-16">
         <div
-          className="max-w-5xl mx-auto rounded-3xl relative overflow-hidden text-center py-16 px-6"
+          className="max-w-5xl mx-auto rounded-3xl relative overflow-hidden py-14 px-6 sm:px-14"
           style={{ background: AUTH.ink }}
         >
           <FloatingSparkle top={20} left={40} size={20} color={ACCENT_PRESETS[3]} rotate={-8} />
-          <FloatingSparkle bottom={24} right={60} size={16} color={ACCENT_PRESETS[1]} rotate={14} />
-          <h2 className="font-display font-bold text-2xl sm:text-3xl relative" style={{ color: "#FFFFFF" }}>
-            Your next post is already waiting.
-          </h2>
-          <p className="font-body text-sm mt-3 relative" style={{ color: "rgba(255,255,255,0.65)" }}>
-            Create better real estate content, stay consistent, and spend less time wondering what to post.
-          </p>
-          <button
-            onClick={onGetStarted}
-            className="font-body font-semibold rounded-full px-6 py-3.5 mt-7 relative transition hover:opacity-88"
-            style={{ background: PRIMARY, color: "#FFFFFF", fontSize: "0.95rem" }}
-          >
-            Get Started Free
-          </button>
-          <p className="font-body text-xs mt-3 relative" style={{ color: "rgba(255,255,255,0.5)" }}>
-            No design skills needed.
-          </p>
+          <FloatingSparkle bottom={24} left={"46%"} size={16} color={ACCENT_PRESETS[1]} rotate={14} />
+          <div className="relative grid lg:grid-cols-2 gap-10 items-center">
+            <div className="text-center lg:text-left">
+              <h2 className="font-display font-bold text-2xl sm:text-3xl" style={{ color: "#FFFFFF" }}>
+                Your next post is already waiting.
+              </h2>
+              <p className="font-body text-sm mt-3 mx-auto lg:mx-0" style={{ color: "rgba(255,255,255,0.65)", maxWidth: 400 }}>
+                Stop staring at a blank screen. PostKey gives you the idea, the design, and the caption — so you can just post.
+              </p>
+              <button
+                onClick={onGetStarted}
+                className="font-body font-semibold rounded-full px-6 py-3.5 mt-7 transition hover:opacity-88"
+                style={{ background: PRIMARY, color: "#FFFFFF", fontSize: "0.95rem" }}
+              >
+                Get Started Free
+              </button>
+              <div className="flex items-center justify-center lg:justify-start gap-x-5 gap-y-1.5 mt-4 flex-wrap">
+                <span className="font-body text-xs flex items-center gap-1.5" style={{ color: "rgba(255,255,255,0.55)" }}>
+                  <Check size={13} /> Free to start
+                </span>
+                <span className="font-body text-xs flex items-center gap-1.5" style={{ color: "rgba(255,255,255,0.55)" }}>
+                  <Check size={13} /> No credit card required
+                </span>
+              </div>
+            </div>
+
+            <div className="relative hidden lg:block" style={{ height: 220 }}>
+              <div className="absolute" style={{ top: 10, left: 10 }}>
+                <PostCard label="Market Update" color={ACCENT_PRESETS[4]} rotate={-9} top={0} left={0} scale={0.78} />
+              </div>
+              <div className="absolute" style={{ top: -20, left: 110 }}>
+                <PostCard label="Just SOLD!" color={PRIMARY} rotate={5} top={0} left={0} scale={0.9} />
+              </div>
+              <div className="absolute" style={{ top: 20, left: 220 }}>
+                <PostCard label="Local Favorite" color={ACCENT_PRESETS[2]} rotate={-4} top={0} left={0} scale={0.78} />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <footer className="max-w-6xl mx-auto px-6 py-10">
-        <p className="font-body text-xs" style={{ color: AUTH.muted }}>© {new Date().getFullYear()} PostKey.</p>
+      <footer className="max-w-6xl mx-auto px-6 pt-10 pb-8 border-t" style={{ borderColor: AUTH.border }}>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-8">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center rounded-lg" style={{ width: 26, height: 26, background: AUTH.ink }}>
+                <Key size={13} color="#FFFFFF" style={{ transform: "rotate(-45deg)" }} />
+              </div>
+              <span className="font-display font-bold text-base" style={{ color: AUTH.ink }}>PostKey</span>
+            </div>
+            <p className="font-body text-xs mt-3" style={{ color: AUTH.muted, maxWidth: 240 }}>
+              Built for real estate agents. Create better content, stay consistent, and close more.
+            </p>
+          </div>
+          <div>
+            <span className="font-mono font-bold block mb-3" style={{ color: AUTH.ink, letterSpacing: "0.05em", fontSize: "0.68rem" }}>PRODUCT</span>
+            <div className="grid gap-2">
+              <a href="#features" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>Features</a>
+              <a href="#how-it-works" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>How It Works</a>
+            </div>
+          </div>
+        </div>
+        <p className="font-body text-xs mt-10" style={{ color: AUTH.muted }}>© {new Date().getFullYear()} PostKey. All rights reserved.</p>
       </footer>
     </div>
   );
