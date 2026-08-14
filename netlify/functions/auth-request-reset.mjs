@@ -1,26 +1,17 @@
 import { getDb } from "./_lib/db.mjs";
 import { createResetToken, json } from "./_lib/auth.mjs";
+import { sendEmail } from "./_lib/email.mjs";
 
 async function sendResetEmail(toEmail, resetUrl) {
-  const apiKey = Netlify.env.get("RESEND_API_KEY");
-  if (!apiKey) throw new Error("RESEND_API_KEY is not configured");
-  const from = Netlify.env.get("RESEND_FROM_EMAIL") || "PostKey <onboarding@resend.dev>";
-
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from,
-      to: [toEmail],
-      subject: "Reset your PostKey password",
-      html: `
-        <p>Someone requested a password reset for this PostKey account.</p>
-        <p><a href="${resetUrl}">Click here to set a new password</a>. This link expires in 1 hour.</p>
-        <p>If you didn't request this, you can ignore this email.</p>
-      `,
-    }),
+  await sendEmail({
+    to: toEmail,
+    subject: "Reset your PostKey password",
+    html: `
+      <p>Someone requested a password reset for this PostKey account.</p>
+      <p><a href="${resetUrl}">Click here to set a new password</a>. This link expires in 1 hour.</p>
+      <p>If you didn't request this, you can ignore this email.</p>
+    `,
   });
-  if (!res.ok) throw new Error(`Resend API error: ${res.status}`);
 }
 
 export default async (req) => {
