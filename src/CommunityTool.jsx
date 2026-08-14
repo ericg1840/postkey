@@ -379,17 +379,42 @@ export function CommunityTool({ onSwitchTool }) {
       starX += starGap;
     }
 
-    const quoteSize = w * 0.03;
+    ctx.textAlign = "center";
+    const quoteMaxW = cardW * 0.82;
+    const qy = starY + h * 0.075;
+    const cardBottom = cardY + cardH;
+    const sigSize = w * 0.045;
+    const sigLineH = sigSize * 1.15;
+    const gapBeforeSig = h * 0.035;
+    const bottomPad = h * 0.035;
+    const availableH = cardBottom - qy - bottomPad - gapBeforeSig - sigLineH;
+
+    // Long quotes shrink to fit above the signature; if they still don't fit
+    // even at the smallest readable size, truncate with an ellipsis instead
+    // of pushing the client's name down into the contact band.
+    let quoteSize = w * 0.03;
+    const minQuoteSize = w * 0.017;
+    let quoteLines = [];
+    let quoteLineH = quoteSize * 1.42;
+    while (true) {
+      ctx.font = `italic 500 ${quoteSize}px "Playfair Display", serif`;
+      quoteLineH = quoteSize * 1.42;
+      quoteLines = wrapText(ctx, `"${form.quote}"`, quoteMaxW);
+      if (quoteLines.length * quoteLineH <= availableH || quoteSize <= minQuoteSize) break;
+      quoteSize -= w * 0.0015;
+    }
+    const maxLines = Math.max(1, Math.floor(availableH / quoteLineH));
+    if (quoteLines.length > maxLines) {
+      quoteLines = quoteLines.slice(0, maxLines);
+      quoteLines[maxLines - 1] = quoteLines[maxLines - 1].replace(/[.,;:\s]*$/, "") + "…";
+    }
+
     ctx.font = `italic 500 ${quoteSize}px "Playfair Display", serif`;
     ctx.fillStyle = UI.ink;
-    ctx.textAlign = "center";
-    const quoteLines = wrapText(ctx, `"${form.quote}"`, cardW * 0.82).slice(0, 6);
-    const quoteLineH = quoteSize * 1.42;
-    const qy = starY + h * 0.075;
     quoteLines.forEach((line, i) => ctx.fillText(line, w / 2, qy + i * quoteLineH));
 
-    const sigY = qy + quoteLines.length * quoteLineH + h * 0.05;
-    ctx.font = scriptFontCss(form.scriptFont, w * 0.045);
+    const sigY = qy + quoteLines.length * quoteLineH + gapBeforeSig;
+    ctx.font = scriptFontCss(form.scriptFont, sigSize);
     ctx.fillStyle = form.accentColor;
     ctx.fillText(form.clientName, w / 2, sigY);
 
