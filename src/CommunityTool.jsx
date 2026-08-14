@@ -918,16 +918,6 @@ export function CommunityTool({ onSwitchTool }) {
                     <span className="block mt-0.5" style={{ color: UI.inkSoft }}>{c.description}</span>
                   </button>
                 ))}
-                {onSwitchTool && (
-                  <button onClick={() => onSwitchTool("listings")}
-                    className="text-left p-3 rounded-lg border transition font-body text-xs"
-                    style={{ borderColor: UI.line, background: "transparent" }}>
-                    <span className="font-semibold flex items-center gap-1.5" style={{ color: UI.ink }}>
-                      <span>🏡</span> Listings &amp; Sales
-                    </span>
-                    <span className="block mt-0.5" style={{ color: UI.inkSoft }}>Just Listed, Just Sold &amp; more — in the Listings tab →</span>
-                  </button>
-                )}
               </div>
 
               {!CATEGORIES[category].isTestimonial && CATEGORIES[category].options.length > 1 && (
