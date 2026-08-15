@@ -13,7 +13,7 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { n: 1, title: "Choose what to post", text: "Pick a listing, market update, buyer tip, or local spotlight — or get an idea from PostKey." },
+  { n: 1, title: "Choose what to post", text: "Listings, testimonials, local favorites, buyer & seller tips, design inspiration, and more." },
   { n: 2, title: "PostKey creates it", text: "Get your graphic, headline, and copy, formatted and ready for social." },
   { n: 3, title: "Make it yours", text: "Your colors, logo, headshot, and contact info are already applied." },
 ];
@@ -41,7 +41,10 @@ const EXAMPLES = [
   },
 ];
 
-function PostCard({ label, color, rotate, top, left, scale = 1 }) {
+// A miniature version of an actual PostKey-generated graphic — same category
+// pill + headline + contact-band treatment as the real templates, so the
+// floating cards in the hero/CTA read as real output, not abstract shapes.
+function PostCard({ category, headline, color, rotate, top, left, scale = 1 }) {
   return (
     <div
       className="absolute rounded-2xl overflow-hidden"
@@ -52,19 +55,20 @@ function PostCard({ label, color, rotate, top, left, scale = 1 }) {
         boxShadow: "0 20px 40px rgba(27,36,48,0.22)",
       }}
     >
-      <div className="relative" style={{ height: "62%", background: `linear-gradient(155deg, ${color}22, ${color}55)` }}>
+      <div className="relative flex items-end p-2.5" style={{ height: "64%", background: `linear-gradient(155deg, ${color}26, ${color}68)` }}>
         <span
-          className="absolute rounded-lg font-display font-bold"
-          style={{ top: 10, right: 10, background: color, color: "#FFFFFF", fontSize: "0.6rem", padding: "5px 8px", lineHeight: 1.2, textAlign: "right" }}
+          className="absolute rounded-full font-mono font-bold"
+          style={{ top: 8, left: 8, background: color, color: "#FFFFFF", fontSize: "0.5rem", letterSpacing: "0.04em", padding: "3px 7px" }}
         >
-          {label}
+          {category}
         </span>
+        <h4 className="font-display font-bold" style={{ color: AUTH.ink, fontSize: "1.05rem", lineHeight: 1.08, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{headline}</h4>
       </div>
-      <div className="flex items-center gap-1.5 px-2.5" style={{ height: "38%" }}>
-        <div className="rounded-full flex-shrink-0" style={{ width: 22, height: 22, background: AUTH.border }} />
+      <div className="flex items-center gap-1.5 px-2.5" style={{ height: "36%" }}>
+        <div className="rounded-full flex-shrink-0" style={{ width: 20, height: 20, background: AUTH.border }} />
         <div className="grid gap-1 flex-1">
-          <div className="rounded-full" style={{ height: 5, width: "70%", background: AUTH.border }} />
-          <div className="rounded-full" style={{ height: 5, width: "45%", background: AUTH.border }} />
+          <div className="rounded-full" style={{ height: 4, width: "70%", background: AUTH.border }} />
+          <div className="rounded-full" style={{ height: 4, width: "45%", background: AUTH.border }} />
         </div>
       </div>
     </div>
@@ -194,7 +198,7 @@ export function HomePage({ onGetStarted, onLogIn }) {
         <div className="absolute rounded-full" style={{ width: 460, height: 460, top: -220, left: -180, background: `${ACCENT_PRESETS[4]}12`, filter: "blur(20px)" }} />
         <div className="absolute rounded-full" style={{ width: 360, height: 360, bottom: -180, right: -120, background: `${PRIMARY}14`, filter: "blur(20px)" }} />
 
-        <div className="max-w-6xl mx-auto px-6 pt-14 sm:pt-20 relative grid lg:grid-cols-2 gap-14 items-center">
+        <div className="max-w-6xl mx-auto px-6 pt-10 sm:pt-14 relative grid lg:grid-cols-2 gap-14 items-center">
           <div>
             <div
               className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-6"
@@ -212,10 +216,7 @@ export function HomePage({ onGetStarted, onLogIn }) {
               again.
             </h1>
             <p className="font-body mt-5" style={{ color: AUTH.muted, fontSize: "1.05rem", maxWidth: 460 }}>
-              Create scroll-stopping real estate content in minutes — branded to you and ready to share.
-            </p>
-            <p className="font-body mt-2" style={{ color: AUTH.muted, fontSize: "0.9rem", maxWidth: 460 }}>
-              From new listings and sold posts to market tips, local content, and everyday social ideas.
+              Create polished, on-brand social posts in minutes — without staring at a blank screen or designing everything from scratch.
             </p>
 
             <div className="flex items-center gap-3 mt-8 flex-wrap">
@@ -228,8 +229,8 @@ export function HomePage({ onGetStarted, onLogIn }) {
               </button>
               <a
                 href="#how-it-works"
-                className="font-body font-semibold rounded-full px-6 py-3.5 transition"
-                style={{ color: AUTH.ink, fontSize: "0.95rem", background: "#F1EFE8" }}
+                className="font-body font-semibold rounded-full px-6 py-3.5 transition hover:opacity-75"
+                style={{ color: AUTH.ink, fontSize: "0.95rem", background: "#F1EFE8", border: `1.5px solid ${AUTH.border}` }}
               >
                 See How It Works
               </a>
@@ -246,6 +247,9 @@ export function HomePage({ onGetStarted, onLogIn }) {
                 <Key size={13} /> Free to get started
               </span>
             </div>
+            <p className="font-body text-xs font-semibold mt-3" style={{ color: PRIMARY }}>
+              Create your first post in under 3 minutes.
+            </p>
           </div>
 
           <div className="relative hidden lg:block" style={{ height: 420 }}>
@@ -256,16 +260,16 @@ export function HomePage({ onGetStarted, onLogIn }) {
             <Star size={16} color={AUTH.border} fill={AUTH.border} strokeWidth={0} className="absolute" style={{ top: 130, right: 10 }} />
 
             <div className="relative mx-auto" style={{ width: 340, height: 400 }}>
-              <PostCard label="Just SOLD!" color={PRIMARY} rotate={-9} top={10} left={0} />
-              <PostCard label="Buyer Tip!" color={ACCENT_PRESETS[4]} rotate={6} top={70} left={150} />
-              <PostCard label="Local Favorite!" color={ACCENT_PRESETS[3]} rotate={-4} top={190} left={20} scale={1.06} />
+              <PostCard category="SOLD" headline="Sold Fast!" color={PRIMARY} rotate={-9} top={10} left={0} />
+              <PostCard category="CLIENT LOVE" headline="5-Star Review!" color={ACCENT_PRESETS[4]} rotate={6} top={70} left={150} />
+              <PostCard category="LOCAL" headline="Local Favorite!" color={ACCENT_PRESETS[3]} rotate={-4} top={190} left={20} scale={1.06} />
             </div>
           </div>
         </div>
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how-it-works" className="max-w-5xl mx-auto px-6 py-16 sm:py-20">
+      <section id="how-it-works" className="max-w-5xl mx-auto px-6 pt-10 pb-16 sm:pt-12 sm:pb-20">
         <h2 className="font-display font-bold text-center" style={{ color: AUTH.ink, fontSize: "1.75rem" }}>
           Your next post in 3 steps
         </h2>
@@ -377,7 +381,7 @@ export function HomePage({ onGetStarted, onLogIn }) {
               <span className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>Applied automatically</span>
               <ArrowRight size={18} style={{ color: AUTH.muted }} />
               <div className="relative flex-shrink-0" style={{ width: 148, height: 176 }}>
-                <PostCard label="Just LISTED!" color={PRIMARY} rotate={0} top={0} left={0} scale={0.88} />
+                <PostCard category="LISTING" headline="Just Listed!" color={PRIMARY} rotate={0} top={0} left={0} scale={0.88} />
               </div>
             </div>
           </div>
@@ -398,14 +402,14 @@ export function HomePage({ onGetStarted, onLogIn }) {
                 Your next post is already waiting.
               </h2>
               <p className="font-body text-sm mt-3 mx-auto lg:mx-0" style={{ color: "rgba(255,255,255,0.65)", maxWidth: 400 }}>
-                Stop staring at a blank screen. PostKey gives you the idea, the design, and the caption — so you can just post.
+                Choose an idea, personalize it, and share it in minutes.
               </p>
               <button
                 onClick={onGetStarted}
                 className="font-body font-semibold rounded-full px-6 py-3.5 mt-7 transition hover:opacity-88"
                 style={{ background: PRIMARY, color: "#FFFFFF", fontSize: "0.95rem" }}
               >
-                Get Started Free
+                Create Your First Post Free
               </button>
               <div className="flex items-center justify-center lg:justify-start gap-x-5 gap-y-1.5 mt-4 flex-wrap">
                 <span className="font-body text-xs flex items-center gap-1.5" style={{ color: "rgba(255,255,255,0.55)" }}>
@@ -419,13 +423,13 @@ export function HomePage({ onGetStarted, onLogIn }) {
 
             <div className="relative hidden lg:block" style={{ height: 220 }}>
               <div className="absolute" style={{ top: 10, left: 10 }}>
-                <PostCard label="Market Update" color={ACCENT_PRESETS[4]} rotate={-9} top={0} left={0} scale={0.78} />
+                <PostCard category="MARKET UPDATE" headline="Inventory Up!" color={ACCENT_PRESETS[4]} rotate={-9} top={0} left={0} scale={0.78} />
               </div>
               <div className="absolute" style={{ top: -20, left: 110 }}>
-                <PostCard label="Just SOLD!" color={PRIMARY} rotate={5} top={0} left={0} scale={0.9} />
+                <PostCard category="SOLD" headline="Just Sold!" color={PRIMARY} rotate={5} top={0} left={0} scale={0.9} />
               </div>
               <div className="absolute" style={{ top: 20, left: 220 }}>
-                <PostCard label="Local Favorite" color={ACCENT_PRESETS[2]} rotate={-4} top={0} left={0} scale={0.78} />
+                <PostCard category="LOCAL" headline="Local Favorite!" color={ACCENT_PRESETS[2]} rotate={-4} top={0} left={0} scale={0.78} />
               </div>
             </div>
           </div>
