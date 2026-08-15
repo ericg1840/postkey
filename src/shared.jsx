@@ -372,7 +372,7 @@ export function GlobalStyles() {
 export function TopNav({ active, onSwitch, userName, onLogout }) {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   return (
-    <header className="border-b" style={{ borderColor: UI.line }}>
+    <header className="border-b" style={{ borderColor: UI.line, paddingTop: "env(safe-area-inset-top)" }}>
       <div className="max-w-7xl mx-auto px-6 py-5 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <ImageIcon size={20} style={{ color: ACCENT }} />
