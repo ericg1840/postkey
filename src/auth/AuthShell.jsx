@@ -159,7 +159,7 @@ export function AuthShell({ icon: Icon, title, subtitle, onBack, children }) {
         .auth-cta:not(:disabled):hover { opacity: 0.9; }
       `}</style>
 
-      <div className="absolute top-6 left-6 md:top-8 md:left-9 flex items-center gap-4 z-10">
+      <div className="absolute top-6 left-6 md:top-8 md:left-9 flex items-center gap-4 z-10" style={{ top: "calc(1.5rem + env(safe-area-inset-top))" }}>
         <div className="flex items-center gap-2">
           <div className="flex items-center justify-center rounded-lg" style={{ width: 30, height: 30, background: AUTH.ink }}>
             <Key size={15} color="#FFFFFF" style={{ transform: "rotate(-45deg)" }} />

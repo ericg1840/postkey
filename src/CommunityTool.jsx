@@ -1233,10 +1233,10 @@ export function CommunityTool({ onSwitchTool }) {
             <div className="rounded-2xl border p-3 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
               <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Preview</span>
-                <div className="flex items-center gap-1 p-1 rounded-full flex-wrap" style={{ background: UI.stone }}>
+                <div className="grid grid-cols-2 sm:flex sm:items-center gap-1 p-1 rounded-xl" style={{ background: UI.stone }}>
                   {Object.entries(ASPECTS).map(([key, a]) => (
                     <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
-                      className="px-3 py-1 rounded-full font-body text-xs font-semibold transition"
+                      className="px-3 py-1 rounded-lg font-body text-xs font-semibold transition text-center"
                       style={{
                         background: form.aspect === key ? UI.card : "transparent",
                         color: form.aspect === key ? UI.ink : UI.inkSoft,

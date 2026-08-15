@@ -157,32 +157,33 @@ function BrandKitPreview() {
 export function HomePage({ onGetStarted, onLogIn }) {
   return (
     <div style={{ background: "#FDFBF7" }}>
-      <header>
-        <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center rounded-lg" style={{ width: 30, height: 30, background: AUTH.ink }}>
-              <Key size={15} color="#FFFFFF" style={{ transform: "rotate(-45deg)" }} />
+      <header style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-1">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-0">
+            <div className="flex items-center justify-center rounded-lg flex-shrink-0" style={{ width: 28, height: 28, background: AUTH.ink }}>
+              <Key size={14} color="#FFFFFF" style={{ transform: "rotate(-45deg)" }} />
             </div>
-            <span className="font-display font-bold text-lg" style={{ color: AUTH.ink }}>PostKey</span>
+            <span className="font-display font-bold text-base sm:text-lg whitespace-nowrap" style={{ color: AUTH.ink }}>PostKey</span>
           </div>
           <nav className="hidden sm:flex items-center gap-6">
             <a href="#features" className="font-body text-sm font-semibold" style={{ color: AUTH.muted }}>Features</a>
             <a href="#how-it-works" className="font-body text-sm font-semibold" style={{ color: AUTH.muted }}>How It Works</a>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <button
               onClick={onLogIn}
-              className="font-body text-sm font-semibold rounded-full px-4 py-2 transition"
+              className="font-body text-xs sm:text-sm font-semibold rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2 transition whitespace-nowrap"
               style={{ color: AUTH.ink, background: "#F1EFE8" }}
             >
               Log in
             </button>
             <button
               onClick={onGetStarted}
-              className="font-body text-sm font-semibold rounded-full px-4 py-2 transition hover:opacity-88"
+              className="font-body text-xs sm:text-sm font-semibold rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2 transition hover:opacity-88 whitespace-nowrap"
               style={{ background: PRIMARY, color: "#FFFFFF" }}
             >
-              Get Started Free
+              <span className="sm:hidden">Start Free</span>
+              <span className="hidden sm:inline">Get Started Free</span>
             </button>
           </div>
         </div>

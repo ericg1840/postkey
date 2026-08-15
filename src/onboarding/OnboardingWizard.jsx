@@ -53,7 +53,11 @@ export function OnboardingWizard() {
   return (
     <div
       className="min-h-screen flex items-center justify-center px-6 py-10"
-      style={{ background: "linear-gradient(180deg, #BFE0F5 0%, #DCEEFA 45%, #F3F9FD 100%)" }}
+      style={{
+        background: "linear-gradient(180deg, #BFE0F5 0%, #DCEEFA 45%, #F3F9FD 100%)",
+        paddingTop: "calc(2.5rem + env(safe-area-inset-top))",
+        paddingBottom: "calc(2.5rem + env(safe-area-inset-bottom))",
+      }}
     >
       <style>{`
         .ob-input { width: 100%; background: transparent; border: none; outline: none; font-family: 'Public Sans', sans-serif; font-size: 0.9rem; color: ${AUTH.ink}; }
