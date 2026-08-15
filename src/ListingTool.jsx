@@ -668,22 +668,29 @@ export function ListingTool({ onSwitchTool }) {
 
   const currentStep = !photo.img ? 1 : downloadError || downloading || downloadingAll ? 3 : 2;
 
+  // On phones, only one step's content is visible at a time (see the
+  // `mobileStep === N ? … : "hidden"` panels below) so getting from "Add
+  // Photo" to "Download" doesn't mean scrolling through every section.
+  // At the `lg` breakpoint the classes always resolve to visible, so
+  // desktop keeps the original everything-at-once layout untouched.
+  const [mobileStep, setMobileStep] = useState(1);
+
   return (
     <div className="min-h-screen" style={{ background: UI.stone, color: UI.ink }}>
       <TopNav active="listings" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} />
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-8 sm:py-10">
         {/* PAGE HEADER */}
-        <div className="mb-6">
+        <div className={mobileStep === 1 ? "mb-6" : "hidden lg:block lg:mb-6"}>
           <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Create a Post</h1>
           <p className="font-body text-sm mt-1" style={{ color: UI.inkSoft }}>One photo. Your brand. Done.</p>
         </div>
 
         {/* STEP INDICATOR */}
-        <div className="flex items-center gap-3 mb-8 overflow-x-auto">
+        <div className="flex items-center gap-3 mb-8 overflow-x-auto lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "1.25rem" }}>
           {[{ n: 1, label: "Add Photo" }, { n: 2, label: "Customize" }, { n: 3, label: "Download" }].map((s, i, arr) => (
             <div key={s.n} className="flex items-center gap-3 flex-shrink-0">
-              <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setMobileStep(s.n)} className="flex items-center gap-2">
                 <span
                   className="flex items-center justify-center rounded-full font-body text-xs font-semibold flex-shrink-0"
                   style={{
@@ -696,7 +703,7 @@ export function ListingTool({ onSwitchTool }) {
                   {s.n}
                 </span>
                 <span className="font-body text-sm font-semibold" style={{ color: currentStep >= s.n ? UI.ink : UI.inkSoft }}>{s.label}</span>
-              </div>
+              </button>
               {i < arr.length - 1 && <div style={{ width: 48, height: 1.5, background: UI.line }} />}
             </div>
           ))}
@@ -705,7 +712,8 @@ export function ListingTool({ onSwitchTool }) {
         {/* MAIN GRID: controls + preview */}
         <div className="grid lg:grid-cols-2 gap-8 items-start">
           {/* LEFT: CONTROLS */}
-          <div className="grid gap-6">
+          <div className={mobileStep === 3 ? "hidden lg:grid lg:gap-6" : "grid gap-6"}>
+          <div className={`${mobileStep === 1 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section>
               <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>1. What are you posting?</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -779,6 +787,17 @@ export function ListingTool({ onSwitchTool }) {
               <p className="font-body text-xs mt-2.5" style={{ color: UI.inkSoft }}>Tip: use a bright, high-quality photo for best results.</p>
             </section>
 
+            <button
+              type="button"
+              onClick={() => setMobileStep(2)}
+              className="lg:hidden w-full py-2.5 rounded-lg font-body font-semibold text-sm transition"
+              style={{ background: ACCENT, color: WHITE }}
+            >
+              Continue to Customize
+            </button>
+          </div>
+
+            <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section>
               <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>3. Choose a style <span className="font-normal" style={{ color: UI.inkSoft }}>(optional)</span></h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1028,10 +1047,31 @@ export function ListingTool({ onSwitchTool }) {
                 </Accordion>
               </div>
             )}
+
+            <div className="lg:hidden flex items-center gap-2">
+              <button type="button" onClick={() => setMobileStep(1)}
+                className="py-2.5 px-4 rounded-lg border font-body font-semibold text-sm transition"
+                style={{ borderColor: UI.line, color: UI.ink }}>
+                Back
+              </button>
+              <button type="button" onClick={() => setMobileStep(3)}
+                className="flex-1 py-2.5 rounded-lg font-body font-semibold text-sm transition"
+                style={{ background: ACCENT, color: WHITE }}>
+                Continue to Preview &amp; Download
+              </button>
+            </div>
+            </div>
           </div>
 
           {/* RIGHT: PREVIEW */}
-          <div className="lg:sticky" style={{ top: "1.5rem" }}>
+          <div className={mobileStep === 3 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "1.5rem" }}>
+            {mobileStep === 3 && (
+              <button type="button" onClick={() => setMobileStep(2)}
+                className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-4"
+                style={{ color: UI.inkSoft }}>
+                ← Back to Customize
+              </button>
+            )}
             <div className="rounded-2xl border p-3 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
               <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Preview</span>
@@ -1065,9 +1105,21 @@ export function ListingTool({ onSwitchTool }) {
               </div>
 
               <button
+                onClick={downloadImage}
+                disabled={downloading}
+                className="w-full mt-4 py-3 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                style={{ background: ACCENT, color: WHITE }}
+              >
+                <Download size={16} /> {downloading ? "Preparing…" : "Download Image"}
+              </button>
+              {downloadError && (
+                <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
+              )}
+
+              <button
                 type="button"
                 onClick={() => setShowCustomize(true)}
-                className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 rounded-lg border font-body text-sm font-semibold transition"
+                className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-lg border font-body text-sm font-semibold transition"
                 style={{ borderColor: UI.line, color: UI.ink }}
               >
                 <SlidersHorizontal size={15} /> Customize More
@@ -1076,6 +1128,7 @@ export function ListingTool({ onSwitchTool }) {
           </div>
         </div>
 
+        <div className="hidden lg:block">
         {/* READY TO DOWNLOAD */}
         <div className="mt-8 rounded-2xl border p-5 sm:p-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" style={{ background: UI.card, borderColor: UI.line }}>
           <div>
@@ -1135,6 +1188,7 @@ export function ListingTool({ onSwitchTool }) {
               </div>
             ))}
           </div>
+        </div>
         </div>
       </main>
     </div>
