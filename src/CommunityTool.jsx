@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Download, Image as ImageIcon, User, Building2, Sparkles, SlidersHorizontal } from "lucide-react";
+import { Download, Image as ImageIcon, User, Building2, Sparkles, SlidersHorizontal, Check, Copy } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
@@ -166,6 +166,16 @@ const CATEGORIES = {
     description: "Recipes, life, and local flavor",
     options: ["recipe"],
   },
+};
+
+// A short, category-appropriate hashtag set for the caption composer below —
+// deterministic, not AI-generated, so it never invents a claim about the post.
+const CATEGORY_HASHTAGS = {
+  local: ["#ShopLocal", "#SupportSmallBusiness", "#CommunityFavorite"],
+  client_love: ["#ClientLove", "#HappyClients", "#RealEstateReview"],
+  design: ["#HomeDesign", "#DesignTips", "#HomeInspo"],
+  tips: ["#RealEstateTips", "#HomeBuyingTips", "#HomeSellingTips"],
+  personal: ["#RealEstateAgent", "#CommunityFirst", "#LocalLife"],
 };
 
 // Curated prompts for agents who know they should post but can't think of
@@ -856,6 +866,34 @@ export function CommunityTool({ onSwitchTool }) {
     setDownloadingAll(false);
   };
 
+  // A ready-to-post caption built from whatever's already on the graphic —
+  // not AI-written, just assembled, so it never says something the post
+  // itself doesn't.
+  const buildCaption = () => {
+    const tags = (CATEGORY_HASHTAGS[category] || []).join(" ");
+    let lines;
+    if (form.style === "testimonial") {
+      lines = [`"${form.quote}"`, `— ${form.clientName}${form.clientType ? `, ${form.clientType}` : ""}`];
+    } else if (form.style === "tips" || form.style === "stats" || form.style === "checklist") {
+      const items = (form.listItems || "").split("\n").map((s) => s.trim()).filter(Boolean);
+      lines = [form.subject, ...items.map((i) => `• ${i}`)];
+    } else {
+      lines = [`${form.word1} ${form.script}`.trim(), form.subject, form.body].filter(Boolean);
+    }
+    return [...lines.filter(Boolean), tags].filter(Boolean).join("\n\n");
+  };
+
+  const [captionCopied, setCaptionCopied] = useState(false);
+  const copyCaption = async () => {
+    try {
+      await navigator.clipboard.writeText(buildCaption());
+      setCaptionCopied(true);
+      setTimeout(() => setCaptionCopied(false), 2000);
+    } catch {
+      setDownloadError("Couldn't copy the caption — try selecting and copying the text manually.");
+    }
+  };
+
 
   return (
     <div className="min-h-screen" style={{ background: UI.stone, color: UI.ink }}>
@@ -1084,8 +1122,13 @@ export function CommunityTool({ onSwitchTool }) {
                 <div className="grid grid-cols-3 gap-2">
                   {Object.entries(STYLES).filter(([key]) => key !== "testimonial").map(([key, s]) => (
                     <button key={key} onClick={() => setForm((f) => ({ ...f, style: key }))}
-                      className="text-left rounded-lg border overflow-hidden transition"
-                      style={{ borderColor: form.style === key ? ACCENT : UI.line }}>
+                      className="relative text-left rounded-lg border overflow-hidden transition"
+                      style={{ borderColor: form.style === key ? ACCENT : UI.line, borderWidth: form.style === key ? 2 : 1, boxShadow: form.style === key ? `0 0 0 2px ${ACCENT}22` : "none" }}>
+                      {form.style === key && (
+                        <span className="absolute flex items-center justify-center rounded-full" style={{ top: 6, right: 6, width: 18, height: 18, background: ACCENT, zIndex: 1 }}>
+                          <Check size={11} color={WHITE} strokeWidth={3} />
+                        </span>
+                      )}
                       <canvas
                         ref={(el) => { styleThumbRefs.current[key] = el; }}
                         style={{ display: "block", width: "100%", height: "auto" }}
@@ -1322,91 +1365,75 @@ export function CommunityTool({ onSwitchTool }) {
                   }}
                 />
               </div>
+            </div>
 
-              <button
-                onClick={downloadImage}
-                disabled={downloading}
-                className="w-full mt-4 py-3 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
-                style={{ background: ACCENT, color: WHITE }}
-              >
-                <Download size={16} /> {downloading ? "Preparing…" : "Download Image"}
-              </button>
+            {/* CONSOLIDATED DOWNLOAD CARD — everything needed to finish and post lives here, next to the preview it belongs with */}
+            <div className="rounded-2xl border p-4 sm:p-6 mt-4" style={{ background: UI.card, borderColor: UI.line }}>
+              <h3 className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Your social set is ready</h3>
+              <p className="font-body text-xs mt-1 mb-4" style={{ color: UI.inkSoft }}>
+                {wantSocialSet ? "Download this size, or every platform size at once." : "Turn on “Create My Social Set” to get every platform size at once."}
+              </p>
+
+              <div className="grid gap-2">
+                <button
+                  onClick={downloadImage}
+                  disabled={downloading}
+                  className="w-full py-3 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                  style={{ background: ACCENT, color: WHITE }}
+                >
+                  <Download size={16} /> {downloading ? "Preparing…" : `Download current design (${ASPECTS[form.aspect].label})`}
+                </button>
+                {wantSocialSet && (
+                  <button
+                    onClick={downloadAllSizes}
+                    disabled={downloadingAll}
+                    className="w-full py-3 rounded-lg border font-body font-semibold text-sm flex items-center justify-center gap-2 transition disabled:opacity-60"
+                    style={{ borderColor: UI.line, color: UI.ink }}
+                  >
+                    <Download size={16} /> {downloadingAll ? "Preparing…" : "Download all sizes"}
+                  </button>
+                )}
+                <button
+                  onClick={copyCaption}
+                  className="w-full py-3 rounded-lg border font-body font-semibold text-sm flex items-center justify-center gap-2 transition"
+                  style={{ borderColor: UI.line, color: UI.ink }}
+                >
+                  {captionCopied ? <Check size={16} /> : <Copy size={16} />} {captionCopied ? "Caption copied!" : "Copy caption"}
+                </button>
+              </div>
+
               {downloadError && (
-                <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
+                <p className="font-body text-xs mt-3" style={{ color: ERROR }}>{downloadError}</p>
               )}
 
-              <button
-                type="button"
-                onClick={() => setShowCustomize(true)}
-                className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-lg border font-body text-sm font-semibold transition"
-                style={{ borderColor: UI.line, color: UI.ink }}
-              >
-                <SlidersHorizontal size={15} /> Customize More
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="hidden lg:block">
-        {/* READY TO DOWNLOAD */}
-        <div className="mt-8 rounded-2xl border p-5 sm:p-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" style={{ background: UI.card, borderColor: UI.line }}>
-          <div>
-            <h3 className="font-body text-base font-semibold" style={{ color: UI.ink }}>Ready to download your post?</h3>
-            <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>
-              Once you're happy with your design, download it below.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={downloadImage}
-              disabled={downloading}
-              className="py-2.5 px-5 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
-              style={{ background: ACCENT, color: WHITE }}
-            >
-              <Download size={16} /> {downloading ? "Preparing…" : "Download Image"}
-            </button>
-          </div>
-        </div>
-        {downloadError && (
-          <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
-        )}
-        <div className="mt-3">
-          <PrivacyBadge />
-        </div>
-        </div>
-
-        {/* SOCIAL SET PREVIEW */}
-        <div className={`mt-10 ${mobileStep === 3 ? "" : "hidden lg:block"}`}>
-          <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
-            <div>
-              <h3 className="font-body text-base font-semibold flex items-center gap-2" style={{ color: UI.ink }}>
-                Your Social Set (Preview)
-                <span className="font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.04em", color: WHITE, background: ACCENT, padding: "1px 6px", borderRadius: 999 }}>NEW</span>
-              </h3>
-              <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>We'll generate multiple sizes for all your platforms.</p>
-            </div>
-            <button
-              onClick={downloadAllSizes}
-              disabled={downloadingAll}
-              className="flex items-center gap-1.5 py-2 px-4 rounded-lg border font-body text-xs font-semibold transition disabled:opacity-60"
-              style={{ borderColor: UI.line, color: UI.ink }}
-            >
-              {downloadingAll ? "Preparing…" : "Download All"}
-            </button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {THUMB_ASPECTS.map((key) => (
-              <div key={key}>
-                <div className="rounded-lg border overflow-hidden flex items-center justify-center p-2" style={{ background: UI.card, borderColor: UI.line }}>
-                  <canvas
-                    ref={(el) => { setThumbRefs.current[key] = el; }}
-                    style={{ display: "block", width: "100%", height: "auto", borderRadius: "3px" }}
-                  />
-                </div>
-                <p className="font-body text-xs font-semibold mt-2" style={{ color: UI.ink }}>{ASPECTS[key].label}</p>
-                <p className="font-mono text-xs" style={{ color: UI.inkSoft }}>{ASPECTS[key].w} x {ASPECTS[key].h}</p>
+              <div className="rounded-lg p-3 mt-4" style={{ background: UI.stone }}>
+                <span className="font-mono text-xs font-semibold block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SUGGESTED CAPTION</span>
+                <p className="font-body text-xs whitespace-pre-line" style={{ color: UI.ink, lineHeight: 1.6 }}>{buildCaption()}</p>
               </div>
-            ))}
+
+              <div className="mt-4">
+                <PrivacyBadge />
+              </div>
+            </div>
+
+            {wantSocialSet && (
+              <div className={mobileStep === 3 ? "mt-4" : "hidden lg:block mt-4"}>
+                <span className="font-body text-xs font-semibold block mb-2" style={{ color: UI.inkSoft }}>Included in your social set</span>
+                <div className="grid grid-cols-3 gap-2">
+                  {THUMB_ASPECTS.map((key) => (
+                    <div key={key}>
+                      <div className="rounded-lg border overflow-hidden flex items-center justify-center p-1.5" style={{ background: UI.card, borderColor: UI.line }}>
+                        <canvas
+                          ref={(el) => { setThumbRefs.current[key] = el; }}
+                          style={{ display: "block", width: "100%", height: "auto", borderRadius: "3px" }}
+                        />
+                      </div>
+                      <p className="font-body text-xs font-semibold mt-1.5" style={{ color: UI.ink }}>{ASPECTS[key].label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
