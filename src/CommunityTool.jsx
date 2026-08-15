@@ -774,6 +774,11 @@ export function CommunityTool({ onSwitchTool }) {
   const [showCustomize, setShowCustomize] = useState(false);
   const [wantSocialSet, setWantSocialSet] = useState(true);
 
+  // On phones, only one step's content is visible at a time so getting from
+  // "what are you posting" to "download" doesn't mean scrolling through
+  // every section. At the `lg` breakpoint desktop keeps everything visible.
+  const [mobileStep, setMobileStep] = useState(1);
+
   const [downloadError, setDownloadError] = useState("");
   const [downloading, setDownloading] = useState(false);
 
@@ -858,13 +863,36 @@ export function CommunityTool({ onSwitchTool }) {
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-8 sm:py-10">
         {/* PAGE HEADER */}
-        <div className="mb-6">
+        <div className={mobileStep === 1 ? "mb-6" : "hidden lg:block lg:mb-6"}>
           <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Community Posts</h1>
           <p className="font-body text-sm mt-1" style={{ color: UI.inkSoft }}>Stay visible even when you don't have a listing to share.</p>
         </div>
 
+        {/* STEP INDICATOR */}
+        <div className="flex items-center gap-3 mb-8 overflow-x-auto lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "1.25rem" }}>
+          {[{ n: 1, label: "What to Post" }, { n: 2, label: "Customize" }, { n: 3, label: "Download" }].map((s, i, arr) => (
+            <div key={s.n} className="flex items-center gap-3 flex-shrink-0">
+              <button type="button" onClick={() => setMobileStep(s.n)} className="flex items-center gap-2">
+                <span
+                  className="flex items-center justify-center rounded-full font-body text-xs font-semibold flex-shrink-0"
+                  style={{
+                    width: 26, height: 26,
+                    background: mobileStep >= s.n ? ACCENT : "transparent",
+                    color: mobileStep >= s.n ? WHITE : UI.inkSoft,
+                    border: mobileStep >= s.n ? "none" : `1.5px solid ${UI.line}`,
+                  }}
+                >
+                  {s.n}
+                </span>
+                <span className="font-body text-sm font-semibold" style={{ color: mobileStep >= s.n ? UI.ink : UI.inkSoft }}>{s.label}</span>
+              </button>
+              {i < arr.length - 1 && <div style={{ width: 48, height: 1.5, background: UI.line }} />}
+            </div>
+          ))}
+        </div>
+
         {/* GIVE ME AN IDEA */}
-        <div className="rounded-2xl border p-5 mb-8 flex flex-col sm:flex-row sm:items-center gap-4" style={{ background: UI.card, borderColor: UI.line }}>
+        <div className={`${mobileStep === 1 ? "flex" : "hidden lg:flex"} rounded-2xl border p-5 mb-8 flex-col sm:flex-row sm:items-center gap-4`} style={{ background: UI.card, borderColor: UI.line }}>
           <div className="flex items-center justify-center rounded-xl flex-shrink-0" style={{ width: 40, height: 40, background: ACCENT }}>
             <Sparkles size={18} color={WHITE} />
           </div>
@@ -904,7 +932,8 @@ export function CommunityTool({ onSwitchTool }) {
         {/* MAIN GRID: controls + preview */}
         <div className="grid lg:grid-cols-[2fr_3fr] gap-8 items-start">
           {/* LEFT: CONTROLS */}
-          <div className="grid gap-6">
+          <div className={mobileStep === 3 ? "hidden lg:grid lg:gap-6" : "grid gap-6"}>
+          <div className={`${mobileStep === 1 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section>
               <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>1. What are you posting about?</h3>
               <div className="grid grid-cols-2 gap-2">
@@ -1038,6 +1067,17 @@ export function CommunityTool({ onSwitchTool }) {
               </div>
             </section>
 
+            <button
+              type="button"
+              onClick={() => setMobileStep(2)}
+              className="lg:hidden w-full py-2.5 rounded-lg font-body font-semibold text-sm transition"
+              style={{ background: ACCENT, color: WHITE }}
+            >
+              Continue to Customize
+            </button>
+          </div>
+
+          <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
             {form.style !== "testimonial" && (
               <section>
                 <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>3. Choose your look</h3>
@@ -1226,10 +1266,31 @@ export function CommunityTool({ onSwitchTool }) {
                 </Accordion>
               </div>
             )}
+
+            <div className="lg:hidden flex items-center gap-2">
+              <button type="button" onClick={() => setMobileStep(1)}
+                className="py-2.5 px-4 rounded-lg border font-body font-semibold text-sm transition"
+                style={{ borderColor: UI.line, color: UI.ink }}>
+                Back
+              </button>
+              <button type="button" onClick={() => setMobileStep(3)}
+                className="flex-1 py-2.5 rounded-lg font-body font-semibold text-sm transition"
+                style={{ background: ACCENT, color: WHITE }}>
+                Continue to Preview &amp; Download
+              </button>
+            </div>
+          </div>
           </div>
 
           {/* RIGHT: PREVIEW */}
-          <div className="lg:sticky" style={{ top: "1.5rem" }}>
+          <div className={mobileStep === 3 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "1.5rem" }}>
+            {mobileStep === 3 && (
+              <button type="button" onClick={() => setMobileStep(2)}
+                className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-4"
+                style={{ color: UI.inkSoft }}>
+                ← Back to Customize
+              </button>
+            )}
             <div className="rounded-2xl border p-3 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
               <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Preview</span>
@@ -1263,9 +1324,21 @@ export function CommunityTool({ onSwitchTool }) {
               </div>
 
               <button
+                onClick={downloadImage}
+                disabled={downloading}
+                className="w-full mt-4 py-3 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                style={{ background: ACCENT, color: WHITE }}
+              >
+                <Download size={16} /> {downloading ? "Preparing…" : "Download Image"}
+              </button>
+              {downloadError && (
+                <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
+              )}
+
+              <button
                 type="button"
                 onClick={() => setShowCustomize(true)}
-                className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 rounded-lg border font-body text-sm font-semibold transition"
+                className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-lg border font-body text-sm font-semibold transition"
                 style={{ borderColor: UI.line, color: UI.ink }}
               >
                 <SlidersHorizontal size={15} /> Customize More
@@ -1274,6 +1347,7 @@ export function CommunityTool({ onSwitchTool }) {
           </div>
         </div>
 
+        <div className="hidden lg:block">
         {/* READY TO DOWNLOAD */}
         <div className="mt-8 rounded-2xl border p-5 sm:p-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" style={{ background: UI.card, borderColor: UI.line }}>
           <div>
@@ -1299,9 +1373,10 @@ export function CommunityTool({ onSwitchTool }) {
         <div className="mt-3">
           <PrivacyBadge />
         </div>
+        </div>
 
         {/* SOCIAL SET PREVIEW */}
-        <div className="mt-10">
+        <div className={`mt-10 ${mobileStep === 3 ? "" : "hidden lg:block"}`}>
           <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
             <div>
               <h3 className="font-body text-base font-semibold flex items-center gap-2" style={{ color: UI.ink }}>
