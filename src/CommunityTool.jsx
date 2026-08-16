@@ -1198,7 +1198,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                         const { lead, emphasis } = splitHeadlineLastWord(e.target.value);
                         setForm((f) => ({ ...f, word1: lead, script: emphasis }));
                       }} placeholder="Local Favorite!" />
-                    <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The last word gets your accent color and script font.</span>
+                    <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The last word gets your accent color and accent font.</span>
                   </label>
                 )}
 
@@ -1408,13 +1408,13 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
             </div>
 
             <div className="md:col-span-2">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SCRIPT FONT</span>
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT FONT</span>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {SCRIPT_FONTS.map((f) => (
                   <button key={f.name} onClick={() => setForm((prev) => ({ ...prev, scriptFont: f.name }))}
                     className="text-left p-2.5 rounded border transition"
                     style={{ borderColor: form.scriptFont === f.name ? ACCENT : UI.line, background: form.scriptFont === f.name ? UI.card : "transparent" }}>
-                    <span style={{ fontFamily: `"${f.name}", cursive`, fontWeight: f.weight, fontSize: "1.15rem", color: UI.ink, lineHeight: 1.2, display: "block" }}>
+                    <span style={{ fontFamily: `"${f.name}", ${f.fallback}`, fontWeight: f.weight, fontSize: "1.15rem", color: UI.ink, lineHeight: 1.2, display: "block" }}>
                       {f.name}
                     </span>
                   </button>
