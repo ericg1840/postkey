@@ -369,15 +369,22 @@ export function GlobalStyles() {
 }
 
 // Shared top bar: brand mark + the tab switcher between the two tools.
-export function TopNav({ active, onSwitch, userName, onLogout }) {
+export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   return (
     <header className="border-b" style={{ borderColor: UI.line, paddingTop: "env(safe-area-inset-top)" }}>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-5 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
-        <div className="flex items-center gap-2">
-          <ImageIcon size={20} style={{ color: ACCENT }} />
-          <span className="font-display font-bold text-lg" style={{ color: UI.ink }}>PostKey</span>
-        </div>
+        {onLogoClick ? (
+          <button type="button" onClick={onLogoClick} className="flex items-center gap-2">
+            <ImageIcon size={20} style={{ color: ACCENT }} />
+            <span className="font-display font-bold text-lg" style={{ color: UI.ink }}>PostKey</span>
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <ImageIcon size={20} style={{ color: ACCENT }} />
+            <span className="font-display font-bold text-lg" style={{ color: UI.ink }}>PostKey</span>
+          </div>
+        )}
         <nav className="flex items-center gap-1 p-1 rounded-full" style={{ background: UI.stone }}>
           <button
             onClick={() => onSwitch("listings")}

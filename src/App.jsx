@@ -42,6 +42,7 @@ function AppShell() {
   const [activeTool, setActiveTool] = useState("listings");
   const [resetParams, setResetParams] = useState(getResetParams);
   const [authView, setAuthView] = useState(null); // null (homepage) | "login" | "signup"
+  const [showHome, setShowHome] = useState(false);
   const { user, brandKit, loading } = useAuth();
 
   if (resetParams) {
@@ -66,12 +67,16 @@ function AppShell() {
     return <AuthScreen initialMode={authView} onBack={() => setAuthView(null)} />;
   }
 
+  if (showHome) {
+    return <HomePage onGetStarted={() => setShowHome(false)} onLogIn={() => setShowHome(false)} />;
+  }
+
   if (brandKit && !brandKit.onboarded) return <OnboardingWizard />;
 
   return activeTool === "listings" ? (
-    <ListingTool onSwitchTool={setActiveTool} />
+    <ListingTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />
   ) : (
-    <CommunityTool onSwitchTool={setActiveTool} />
+    <CommunityTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />
   );
 }
 

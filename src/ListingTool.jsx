@@ -50,7 +50,7 @@ const DEFAULTS = {
   scriptFont: "Dancing Script",
 };
 
-export function ListingTool({ onSwitchTool }) {
+export function ListingTool({ onSwitchTool, onGoHome }) {
   const { user, brandKit, logout, saveBrandKit } = useAuth();
   const [form, setForm] = useState(() => {
     const agentName = brandKit?.agentName ?? DEFAULTS.agentName;
@@ -677,7 +677,7 @@ export function ListingTool({ onSwitchTool }) {
 
   return (
     <div className="min-h-screen" style={{ background: UI.stone, color: UI.ink }}>
-      <TopNav active="listings" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} />
+      <TopNav active="listings" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} onLogoClick={onGoHome} />
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-10">
         {/* PAGE HEADER */}
