@@ -145,27 +145,37 @@ const STYLES = {
 const CATEGORIES = {
   local: {
     icon: "📍", label: "Local & Trending",
-    description: "Restaurants, businesses & events",
-    options: ["spotlight", "neighborhood"],
+    description: "Restaurant, new business, event or local favorite",
+    options: ["spotlight"],
   },
   client_love: {
-    icon: "⭐", label: "Client Love",
-    description: "Testimonials, reviews, closing stories",
+    icon: "💬", label: "Client Love",
+    description: "Testimonial, closing story or client milestone",
     isTestimonial: true,
   },
   design: {
-    icon: "🎨", label: "Design & Home",
-    description: "Trends, decor & renovation",
-    options: ["design_trend", "paint", "reno_tip"],
+    icon: "🏡", label: "Home & Design",
+    description: "Design trend, décor tip, or before & after",
+    options: ["design_trend", "paint"],
   },
   tips: {
     icon: "💡", label: "Buyer & Seller Tips",
-    description: "Education that builds trust",
+    description: "Buying tips, selling tips & market education",
     options: ["home_value"],
   },
-  personal: {
-    icon: "👋", label: "Personal & Community",
-    description: "Recipes, life, and local flavor",
+  home_prep: {
+    icon: "🧹", label: "Home Prep",
+    description: "Maintenance, seasonal checklist & curb appeal",
+    options: ["reno_tip"],
+  },
+  neighborhood: {
+    icon: "🌎", label: "Neighborhood Life",
+    description: "Community features & neighborhood guides",
+    options: ["neighborhood"],
+  },
+  fun: {
+    icon: "✨", label: "Just for Fun",
+    description: "Holidays, recipes & lifestyle",
     options: ["recipe"],
   },
 };
@@ -177,7 +187,9 @@ const CATEGORY_HASHTAGS = {
   client_love: ["#ClientLove", "#HappyClients", "#RealEstateReview"],
   design: ["#HomeDesign", "#DesignTips", "#HomeInspo"],
   tips: ["#RealEstateTips", "#HomeBuyingTips", "#HomeSellingTips"],
-  personal: ["#RealEstateAgent", "#CommunityFirst", "#LocalLife"],
+  home_prep: ["#HomeMaintenance", "#HomeTips", "#CurbAppeal"],
+  neighborhood: ["#NeighborhoodGuide", "#LocalLife", "#CommunityFirst"],
+  fun: ["#RealEstateAgent", "#LocalLife", "#JustForFun"],
 };
 
 // Curated prompts for agents who know they should post but can't think of
@@ -1076,7 +1088,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
 
         {/* STEP INDICATOR */}
         <div className="flex items-center gap-1 sm:gap-3 mb-5 sm:mb-8 lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}>
-          {[{ n: 1, label: "What to Post" }, { n: 2, label: "Customize" }, { n: 3, label: "Download" }].map((s, i, arr) => (
+          {[{ n: 1, label: "Choose a Post Idea" }, { n: 2, label: "Make It Yours" }, { n: 3, label: "Post It" }].map((s, i, arr) => (
             <div key={s.n} className="flex items-center gap-1 sm:gap-3 min-w-0">
               <button type="button" onClick={() => setMobileStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                 <span
@@ -1102,60 +1114,63 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
           ))}
         </div>
 
-        {/* GIVE ME AN IDEA */}
-        <div className={`${mobileStep === 1 ? "flex" : "hidden lg:flex"} rounded-2xl border p-3.5 sm:p-5 mb-4 sm:mb-8 flex-col sm:flex-row sm:items-center gap-3 sm:gap-4`} style={{ background: UI.card, borderColor: UI.line }}>
-          <div className="flex items-center justify-center rounded-xl flex-shrink-0" style={{ width: 40, height: 40, background: ACCENT }}>
-            <Sparkles size={18} color={WHITE} />
+        {/* NEED INSPIRATION */}
+        <div className={`${mobileStep === 1 ? "flex" : "hidden lg:flex"} rounded-2xl p-4 sm:p-6 mb-4 sm:mb-8 flex-col sm:flex-row sm:items-center gap-4`} style={{ background: mixWithWhite(ACCENT, 0.9), border: `1px solid ${mixWithWhite(ACCENT, 0.7)}` }}>
+          <div className="flex items-center justify-center rounded-full flex-shrink-0" style={{ width: 48, height: 48, background: WHITE, boxShadow: "0 4px 12px rgba(27,36,48,0.08)" }}>
+            <Sparkles size={22} color={ACCENT} />
           </div>
           <div className="flex-1">
-            {idea ? (
-              <>
-                <p className="font-mono text-xs font-semibold" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>TODAY'S IDEA</p>
-                <p className="font-body text-sm mt-0.5" style={{ color: UI.ink }}>{idea.text}</p>
-              </>
-            ) : (
-              <>
-                <p className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Not sure what to post?</p>
-                <p className="font-body text-xs mt-0.5" style={{ color: UI.inkSoft }}>Get a quick idea — a coffee shop, a neighborhood tip, a weekend event.</p>
-              </>
-            )}
+            <p className="font-mono text-xs font-bold" style={{ color: ACCENT, letterSpacing: "0.06em" }}>
+              {idea ? "RECOMMENDED FOR YOU" : "NEED INSPIRATION?"}
+            </p>
+            <p className="font-body text-base font-semibold mt-1" style={{ color: UI.ink, lineHeight: 1.35 }}>
+              {idea ? idea.text : "Not sure what to post? We'll suggest something — a coffee shop, a neighborhood tip, a weekend event."}
+            </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={giveIdea}
-              className="py-2 px-4 rounded-lg border font-body text-xs font-semibold transition"
-              style={{ borderColor: UI.line, color: UI.ink }}
-            >
-              {idea ? "Another idea" : "Give Me an Idea"}
-            </button>
             {idea && (
               <button
                 onClick={createFromIdea}
-                className="py-2 px-4 rounded-lg font-body text-xs font-semibold transition"
+                className="py-2.5 px-5 rounded-lg font-body text-sm font-semibold transition whitespace-nowrap"
                 style={{ background: ACCENT, color: WHITE }}
               >
                 Create this post →
               </button>
             )}
+            <button
+              onClick={giveIdea}
+              className="py-2.5 px-5 rounded-lg border font-body text-sm font-semibold transition whitespace-nowrap"
+              style={{ borderColor: UI.line, color: UI.ink, background: UI.card }}
+            >
+              {idea ? "Another idea" : "Give me an idea"}
+            </button>
           </div>
         </div>
 
         {/* MAIN GRID: controls + preview */}
         <div className="grid lg:grid-cols-[2fr_3fr] gap-8 items-start">
           {/* LEFT: CONTROLS */}
-          <div className={mobileStep === 3 ? "hidden lg:grid lg:gap-6" : "grid gap-6"}>
+          <div className={mobileStep === 3 ? "hidden lg:flex lg:flex-col lg:gap-6" : "flex flex-col gap-6"}>
           <div className={`${mobileStep === 1 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section>
-              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>1. What are you posting about?</h3>
-              <div className="grid grid-cols-2 gap-2">
+              <h3 className="font-body text-base font-semibold mb-3" style={{ color: UI.ink }}>What do you want to share?</h3>
+              <div className="grid grid-cols-2 gap-3">
                 {Object.entries(CATEGORIES).map(([key, c]) => (
                   <button key={key} onClick={() => selectCategory(key)}
-                    className="text-left p-3 rounded-lg border transition font-body text-xs"
-                    style={{ borderColor: category === key ? ACCENT : UI.line, background: category === key ? UI.card : "transparent" }}>
-                    <span className="font-semibold flex items-center gap-1.5" style={{ color: UI.ink }}>
-                      <span>{c.icon}</span> {c.label}
-                    </span>
-                    <span className="block mt-0.5" style={{ color: UI.inkSoft }}>{c.description}</span>
+                    className="relative text-left p-4 rounded-2xl border-2 transition font-body"
+                    style={{
+                      borderColor: category === key ? ACCENT : UI.line,
+                      background: category === key ? UI.card : UI.card,
+                      boxShadow: category === key ? `0 0 0 2px ${ACCENT}22, 0 4px 14px rgba(27,36,48,0.06)` : "0 1px 3px rgba(27,36,48,0.04)",
+                    }}>
+                    {category === key && (
+                      <span className="absolute flex items-center justify-center rounded-full" style={{ top: 10, right: 10, width: 18, height: 18, background: ACCENT }}>
+                        <Check size={11} color={WHITE} strokeWidth={3} />
+                      </span>
+                    )}
+                    <span style={{ fontSize: "1.6rem", lineHeight: 1 }}>{c.icon}</span>
+                    <span className="font-semibold text-sm block mt-2" style={{ color: UI.ink }}>{c.label}</span>
+                    <span className="block mt-0.5 text-xs" style={{ color: UI.inkSoft }}>{c.description}</span>
                   </button>
                 ))}
               </div>
@@ -1173,6 +1188,17 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               )}
             </section>
 
+            <button
+              type="button"
+              onClick={() => setMobileStep(2)}
+              className="lg:hidden w-full py-2.5 rounded-lg font-body font-semibold text-sm transition"
+              style={{ background: ACCENT, color: WHITE }}
+            >
+              Continue to Make It Yours
+            </button>
+          </div>
+
+            <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section>
               <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>2. Add the details</h3>
               <div className="grid gap-3">
@@ -1314,17 +1340,6 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               </div>
             </section>
 
-            <button
-              type="button"
-              onClick={() => setMobileStep(2)}
-              className="lg:hidden w-full py-2.5 rounded-lg font-body font-semibold text-sm transition"
-              style={{ background: ACCENT, color: WHITE }}
-            >
-              Continue to Customize
-            </button>
-          </div>
-
-          <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
             {form.style !== "testimonial" && (
               <section>
                 <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>3. Choose your look</h3>
@@ -1461,65 +1476,67 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                 </div>
               </div>
             )}
-          </Accordion>
-
-          <Accordion title="Brand settings" subtitle="Set this up once — it carries to every post">
-            <div className="grid grid-cols-2 gap-3 md:col-span-2">
-              <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
-              <UploadBox label="LOGO" icon={Building2} state={logo} hint="Brokerage logo" />
-            </div>
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>AGENT NAME</span>
-              <input className="input" value={form.agentName} onChange={update("agentName")} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CELL PHONE</span>
-              <input className="input" value={form.agentPhone} onChange={update("agentPhone")} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>EMAIL</span>
-              <input className="input" value={form.agentEmail} onChange={update("agentEmail")} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BROKERAGE</span>
-              <input className="input" value={form.brokerageName} onChange={update("brokerageName")} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OFFICE CITY</span>
-              <input className="input" value={form.brokerageCity} onChange={update("brokerageCity")} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OFFICE PHONE</span>
-              <input className="input" value={form.officePhone} onChange={update("officePhone")} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>WEBSITE</span>
-              <input className="input" value={form.website} onChange={update("website")} />
-            </label>
-            <label className="block col-span-2">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LICENSE NUMBER</span>
-              <input className="input" value={form.licenseNumber} onChange={update("licenseNumber")} />
-            </label>
-            <div className="col-span-2 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleSaveBrand}
-                disabled={brandStatus === "saving"}
-                className="font-body text-xs font-semibold rounded px-4 py-2 transition disabled:opacity-60"
-                style={{ background: ACCENT, color: WHITE }}
-              >
-                {brandStatus === "saving" ? "Saving…" : "Save brand settings"}
-              </button>
-              {brandStatus === "saved" && (
-                <span className="font-body text-xs" style={{ color: UI.inkSoft }}>Saved to your account.</span>
-              )}
-              {brandStatus === "error" && (
-                <span className="font-body text-xs" style={{ color: "#C0392B" }}>Couldn't save — try again.</span>
-              )}
-            </div>
                 </Accordion>
               </div>
             )}
+
+            {/* Kept outside "Customize More" — this is the info every post
+                needs, so it shouldn't be a second click deep. */}
+            <Accordion title="Brand settings" subtitle="Set this up once — it carries to every post">
+              <div className="grid grid-cols-2 gap-3 md:col-span-2">
+                <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
+                <UploadBox label="LOGO" icon={Building2} state={logo} hint="Brokerage logo" />
+              </div>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>AGENT NAME</span>
+                <input className="input" value={form.agentName} onChange={update("agentName")} />
+              </label>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CELL PHONE</span>
+                <input className="input" value={form.agentPhone} onChange={update("agentPhone")} />
+              </label>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>EMAIL</span>
+                <input className="input" value={form.agentEmail} onChange={update("agentEmail")} />
+              </label>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BROKERAGE</span>
+                <input className="input" value={form.brokerageName} onChange={update("brokerageName")} />
+              </label>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OFFICE CITY</span>
+                <input className="input" value={form.brokerageCity} onChange={update("brokerageCity")} />
+              </label>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OFFICE PHONE</span>
+                <input className="input" value={form.officePhone} onChange={update("officePhone")} />
+              </label>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>WEBSITE</span>
+                <input className="input" value={form.website} onChange={update("website")} />
+              </label>
+              <label className="block col-span-2">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LICENSE NUMBER</span>
+                <input className="input" value={form.licenseNumber} onChange={update("licenseNumber")} />
+              </label>
+              <div className="col-span-2 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleSaveBrand}
+                  disabled={brandStatus === "saving"}
+                  className="font-body text-xs font-semibold rounded px-4 py-2 transition disabled:opacity-60"
+                  style={{ background: ACCENT, color: WHITE }}
+                >
+                  {brandStatus === "saving" ? "Saving…" : "Save brand settings"}
+                </button>
+                {brandStatus === "saved" && (
+                  <span className="font-body text-xs" style={{ color: UI.inkSoft }}>Saved to your account.</span>
+                )}
+                {brandStatus === "error" && (
+                  <span className="font-body text-xs" style={{ color: "#C0392B" }}>Couldn't save — try again.</span>
+                )}
+              </div>
+            </Accordion>
 
             <div className="lg:hidden flex items-center gap-2">
               <button type="button" onClick={() => setMobileStep(1)}
@@ -1542,7 +1559,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               <button type="button" onClick={() => setMobileStep(2)}
                 className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2"
                 style={{ color: UI.inkSoft }}>
-                ← Back to Customize
+                ← Back to Make It Yours
               </button>
             )}
             <div className="rounded-2xl border p-2.5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>

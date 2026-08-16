@@ -934,64 +934,66 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 </div>
               </div>
                 </Accordion>
-
-              <Accordion title="Brand settings" subtitle="Set this up once — it carries to every post">
-            <div className="grid grid-cols-2 gap-3 md:col-span-2">
-              <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
-              <UploadBox label="LOGO" icon={Building2} state={logo} hint="Brokerage logo" />
-            </div>
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>AGENT NAME</span>
-              <input className="input" value={form.agentName} onChange={update("agentName")} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CELL PHONE</span>
-              <input className="input" value={form.agentPhone} onChange={update("agentPhone")} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>EMAIL</span>
-              <input className="input" value={form.agentEmail} onChange={update("agentEmail")} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BROKERAGE</span>
-              <input className="input" value={form.brokerageName} onChange={update("brokerageName")} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OFFICE CITY</span>
-              <input className="input" value={form.brokerageCity} onChange={update("brokerageCity")} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OFFICE PHONE</span>
-              <input className="input" value={form.officePhone} onChange={update("officePhone")} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>WEBSITE</span>
-              <input className="input" value={form.website} onChange={update("website")} />
-            </label>
-            <label className="block col-span-2">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LICENSE NUMBER</span>
-              <input className="input" value={form.licenseNumber} onChange={update("licenseNumber")} />
-            </label>
-            <div className="col-span-2 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleSaveBrand}
-                disabled={brandStatus === "saving"}
-                className="font-body text-xs font-semibold rounded px-4 py-2 transition disabled:opacity-60"
-                style={{ background: ACCENT, color: WHITE }}
-              >
-                {brandStatus === "saving" ? "Saving…" : "Save brand settings"}
-              </button>
-              {brandStatus === "saved" && (
-                <span className="font-body text-xs" style={{ color: UI.inkSoft }}>Saved to your account.</span>
-              )}
-              {brandStatus === "error" && (
-                <span className="font-body text-xs" style={{ color: "#C0392B" }}>Couldn't save — try again.</span>
-              )}
-            </div>
-                </Accordion>
               </div>
             )}
+
+            {/* Kept outside "Customize More" — this is the info every post
+                needs, so it shouldn't be a second click deep. */}
+            <Accordion title="Brand settings" subtitle="Set this up once — it carries to every post">
+              <div className="grid grid-cols-2 gap-3 md:col-span-2">
+                <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
+                <UploadBox label="LOGO" icon={Building2} state={logo} hint="Brokerage logo" />
+              </div>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>AGENT NAME</span>
+                <input className="input" value={form.agentName} onChange={update("agentName")} />
+              </label>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CELL PHONE</span>
+                <input className="input" value={form.agentPhone} onChange={update("agentPhone")} />
+              </label>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>EMAIL</span>
+                <input className="input" value={form.agentEmail} onChange={update("agentEmail")} />
+              </label>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BROKERAGE</span>
+                <input className="input" value={form.brokerageName} onChange={update("brokerageName")} />
+              </label>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OFFICE CITY</span>
+                <input className="input" value={form.brokerageCity} onChange={update("brokerageCity")} />
+              </label>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OFFICE PHONE</span>
+                <input className="input" value={form.officePhone} onChange={update("officePhone")} />
+              </label>
+              <label className="block">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>WEBSITE</span>
+                <input className="input" value={form.website} onChange={update("website")} />
+              </label>
+              <label className="block col-span-2">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LICENSE NUMBER</span>
+                <input className="input" value={form.licenseNumber} onChange={update("licenseNumber")} />
+              </label>
+              <div className="col-span-2 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleSaveBrand}
+                  disabled={brandStatus === "saving"}
+                  className="font-body text-xs font-semibold rounded px-4 py-2 transition disabled:opacity-60"
+                  style={{ background: ACCENT, color: WHITE }}
+                >
+                  {brandStatus === "saving" ? "Saving…" : "Save brand settings"}
+                </button>
+                {brandStatus === "saved" && (
+                  <span className="font-body text-xs" style={{ color: UI.inkSoft }}>Saved to your account.</span>
+                )}
+                {brandStatus === "error" && (
+                  <span className="font-body text-xs" style={{ color: "#C0392B" }}>Couldn't save — try again.</span>
+                )}
+              </div>
+            </Accordion>
 
             <div className="lg:hidden flex items-center gap-2">
               <button type="button" onClick={() => setMobileStep(1)}
