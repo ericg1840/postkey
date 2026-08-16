@@ -687,14 +687,14 @@ export function ListingTool({ onSwitchTool }) {
         </div>
 
         {/* STEP INDICATOR */}
-        <div className="flex items-center gap-3 mb-8 overflow-x-auto lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "1.25rem" }}>
+        <div className="flex items-center gap-1 sm:gap-3 mb-8 lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "1.25rem" }}>
           {[{ n: 1, label: "Add Photo" }, { n: 2, label: "Customize" }, { n: 3, label: "Download" }].map((s, i, arr) => (
-            <div key={s.n} className="flex items-center gap-3 flex-shrink-0">
-              <button type="button" onClick={() => setMobileStep(s.n)} className="flex items-center gap-2">
+            <div key={s.n} className="flex items-center gap-1 sm:gap-3 min-w-0">
+              <button type="button" onClick={() => setMobileStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                 <span
                   className="flex items-center justify-center rounded-full font-body text-xs font-semibold flex-shrink-0"
                   style={{
-                    width: 26, height: 26,
+                    width: 24, height: 24,
                     background: currentStep >= s.n ? ACCENT : "transparent",
                     color: currentStep >= s.n ? WHITE : UI.inkSoft,
                     border: currentStep >= s.n ? "none" : `1.5px solid ${UI.line}`,
@@ -702,9 +702,14 @@ export function ListingTool({ onSwitchTool }) {
                 >
                   {s.n}
                 </span>
-                <span className="font-body text-sm font-semibold" style={{ color: currentStep >= s.n ? UI.ink : UI.inkSoft }}>{s.label}</span>
+                <span
+                  className={`font-body text-xs sm:text-sm font-semibold truncate ${mobileStep === s.n ? "" : "hidden sm:inline"}`}
+                  style={{ color: currentStep >= s.n ? UI.ink : UI.inkSoft }}
+                >
+                  {s.label}
+                </span>
               </button>
-              {i < arr.length - 1 && <div style={{ width: 48, height: 1.5, background: UI.line }} />}
+              {i < arr.length - 1 && <div className="flex-shrink-0" style={{ width: 16, height: 1.5, background: UI.line }} />}
             </div>
           ))}
         </div>
