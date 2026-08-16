@@ -679,15 +679,15 @@ export function ListingTool({ onSwitchTool }) {
     <div className="min-h-screen" style={{ background: UI.stone, color: UI.ink }}>
       <TopNav active="listings" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} />
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-8 sm:py-10">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-10">
         {/* PAGE HEADER */}
-        <div className={mobileStep === 1 ? "mb-6" : "hidden lg:block lg:mb-6"}>
+        <div className={mobileStep === 1 ? "mb-3 sm:mb-6" : "hidden lg:block lg:mb-6"}>
           <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Create a Post</h1>
-          <p className="font-body text-sm mt-1" style={{ color: UI.inkSoft }}>One photo. Your brand. Done.</p>
+          <p className="font-body text-sm mt-1 hidden sm:block" style={{ color: UI.inkSoft }}>One photo. Your brand. Done.</p>
         </div>
 
         {/* STEP INDICATOR */}
-        <div className="flex items-center gap-1 sm:gap-3 mb-8 lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "1.25rem" }}>
+        <div className="flex items-center gap-1 sm:gap-3 mb-5 sm:mb-8 lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}>
           {[{ n: 1, label: "Add Photo" }, { n: 2, label: "Customize" }, { n: 3, label: "Download" }].map((s, i, arr) => (
             <div key={s.n} className="flex items-center gap-1 sm:gap-3 min-w-0">
               <button type="button" onClick={() => setMobileStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0">
@@ -1072,13 +1072,13 @@ export function ListingTool({ onSwitchTool }) {
           <div className={mobileStep === 3 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "1.5rem" }}>
             {mobileStep === 3 && (
               <button type="button" onClick={() => setMobileStep(2)}
-                className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-4"
+                className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2"
                 style={{ color: UI.inkSoft }}>
                 ← Back to Customize
               </button>
             )}
-            <div className="rounded-2xl border p-3 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
-              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div className="rounded-2xl border p-2.5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
+              <div className="flex items-center justify-between mb-2.5 sm:mb-4 flex-wrap gap-2">
                 <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Preview</span>
                 <div className="grid grid-cols-2 sm:flex sm:items-center gap-1 p-1 rounded-xl" style={{ background: UI.stone }}>
                   {Object.entries(ASPECTS).map(([key, a]) => (
@@ -1112,7 +1112,7 @@ export function ListingTool({ onSwitchTool }) {
               <button
                 onClick={downloadImage}
                 disabled={downloading}
-                className="w-full mt-4 py-3 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                className="w-full mt-2.5 sm:mt-4 py-3 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
                 style={{ background: ACCENT, color: WHITE }}
               >
                 <Download size={16} /> {downloading ? "Preparing…" : "Download Image"}
@@ -1124,7 +1124,7 @@ export function ListingTool({ onSwitchTool }) {
               <button
                 type="button"
                 onClick={() => setShowCustomize(true)}
-                className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-lg border font-body text-sm font-semibold transition"
+                className="w-full mt-2 sm:mt-3 flex items-center justify-center gap-2 py-2.5 rounded-lg border font-body text-sm font-semibold transition"
                 style={{ borderColor: UI.line, color: UI.ink }}
               >
                 <SlidersHorizontal size={15} /> Customize More

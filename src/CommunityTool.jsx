@@ -899,15 +899,15 @@ export function CommunityTool({ onSwitchTool }) {
     <div className="min-h-screen" style={{ background: UI.stone, color: UI.ink }}>
       <TopNav active="community" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} />
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-8 sm:py-10">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-10">
         {/* PAGE HEADER */}
-        <div className={mobileStep === 1 ? "mb-6" : "hidden lg:block lg:mb-6"}>
+        <div className={mobileStep === 1 ? "mb-3 sm:mb-6" : "hidden lg:block lg:mb-6"}>
           <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Community Posts</h1>
-          <p className="font-body text-sm mt-1" style={{ color: UI.inkSoft }}>Stay visible even when you don't have a listing to share.</p>
+          <p className="font-body text-sm mt-1 hidden sm:block" style={{ color: UI.inkSoft }}>Stay visible even when you don't have a listing to share.</p>
         </div>
 
         {/* STEP INDICATOR */}
-        <div className="flex items-center gap-1 sm:gap-3 mb-8 lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "1.25rem" }}>
+        <div className="flex items-center gap-1 sm:gap-3 mb-5 sm:mb-8 lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}>
           {[{ n: 1, label: "What to Post" }, { n: 2, label: "Customize" }, { n: 3, label: "Download" }].map((s, i, arr) => (
             <div key={s.n} className="flex items-center gap-1 sm:gap-3 min-w-0">
               <button type="button" onClick={() => setMobileStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0">
@@ -935,7 +935,7 @@ export function CommunityTool({ onSwitchTool }) {
         </div>
 
         {/* GIVE ME AN IDEA */}
-        <div className={`${mobileStep === 1 ? "flex" : "hidden lg:flex"} rounded-2xl border p-5 mb-8 flex-col sm:flex-row sm:items-center gap-4`} style={{ background: UI.card, borderColor: UI.line }}>
+        <div className={`${mobileStep === 1 ? "flex" : "hidden lg:flex"} rounded-2xl border p-3.5 sm:p-5 mb-4 sm:mb-8 flex-col sm:flex-row sm:items-center gap-3 sm:gap-4`} style={{ background: UI.card, borderColor: UI.line }}>
           <div className="flex items-center justify-center rounded-xl flex-shrink-0" style={{ width: 40, height: 40, background: ACCENT }}>
             <Sparkles size={18} color={WHITE} />
           </div>
@@ -1334,13 +1334,13 @@ export function CommunityTool({ onSwitchTool }) {
           <div className={mobileStep === 3 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "1.5rem" }}>
             {mobileStep === 3 && (
               <button type="button" onClick={() => setMobileStep(2)}
-                className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-4"
+                className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2"
                 style={{ color: UI.inkSoft }}>
                 ← Back to Customize
               </button>
             )}
-            <div className="rounded-2xl border p-3 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
-              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div className="rounded-2xl border p-2.5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
+              <div className="flex items-center justify-between mb-2.5 sm:mb-4 flex-wrap gap-2">
                 <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Preview</span>
                 <div className="grid grid-cols-2 sm:flex sm:items-center gap-1 p-1 rounded-xl" style={{ background: UI.stone }}>
                   {Object.entries(ASPECTS).map(([key, a]) => (
@@ -1373,9 +1373,9 @@ export function CommunityTool({ onSwitchTool }) {
             </div>
 
             {/* CONSOLIDATED DOWNLOAD CARD — everything needed to finish and post lives here, next to the preview it belongs with */}
-            <div className="rounded-2xl border p-4 sm:p-6 mt-4" style={{ background: UI.card, borderColor: UI.line }}>
+            <div className="rounded-2xl border p-3.5 sm:p-6 mt-3 sm:mt-4" style={{ background: UI.card, borderColor: UI.line }}>
               <h3 className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Your social set is ready</h3>
-              <p className="font-body text-xs mt-1 mb-4" style={{ color: UI.inkSoft }}>
+              <p className="font-body text-xs mt-1 mb-3 sm:mb-4" style={{ color: UI.inkSoft }}>
                 {wantSocialSet ? "Download this size, or every platform size at once." : "Turn on “Create My Social Set” to get every platform size at once."}
               </p>
 
