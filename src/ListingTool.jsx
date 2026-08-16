@@ -376,8 +376,15 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const topH = h * 0.16;
     ctx.fillStyle = "#000000";
     ctx.textAlign = "center";
-    ctx.font = `900 ${topH * 0.5}px "Playfair Display", serif`;
     const spacedHeadline = form.bigHeadline.toUpperCase().split("").join("\u2009");
+    let headSize = topH * 0.5;
+    ctx.font = `900 ${headSize}px "Playfair Display", serif`;
+    const headMaxW = w * 0.9;
+    const headWidth = ctx.measureText(spacedHeadline).width;
+    if (headWidth > headMaxW) {
+      headSize *= headMaxW / headWidth;
+      ctx.font = `900 ${headSize}px "Playfair Display", serif`;
+    }
     ctx.fillText(spacedHeadline, w / 2, topH * 0.72);
 
     const contactH = Math.min(w, h) * 0.145;
@@ -429,10 +436,18 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.lineTo(w / 2 + w * 0.06, sigY0 + sigH * 0.18);
     ctx.stroke();
 
+    const sigName = form.agentName.replace(/, Realtor$/i, "");
+    let sigSize = sigH * 0.5;
+    ctx.font = scriptFontCss(form.scriptFont, sigSize);
+    const sigMaxW = w * 0.86;
+    const sigWidth = ctx.measureText(sigName).width;
+    if (sigWidth > sigMaxW) {
+      sigSize *= sigMaxW / sigWidth;
+      ctx.font = scriptFontCss(form.scriptFont, sigSize);
+    }
     ctx.fillStyle = form.accentColor;
-    ctx.font = scriptFontCss(form.scriptFont, sigH * 0.5);
     ctx.textAlign = "center";
-    ctx.fillText(form.agentName.replace(/, Realtor$/i, ""), w / 2, sigY0 + sigH * 0.62);
+    ctx.fillText(sigName, w / 2, sigY0 + sigH * 0.62);
     ctx.font = `600 ${sigH * 0.16}px "Montserrat", sans-serif`;
     ctx.fillStyle = UI.ink;
     ctx.fillText("REAL ESTATE AGENT", w / 2, sigY0 + sigH * 0.86);
