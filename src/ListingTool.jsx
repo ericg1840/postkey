@@ -315,7 +315,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillStyle = WHITE;
     ctx.fillRect(0, headlineY0, w, headlineH);
     ctx.fillStyle = form.accentColor;
-    ctx.font = `700 ${headlineH * 0.44}px "Playfair Display", serif`;
+    ctx.font = scriptFontCss(form.scriptFont, headlineH * 0.44);
     ctx.textAlign = "center";
     ctx.fillText(form.bigHeadline.toUpperCase(), w / 2, headlineY0 + headlineH * 0.55);
 
@@ -892,7 +892,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 </div>
               </div>
 
-              {form.layout !== "editorial" && (
               <div className="md:col-span-2">
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT FONT</span>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -907,7 +906,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   ))}
                 </div>
               </div>
-              )}
 
               {form.layout === "bold" && (
                 <label className="block md:col-span-2">
