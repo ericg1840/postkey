@@ -1121,15 +1121,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               {downloadError && (
                 <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
               )}
-
-              <button
-                type="button"
-                onClick={() => setShowCustomize(true)}
-                className="w-full mt-2 sm:mt-3 flex items-center justify-center gap-2 py-2.5 rounded-lg border font-body text-sm font-semibold transition"
-                style={{ borderColor: UI.line, color: UI.ink }}
-              >
-                <SlidersHorizontal size={15} /> Customize More
-              </button>
             </div>
           </div>
         </div>
