@@ -1407,20 +1407,22 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               </div>
             </div>
 
-            <div className="md:col-span-2">
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT FONT</span>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {SCRIPT_FONTS.map((f) => (
-                  <button key={f.name} onClick={() => setForm((prev) => ({ ...prev, scriptFont: f.name }))}
-                    className="text-left p-2.5 rounded border transition"
-                    style={{ borderColor: form.scriptFont === f.name ? ACCENT : UI.line, background: form.scriptFont === f.name ? UI.card : "transparent" }}>
-                    <span style={{ fontFamily: `"${f.name}", ${f.fallback}`, fontWeight: f.weight, fontSize: "1.15rem", color: UI.ink, lineHeight: 1.2, display: "block" }}>
-                      {f.name}
-                    </span>
-                  </button>
-                ))}
+            {(form.style === "card" || form.style === "testimonial") && (
+              <div className="md:col-span-2">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT FONT</span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {SCRIPT_FONTS.map((f) => (
+                    <button key={f.name} onClick={() => setForm((prev) => ({ ...prev, scriptFont: f.name }))}
+                      className="text-left p-2.5 rounded border transition"
+                      style={{ borderColor: form.scriptFont === f.name ? ACCENT : UI.line, background: form.scriptFont === f.name ? UI.card : "transparent" }}>
+                      <span style={{ fontFamily: `"${f.name}", ${f.fallback}`, fontWeight: f.weight, fontSize: "1.15rem", color: UI.ink, lineHeight: 1.2, display: "block" }}>
+                        {f.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {form.style === "card" && (
               <label className="block md:col-span-2">
@@ -1429,15 +1431,14 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               </label>
             )}
 
-            <div>
+            <div className="md:col-span-2">
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SIZE (for single-image download)</span>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {Object.entries(ASPECTS).map(([key, a]) => (
                   <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
                     className="p-2 rounded border font-body text-xs font-semibold transition whitespace-nowrap"
                     style={{ borderColor: form.aspect === key ? ACCENT : UI.line, background: form.aspect === key ? UI.card : "transparent" }}>
-                    <span className="sm:hidden">{a.shortLabel}</span>
-                    <span className="hidden sm:inline">{a.label}</span>
+                    {a.shortLabel}
                   </button>
                 ))}
               </div>
@@ -1556,8 +1557,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                         color: form.aspect === key ? UI.ink : UI.inkSoft,
                         boxShadow: form.aspect === key ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
                       }}>
-                      <span className="sm:hidden">{a.shortLabel}</span>
-                      <span className="hidden sm:inline">{a.label}</span>
+                      {a.shortLabel}
                     </button>
                   ))}
                 </div>
