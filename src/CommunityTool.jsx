@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Download, Image as ImageIcon, User, Building2, Sparkles, SlidersHorizontal, Check, Copy } from "lucide-react";
+import { Download, Image as ImageIcon, User, Building2, Sparkles, SlidersHorizontal, Check, Copy, ChevronDown } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
@@ -958,6 +958,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
   }, [form, photo.img, photo.focus, photo.zoom, headshot.img, logo.img, houseDefault, fontsReady]);
 
   const [showCustomize, setShowCustomize] = useState(false);
+  const [showSocialSetPreview, setShowSocialSetPreview] = useState(false);
   const [wantSocialSet, setWantSocialSet] = useState(true);
 
   // On phones, only one step's content is visible at a time so getting from
@@ -1645,12 +1646,22 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
             </div>
 
             {wantSocialSet && (
-              <div className={mobileStep === 3 ? "mt-4" : "hidden lg:block mt-4"}>
-                <span className="font-body text-xs font-semibold block mb-2" style={{ color: UI.inkSoft }}>Included in your social set</span>
-                <div className="grid grid-cols-3 gap-2">
+              <div className={mobileStep === 3 ? "mt-4 rounded-2xl border" : "hidden lg:block mt-4 rounded-2xl border"} style={{ background: UI.card, borderColor: UI.line }}>
+                <button
+                  type="button"
+                  onClick={() => setShowSocialSetPreview((s) => !s)}
+                  className="w-full flex items-center justify-between gap-3 p-4 text-left"
+                >
+                  <span className="font-body text-xs font-semibold" style={{ color: UI.inkSoft }}>Included in your social set</span>
+                  <ChevronDown size={16} style={{ color: UI.inkSoft, transform: showSocialSetPreview ? "rotate(180deg)" : "none", transition: "transform 0.15s", flexShrink: 0 }} />
+                </button>
+                {/* Canvases stay mounted (just visually hidden) so the
+                    existing draw effect — which only fires on form/photo/font
+                    changes, not on mount — doesn't need to know about this. */}
+                <div className={showSocialSetPreview ? "px-4 pb-4 grid grid-cols-3 gap-2" : "hidden"}>
                   {THUMB_ASPECTS.map((key) => (
                     <div key={key}>
-                      <div className="rounded-lg border overflow-hidden flex items-center justify-center p-1.5" style={{ background: UI.card, borderColor: UI.line }}>
+                      <div className="rounded-lg border overflow-hidden flex items-center justify-center p-1.5" style={{ background: UI.stone, borderColor: UI.line }}>
                         <canvas
                           ref={(el) => { setThumbRefs.current[key] = el; }}
                           style={{ display: "block", width: "100%", height: "auto", borderRadius: "3px" }}
