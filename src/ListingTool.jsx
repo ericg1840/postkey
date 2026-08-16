@@ -4,7 +4,7 @@ import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
   mixWithWhite, drawCover, wrapText, roundRect, archedRect, drawContactBand,
-  useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
+  useUploadedImage, useAgentAsset, UploadBox, PhotoReposition, TopNav, isMobileDevice,
   Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord, firstNameOf,
 } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
@@ -134,7 +134,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
     // ---- Photo ----
     if (photo.img) {
-      drawCover(ctx, photo.img, 0, 0, w, photoH);
+      drawCover(ctx, photo.img, 0, 0, w, photoH, photo.focus.x, photo.focus.y, photo.zoom);
     } else {
       ctx.fillStyle = "#D8CFC9";
       ctx.fillRect(0, 0, w, photoH);
@@ -304,7 +304,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
     const heroH = h * 0.42;
     const heroY = topBarH;
-    if (photo.img) drawCover(ctx, photo.img, 0, heroY, w, heroH);
+    if (photo.img) drawCover(ctx, photo.img, 0, heroY, w, heroH, photo.focus.x, photo.focus.y, photo.zoom);
     else {
       ctx.fillStyle = "#D8CFC9";
       ctx.fillRect(0, heroY, w, heroH);
@@ -389,7 +389,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const sideX = pad + mainW + w * 0.02;
     const sideTileH = (collageH - w * 0.02) / 2;
 
-    if (photo.img) drawCover(ctx, photo.img, pad, collageY0, mainW, collageH);
+    if (photo.img) drawCover(ctx, photo.img, pad, collageY0, mainW, collageH, photo.focus.x, photo.focus.y, photo.zoom);
     else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(pad, collageY0, mainW, collageH); }
 
     if (form.address) {
@@ -454,7 +454,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const barH = h * 0.09;
     const heroH = h - headlineH - stripGap - stripH - contactH - barH;
 
-    if (photo.img) drawCover(ctx, photo.img, 0, 0, w, heroH);
+    if (photo.img) drawCover(ctx, photo.img, 0, 0, w, heroH, photo.focus.x, photo.focus.y, photo.zoom);
     else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(0, 0, w, heroH); }
 
     // ---- Headline: cursive "just" + letter-spaced serif "LISTED" ----
@@ -566,7 +566,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     drawToCanvas(canvas, form.aspect);
-  }, [form, photo.img, photo2.img, photo3.img, headshot.img, logo.img]);
+  }, [form, photo.img, photo.focus, photo.zoom, photo2.img, photo3.img, headshot.img, logo.img]);
 
   useEffect(() => { if (fontsReady) draw(); }, [draw, fontsReady]);
 
@@ -580,7 +580,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       const canvas = thumbRefs.current[key];
       if (canvas) drawToCanvas(canvas, key);
     });
-  }, [form, photo.img, photo2.img, photo3.img, headshot.img, logo.img, fontsReady]);
+  }, [form, photo.img, photo.focus, photo.zoom, photo2.img, photo3.img, headshot.img, logo.img, fontsReady]);
 
   const [showCustomize, setShowCustomize] = useState(false);
   const [wantSocialSet, setWantSocialSet] = useState(true);
@@ -736,6 +736,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               <h3 className="font-body text-sm font-semibold mb-1" style={{ color: UI.ink }}>2. Add your photo</h3>
               <p className="font-body text-xs mb-2.5" style={{ color: UI.inkSoft }}>Upload a listing photo and we'll create your branded post.</p>
               <UploadBox label="PROPERTY PHOTO" icon={ImageIcon} state={photo} hint="Choose listing photo, or drag and drop here" />
+              <PhotoReposition state={photo} aspect={form.aspect} />
 
               {form.layout !== "modern" && (
                 <label className="block mt-3">

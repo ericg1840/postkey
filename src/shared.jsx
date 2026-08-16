@@ -63,15 +63,20 @@ export function mixWithWhite(hex, amount) {
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
 
-export function drawCover(ctx, img, dx, dy, dW, dH, focusX = 0.5, focusY = 0.5) {
+export function drawCover(ctx, img, dx, dy, dW, dH, focusX = 0.5, focusY = 0.5, zoom = 1) {
   const imgRatio = img.width / img.height;
   const boxRatio = dW / dH;
-  let sx, sy, sw, sh;
+  let baseSw, baseSh;
   if (imgRatio > boxRatio) {
-    sh = img.height; sw = sh * boxRatio; sy = 0; sx = (img.width - sw) * focusX;
+    baseSh = img.height; baseSw = baseSh * boxRatio;
   } else {
-    sw = img.width; sh = sw / boxRatio; sx = 0; sy = (img.height - sh) * focusY;
+    baseSw = img.width; baseSh = baseSw / boxRatio;
   }
+  const z = Math.max(1, zoom);
+  const sw = baseSw / z;
+  const sh = baseSh / z;
+  const sx = (img.width - sw) * focusX;
+  const sy = (img.height - sh) * focusY;
   ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dW, dH);
 }
 
@@ -233,6 +238,8 @@ export function drawContactBand(ctx, w, bandY, bandH, form, headshot, logo, show
 export function useUploadedImage() {
   const [img, setImg] = useState(null);
   const [name, setName] = useState("");
+  const [focus, setFocus] = useState({ x: 0.5, y: 0.5 });
+  const [zoom, setZoom] = useState(1);
   const load = (file) => {
     if (!file || !file.type.startsWith("image/")) return;
     const reader = new FileReader();
@@ -242,10 +249,12 @@ export function useUploadedImage() {
       image.src = e.target.result;
     };
     setName(file.name);
+    setFocus({ x: 0.5, y: 0.5 });
+    setZoom(1);
     reader.readAsDataURL(file);
   };
-  const clear = () => { setImg(null); setName(""); };
-  return { img, name, load, clear };
+  const clear = () => { setImg(null); setName(""); setFocus({ x: 0.5, y: 0.5 }); setZoom(1); };
+  return { img, name, load, clear, focus, setFocus, zoom, setZoom };
 }
 
 // Loads a default hosted image (e.g. a standing headshot/logo) but still lets the
@@ -353,6 +362,100 @@ export function UploadBox({ label, icon: Icon, state, hint }) {
   );
 }
 
+// Lets an agent drag/zoom their uploaded photo within a frame shaped like the
+// selected output aspect, instead of being stuck with an automatic center
+// crop. Drag position maps directly to CSS background-position, which uses
+// the same (imgSize - boxSize) * fraction math as drawCover, so what's shown
+// here lines up with the exported image.
+export function PhotoReposition({ state, aspect }) {
+  const boxRef = useRef(null);
+  const draggingRef = useRef(false);
+
+  if (!state.img) return null;
+
+  const { w: aw, h: ah } = ASPECTS[aspect] || ASPECTS.square;
+  const maxBoxW = 300, maxBoxH = 140;
+  const boxW = aw / ah > maxBoxW / maxBoxH ? maxBoxW : maxBoxH * (aw / ah);
+  const boxH = aw / ah > maxBoxW / maxBoxH ? maxBoxW * (ah / aw) : maxBoxH;
+
+  const updateFocusFromPoint = (clientX, clientY) => {
+    const rect = boxRef.current.getBoundingClientRect();
+    state.setFocus({
+      x: Math.min(1, Math.max(0, (clientX - rect.left) / rect.width)),
+      y: Math.min(1, Math.max(0, (clientY - rect.top) / rect.height)),
+    });
+  };
+
+  const onPointerDown = (e) => {
+    draggingRef.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    updateFocusFromPoint(e.clientX, e.clientY);
+  };
+  const onPointerMove = (e) => {
+    if (!draggingRef.current) return;
+    updateFocusFromPoint(e.clientX, e.clientY);
+  };
+  const onPointerUp = (e) => {
+    draggingRef.current = false;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+  };
+
+  const imgRatio = state.img.width / state.img.height;
+  const boxRatio = aw / ah;
+  const bgSize = imgRatio > boxRatio
+    ? `${(imgRatio / boxRatio) * 100 * state.zoom}% ${100 * state.zoom}%`
+    : `${100 * state.zoom}% ${(boxRatio / imgRatio) * 100 * state.zoom}%`;
+
+  const isDefaultFraming = state.zoom === 1 && state.focus.x === 0.5 && state.focus.y === 0.5;
+
+  return (
+    <div className="mt-3">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="font-mono text-xs" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>REPOSITION PHOTO</span>
+        {!isDefaultFraming && (
+          <button
+            type="button"
+            onClick={() => { state.setFocus({ x: 0.5, y: 0.5 }); state.setZoom(1); }}
+            className="font-body text-xs underline"
+            style={{ color: UI.inkSoft }}
+          >
+            Reset
+          </button>
+        )}
+      </div>
+      <div
+        ref={boxRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        className="rounded-lg border overflow-hidden touch-none select-none"
+        style={{
+          borderColor: UI.line,
+          width: boxW,
+          height: boxH,
+          margin: "0 auto",
+          backgroundImage: `url(${state.img.src})`,
+          backgroundRepeat: "no-repeat",
+          backgroundSize: bgSize,
+          backgroundPosition: `${state.focus.x * 100}% ${state.focus.y * 100}%`,
+          cursor: "grab",
+        }}
+      />
+      <div className="flex items-center gap-2 mt-2">
+        <span className="font-body text-xs flex-shrink-0" style={{ color: UI.inkSoft }}>Zoom</span>
+        <input
+          type="range"
+          min="1"
+          max="2.5"
+          step="0.05"
+          value={state.zoom}
+          onChange={(e) => state.setZoom(parseFloat(e.target.value))}
+          className="flex-1"
+        />
+      </div>
+    </div>
+  );
+}
 
 export function GlobalStyles() {
   return (

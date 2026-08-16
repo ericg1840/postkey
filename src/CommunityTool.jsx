@@ -4,7 +4,7 @@ import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
   mixWithWhite, drawCover, wrapText, roundRect, drawContactBand,
-  useUploadedImage, useAgentAsset, UploadBox, TopNav, isMobileDevice,
+  useUploadedImage, useAgentAsset, UploadBox, PhotoReposition, TopNav, isMobileDevice,
   Accordion, PrivacyBadge, splitHeadlineLastWord, drawHouseBackdrop, useDefaultImage, firstNameOf,
 } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
@@ -349,7 +349,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     if (photo.img) {
       ctx.save();
       ctx.filter = `blur(${Math.round(w * 0.012)}px)`;
-      drawCover(ctx, photo.img, -w * 0.03, -h * 0.03, w * 1.06, h * 1.06);
+      drawCover(ctx, photo.img, -w * 0.03, -h * 0.03, w * 1.06, h * 1.06, photo.focus.x, photo.focus.y, photo.zoom);
       ctx.restore();
     } else drawEmptyPhotoBackdrop(ctx, w, h);
 
@@ -507,7 +507,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
   const drawStatsStyle = (ctx, w, h) => {
     const contactH = Math.min(w, h) * 0.145;
 
-    if (photo.img) drawCover(ctx, photo.img, 0, 0, w, h);
+    if (photo.img) drawCover(ctx, photo.img, 0, 0, w, h, photo.focus.x, photo.focus.y, photo.zoom);
     else drawEmptyPhotoBackdrop(ctx, w, h);
     ctx.fillStyle = "rgba(20,14,10,0.45)";
     ctx.fillRect(0, 0, w, h - contactH);
@@ -554,7 +554,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     if (photo.img) {
       ctx.save();
       ctx.filter = `blur(${Math.round(w * 0.012)}px)`;
-      drawCover(ctx, photo.img, -w * 0.03, -h * 0.03, w * 1.06, h * 1.06);
+      drawCover(ctx, photo.img, -w * 0.03, -h * 0.03, w * 1.06, h * 1.06, photo.focus.x, photo.focus.y, photo.zoom);
       ctx.restore();
     } else drawEmptyPhotoBackdrop(ctx, w, h);
 
@@ -608,7 +608,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
 
     // ---- Photo ----
     if (photo.img) {
-      drawCover(ctx, photo.img, 0, 0, w, photoH);
+      drawCover(ctx, photo.img, 0, 0, w, photoH, photo.focus.x, photo.focus.y, photo.zoom);
     } else {
       ctx.fillStyle = "#D8CFC9";
       ctx.fillRect(0, 0, w, photoH);
@@ -745,7 +745,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     drawToCanvas(canvas, form.aspect);
-  }, [form, photo.img, headshot.img, logo.img, houseDefault]);
+  }, [form, photo.img, photo.focus, photo.zoom, headshot.img, logo.img, houseDefault]);
 
   useEffect(() => { if (fontsReady) draw(); }, [draw, fontsReady]);
 
@@ -768,7 +768,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
   useEffect(() => {
     if (!fontsReady) return;
     Object.keys(STYLES).forEach((key) => drawStyleThumb(styleThumbRefs.current[key], key));
-  }, [form, photo.img, headshot.img, logo.img, houseDefault, fontsReady]);
+  }, [form, photo.img, photo.focus, photo.zoom, headshot.img, logo.img, houseDefault, fontsReady]);
 
   // Small live previews of the other sizes in the social set.
   const THUMB_ASPECTS = ["square", "story", "landscape"];
@@ -779,7 +779,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
       const canvas = setThumbRefs.current[key];
       if (canvas) drawToCanvas(canvas, key);
     });
-  }, [form, photo.img, headshot.img, logo.img, houseDefault, fontsReady]);
+  }, [form, photo.img, photo.focus, photo.zoom, headshot.img, logo.img, houseDefault, fontsReady]);
 
   const [showCustomize, setShowCustomize] = useState(false);
   const [wantSocialSet, setWantSocialSet] = useState(true);
@@ -1083,6 +1083,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                       </label>
                     </div>
                     <UploadBox label="CLIENT / PROPERTY PHOTO (optional)" icon={ImageIcon} state={photo} hint="Drop or click to add a photo" />
+                    <PhotoReposition state={photo} aspect={form.aspect} />
                     <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer" style={{ borderColor: UI.line }}>
                       <input type="checkbox" checked={form.useHeadshot} onChange={(e) => setForm((f) => ({ ...f, useHeadshot: e.target.checked }))} className="hidden" />
                       <span className="flex-1 font-body text-xs font-semibold" style={{ color: UI.ink }}>
