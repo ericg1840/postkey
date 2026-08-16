@@ -1431,12 +1431,13 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
 
             <div>
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SIZE (for single-image download)</span>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {Object.entries(ASPECTS).map(([key, a]) => (
                   <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
-                    className="p-2 rounded border font-body text-xs font-semibold transition"
+                    className="p-2 rounded border font-body text-xs font-semibold transition whitespace-nowrap"
                     style={{ borderColor: form.aspect === key ? ACCENT : UI.line, background: form.aspect === key ? UI.card : "transparent" }}>
-                    {a.label}
+                    <span className="sm:hidden">{a.shortLabel}</span>
+                    <span className="hidden sm:inline">{a.label}</span>
                   </button>
                 ))}
               </div>
@@ -1549,13 +1550,14 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                 <div className="grid grid-cols-2 sm:flex sm:items-center gap-1 p-1 rounded-xl" style={{ background: UI.stone }}>
                   {Object.entries(ASPECTS).map(([key, a]) => (
                     <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
-                      className="px-3 py-1 rounded-lg font-body text-xs font-semibold transition text-center"
+                      className="px-3 py-1 rounded-lg font-body text-xs font-semibold transition text-center whitespace-nowrap"
                       style={{
                         background: form.aspect === key ? UI.card : "transparent",
                         color: form.aspect === key ? UI.ink : UI.inkSoft,
                         boxShadow: form.aspect === key ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
                       }}>
-                      {a.label}
+                      <span className="sm:hidden">{a.shortLabel}</span>
+                      <span className="hidden sm:inline">{a.label}</span>
                     </button>
                   ))}
                 </div>
