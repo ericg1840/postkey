@@ -135,6 +135,8 @@ const STYLES = {
   testimonial: { label: "Testimonial", description: "Star rating + client quote" },
   stats: { label: "Big Number List", description: "Big numeral + icon list" },
   checklist: { label: "Checklist", description: "Headline card + checkmarks" },
+  quote: { label: "Quote Card", description: "Big pull-quote + your message" },
+  poll: { label: "This or That", description: "Two-option compare card" },
 };
 
 // Broader groupings the individual TEMPLATES sit under — agents pick a
@@ -210,6 +212,11 @@ const DEFAULTS = {
   clientType: "Buyer",
   useHeadshot: true,
   rating: 5,
+  quoteEyebrow: "Design Tip",
+  quoteText: "A fresh coat of paint is still the highest-ROI update you can make before listing.",
+  pollHeadline: "Which Kitchen Style Do You Love?",
+  optionA: "Open Concept",
+  optionB: "Defined Rooms",
   agentName: "Your Name, Realtor",
   agentPhone: "(555) 123-4567",
   agentEmail: "you@example.com",
@@ -600,6 +607,159 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     drawContactBand(ctx, w, h - contactH, contactH, form, headshot, logo);
   };
 
+  // ---- Quote Card: giant pull-quote mark, short message, optional dimmed photo backdrop ----
+  const drawQuoteStyle = (ctx, w, h) => {
+    const contactH = Math.min(w, h) * 0.145;
+
+    if (photo.img) {
+      ctx.save();
+      ctx.filter = `blur(${Math.round(w * 0.014)}px)`;
+      drawCover(ctx, photo.img, -w * 0.03, -h * 0.03, w * 1.06, h * 1.06, photo.focus.x, photo.focus.y, photo.zoom);
+      ctx.restore();
+      ctx.fillStyle = "rgba(20,14,10,0.5)";
+      ctx.fillRect(0, 0, w, h - contactH);
+    } else {
+      ctx.fillStyle = mixWithWhite(form.accentColor, 0.86);
+      ctx.fillRect(0, 0, w, h - contactH);
+    }
+
+    const isOnPhoto = !!photo.img;
+    const inkColor = isOnPhoto ? WHITE : UI.ink;
+    const softColor = isOnPhoto ? "rgba(255,255,255,0.75)" : UI.inkSoft;
+
+    const cardW = w * 0.82, cardX = (w - cardW) / 2;
+    const markSize = h * 0.16;
+    const markY = h * 0.15;
+    ctx.font = `900 ${markSize}px Georgia, "Playfair Display", serif`;
+    ctx.fillStyle = form.accentColor;
+    ctx.fillText("“", cardX - cardW * 0.02, markY);
+
+    let afterMarkY = markY + h * 0.05;
+    if (form.quoteEyebrow) {
+      const eyebrowSize = h * 0.022;
+      ctx.font = `700 ${eyebrowSize}px "Montserrat", sans-serif`;
+      ctx.fillStyle = form.accentColor;
+      ctx.textAlign = "left";
+      const eyebrow = form.quoteEyebrow.toUpperCase();
+      ctx.fillText(eyebrow, cardX, afterMarkY, cardW);
+      afterMarkY += eyebrowSize * 1.6;
+    }
+
+    ctx.textAlign = "left";
+    let quoteSize = h * 0.048;
+    ctx.font = `700 ${quoteSize}px "Playfair Display", serif`;
+    let lines = wrapText(ctx, form.quoteText || "", cardW);
+    const maxLines = 5;
+    while (lines.length > maxLines && quoteSize > h * 0.026) {
+      quoteSize *= 0.92;
+      ctx.font = `700 ${quoteSize}px "Playfair Display", serif`;
+      lines = wrapText(ctx, form.quoteText || "", cardW);
+    }
+    const lineH = quoteSize * 1.32;
+    const textStartY = afterMarkY + quoteSize * 0.85;
+    ctx.fillStyle = inkColor;
+    lines.slice(0, maxLines).forEach((line, i) => ctx.fillText(line, cardX, textStartY + i * lineH));
+
+    const ruleY = textStartY + lines.slice(0, maxLines).length * lineH + h * 0.035;
+    ctx.strokeStyle = form.accentColor;
+    ctx.lineWidth = Math.max(2, w * 0.006);
+    ctx.beginPath();
+    ctx.moveTo(cardX, ruleY);
+    ctx.lineTo(cardX + w * 0.09, ruleY);
+    ctx.stroke();
+
+    ctx.font = `600 ${h * 0.02}px "Montserrat", sans-serif`;
+    ctx.fillStyle = softColor;
+    ctx.fillText(`— ${firstNameOf(form.agentName)}`, cardX, ruleY + h * 0.04);
+
+    drawContactBand(ctx, w, h - contactH, contactH, form, headshot, logo);
+  };
+
+  // ---- This or That: split two-color card with a VS badge, for a quick engagement poll ----
+  const drawPollStyle = (ctx, w, h) => {
+    const contactH = Math.min(w, h) * 0.145;
+
+    // Every size below is driven by width, not height: this is a two-column
+    // layout, so what actually constrains it is how much text fits across
+    // (or beside the badge), not the post's overall height. Sizing off `h`
+    // instead would blow the type up on tall aspects like Story and either
+    // push the headline off-canvas or run the options into the badge.
+    let headSize = w * 0.052;
+    ctx.font = `800 ${headSize}px "Montserrat", sans-serif`;
+    const wrapHeadline = () => wrapText(ctx, (form.pollHeadline || "").toUpperCase(), w * 0.86);
+    let headLines = wrapHeadline();
+    while (headLines.length > 2 && headSize > w * 0.03) {
+      headSize *= 0.9;
+      ctx.font = `800 ${headSize}px "Montserrat", sans-serif`;
+      headLines = wrapHeadline();
+    }
+    headLines = headLines.slice(0, 2);
+    const headLineH = headSize * 1.3;
+    const headPadY = h * 0.035;
+    const headH = form.pollHeadline ? headLines.length * headLineH + headPadY * 2 : h * 0.06;
+
+    ctx.fillStyle = UI.ink;
+    ctx.fillRect(0, 0, w, headH);
+    if (form.pollHeadline) {
+      ctx.textAlign = "center";
+      ctx.fillStyle = WHITE;
+      const startY = (headH - headLines.length * headLineH) / 2 + headSize * 0.85;
+      headLines.forEach((line, i) => ctx.fillText(line, w / 2, startY + i * headLineH));
+    }
+
+    const splitY0 = headH, splitH = h - contactH - headH;
+    ctx.fillStyle = mixWithWhite(form.accentColor, 0.18);
+    ctx.fillRect(0, splitY0, w / 2, splitH);
+    ctx.fillStyle = mixWithWhite(form.accentColor, 0.55);
+    ctx.fillRect(w / 2, splitY0, w / 2, splitH);
+
+    const badgeR = w * 0.075;
+    const badgeCX = w / 2, badgeCY = splitY0 + splitH / 2;
+    const optionMaxW = w / 2 - badgeR - w * 0.06;
+
+    let optionSize = w * 0.052;
+    ctx.font = `800 ${optionSize}px "Playfair Display", serif`;
+    const wrapOption = (text) => wrapText(ctx, (text || "").toUpperCase(), optionMaxW);
+    let aLines = wrapOption(form.optionA);
+    let bLines = wrapOption(form.optionB);
+    while ((aLines.length > 3 || bLines.length > 3) && optionSize > w * 0.026) {
+      optionSize *= 0.92;
+      ctx.font = `800 ${optionSize}px "Playfair Display", serif`;
+      aLines = wrapOption(form.optionA);
+      bLines = wrapOption(form.optionB);
+    }
+    const optLineH = optionSize * 1.2;
+    ctx.textAlign = "center";
+    const drawOption = (lines, cx, color) => {
+      const blockH = lines.length * optLineH;
+      const startY = badgeCY - blockH / 2 + optionSize * 0.85;
+      ctx.fillStyle = color;
+      lines.forEach((line, i) => ctx.fillText(line, cx, startY + i * optLineH));
+    };
+    drawOption(aLines, w * 0.25, WHITE);
+    drawOption(bLines, w * 0.75, UI.ink);
+
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.25)";
+    ctx.shadowBlur = w * 0.015;
+    ctx.beginPath();
+    ctx.arc(badgeCX, badgeCY, badgeR, 0, Math.PI * 2);
+    ctx.fillStyle = form.accentColor;
+    ctx.fill();
+    ctx.restore();
+    ctx.beginPath();
+    ctx.arc(badgeCX, badgeCY, badgeR, 0, Math.PI * 2);
+    ctx.strokeStyle = WHITE;
+    ctx.lineWidth = Math.max(2, w * 0.006);
+    ctx.stroke();
+    ctx.font = `900 ${badgeR * 0.85}px "Playfair Display", serif`;
+    ctx.fillStyle = WHITE;
+    ctx.fillText("VS", badgeCX, badgeCY + badgeR * 0.3);
+    ctx.textAlign = "left";
+
+    drawContactBand(ctx, w, h - contactH, contactH, form, headshot, logo);
+  };
+
   const drawCardStyle = (ctx, w, h) => {
     const addressH = h * 0.075;
     const contactH = Math.min(w, h) * 0.165;
@@ -738,6 +898,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     else if (form.style === "testimonial") drawTestimonialStyle(ctx, w, h);
     else if (form.style === "stats") drawStatsStyle(ctx, w, h);
     else if (form.style === "checklist") drawChecklistStyle(ctx, w, h);
+    else if (form.style === "quote") drawQuoteStyle(ctx, w, h);
+    else if (form.style === "poll") drawPollStyle(ctx, w, h);
     else drawCardStyle(ctx, w, h);
   };
 
@@ -762,6 +924,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     else if (styleKey === "testimonial") drawTestimonialStyle(ctx, w, h);
     else if (styleKey === "stats") drawStatsStyle(ctx, w, h);
     else if (styleKey === "checklist") drawChecklistStyle(ctx, w, h);
+    else if (styleKey === "quote") drawQuoteStyle(ctx, w, h);
+    else if (styleKey === "poll") drawPollStyle(ctx, w, h);
     else drawCardStyle(ctx, w, h);
   };
   const styleThumbRefs = useRef({});
@@ -877,6 +1041,10 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     } else if (form.style === "tips" || form.style === "stats" || form.style === "checklist") {
       const items = (form.listItems || "").split("\n").map((s) => s.trim()).filter(Boolean);
       lines = [form.subject, ...items.map((i) => `• ${i}`)];
+    } else if (form.style === "quote") {
+      lines = [form.quoteEyebrow, `"${form.quoteText}"`, `— ${firstNameOf(form.agentName)}`];
+    } else if (form.style === "poll") {
+      lines = [form.pollHeadline, `${form.optionA} or ${form.optionB}? Drop your pick in the comments 👇`];
     } else {
       lines = [`${form.word1} ${form.script}`.trim(), form.subject, form.body].filter(Boolean);
     }
@@ -1008,8 +1176,11 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
             <section>
               <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>2. Add the details</h3>
               <div className="grid gap-3">
-                {form.style !== "testimonial" && (
-                  <UploadBox label="PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add a photo" />
+                {form.style !== "testimonial" && form.style !== "poll" && (
+                  <>
+                    <UploadBox label="PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add a photo" />
+                    <PhotoReposition state={photo} aspect={form.aspect} />
+                  </>
                 )}
 
                 {form.style === "card" && (
@@ -1061,6 +1232,38 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                     </span>
                     <textarea className="input" rows={4} value={form.listItems} onChange={update("listItems")} placeholder={"Turn on the AC\nOffer cold refreshments\nHighlight outdoor spaces"} />
                   </label>
+                )}
+
+                {form.style === "quote" && (
+                  <>
+                    <label className="block">
+                      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>EYEBROW LABEL (optional)</span>
+                      <input className="input" value={form.quoteEyebrow} onChange={update("quoteEyebrow")} placeholder="Design Tip" />
+                    </label>
+                    <label className="block">
+                      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>YOUR MESSAGE</span>
+                      <textarea className="input" rows={4} value={form.quoteText} onChange={update("quoteText")} placeholder="A fresh coat of paint is still the highest-ROI update you can make before listing." />
+                    </label>
+                  </>
+                )}
+
+                {form.style === "poll" && (
+                  <>
+                    <label className="block">
+                      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
+                      <input className="input" value={form.pollHeadline} onChange={update("pollHeadline")} placeholder="Which Kitchen Style Do You Love?" />
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OPTION A</span>
+                        <input className="input" value={form.optionA} onChange={update("optionA")} placeholder="Open Concept" />
+                      </label>
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OPTION B</span>
+                        <input className="input" value={form.optionB} onChange={update("optionB")} placeholder="Defined Rooms" />
+                      </label>
+                    </div>
+                  </>
                 )}
 
                 {form.style === "testimonial" && (
