@@ -666,7 +666,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     setDownloadingAll(false);
   };
 
-  const currentStep = !photo.img ? 1 : downloadError || downloading || downloadingAll ? 3 : 2;
+  const currentStep = !photo.img ? 2 : downloadError || downloading || downloadingAll ? 4 : 3;
 
   // On phones, only one step's content is visible at a time (see the
   // `mobileStep === N ? … : "hidden"` panels below) so getting from "Add
@@ -688,7 +688,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
         {/* STEP INDICATOR */}
         <div className="flex items-center gap-1 sm:gap-3 mb-5 sm:mb-8 lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}>
-          {[{ n: 1, label: "Add Photo" }, { n: 2, label: "Customize" }, { n: 3, label: "Download" }].map((s, i, arr) => (
+          {[{ n: 1, label: "What to Post" }, { n: 2, label: "Style" }, { n: 3, label: "Photo & Details" }, { n: 4, label: "Download" }].map((s, i, arr) => (
             <div key={s.n} className="flex items-center gap-1 sm:gap-3 min-w-0">
               <button type="button" onClick={() => setMobileStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                 <span
@@ -717,7 +717,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         {/* MAIN GRID: controls + preview */}
         <div className="grid lg:grid-cols-2 gap-8 items-start">
           {/* LEFT: CONTROLS */}
-          <div className={mobileStep === 3 ? "hidden lg:grid lg:gap-6" : "grid gap-6"}>
+          <div className={mobileStep === 4 ? "hidden lg:grid lg:gap-6" : "grid gap-6"}>
           <div className={`${mobileStep === 1 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section>
               <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>1. What are you posting?</h3>
@@ -732,80 +732,19 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               </div>
             </section>
 
-            <section>
-              <h3 className="font-body text-sm font-semibold mb-1" style={{ color: UI.ink }}>2. Add your photo</h3>
-              <p className="font-body text-xs mb-2.5" style={{ color: UI.inkSoft }}>Upload a listing photo and we'll create your branded post.</p>
-              <UploadBox label="PROPERTY PHOTO" icon={ImageIcon} state={photo} hint="Choose listing photo, or drag and drop here" />
-              <PhotoReposition state={photo} aspect={form.aspect} />
-
-              {form.layout !== "modern" && (
-                <label className="block mt-3">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
-                  <input className="input" value={form.address} onChange={update("address")} />
-                </label>
-              )}
-
-              {form.layout !== "bold" && (
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <UploadBox label={form.layout === "collage" ? "PHOTO 2 (top right)" : "PHOTO 2 (strip)"} icon={ImageIcon} state={photo2} hint="Second photo" />
-                  <UploadBox label={form.layout === "collage" ? "PHOTO 3 (bottom right)" : "PHOTO 3 (strip)"} icon={ImageIcon} state={photo3} hint="Third photo" />
-                </div>
-              )}
-
-              {form.layout === "editorial" && (
-                <div className="grid grid-cols-4 gap-2 mt-3">
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
-                    <input className="input" value={form.beds} onChange={update("beds")} />
-                  </label>
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
-                    <input className="input" value={form.baths} onChange={update("baths")} />
-                  </label>
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
-                    <input className="input" value={form.sqft} onChange={update("sqft")} />
-                  </label>
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PRICE</span>
-                    <input className="input" value={form.price} onChange={update("price")} />
-                  </label>
-                </div>
-              )}
-
-              {form.layout === "modern" && (
-                <div className="grid grid-cols-3 gap-2 mt-3">
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
-                    <input className="input" value={form.beds} onChange={update("beds")} />
-                  </label>
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
-                    <input className="input" value={form.baths} onChange={update("baths")} />
-                  </label>
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
-                    <input className="input" value={form.sqft} onChange={update("sqft")} />
-                  </label>
-                </div>
-              )}
-
-              <p className="font-body text-xs mt-2.5" style={{ color: UI.inkSoft }}>Tip: use a bright, high-quality photo for best results.</p>
-            </section>
-
             <button
               type="button"
               onClick={() => setMobileStep(2)}
               className="lg:hidden w-full py-2.5 rounded-lg font-body font-semibold text-sm transition"
               style={{ background: ACCENT, color: WHITE }}
             >
-              Continue to Customize
+              Continue to Style
             </button>
           </div>
 
             <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section>
-              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>3. Choose a style <span className="font-normal" style={{ color: UI.inkSoft }}>(optional)</span></h3>
+              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>2. Choose a style <span className="font-normal" style={{ color: UI.inkSoft }}>(optional)</span></h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button onClick={() => setForm((f) => ({ ...f, layout: "bold" }))}
                   className="text-left p-3 rounded-lg border transition font-body text-xs"
@@ -1063,6 +1002,82 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               <button type="button" onClick={() => setMobileStep(3)}
                 className="flex-1 py-2.5 rounded-lg font-body font-semibold text-sm transition"
                 style={{ background: ACCENT, color: WHITE }}>
+                Continue to Add Photo &amp; Details
+              </button>
+            </div>
+            </div>
+
+            <div className={`${mobileStep === 3 ? "grid gap-6" : "hidden"} lg:contents`}>
+            <section>
+              <h3 className="font-body text-sm font-semibold mb-1" style={{ color: UI.ink }}>3. Add your photo &amp; listing details</h3>
+              <p className="font-body text-xs mb-2.5" style={{ color: UI.inkSoft }}>Upload a listing photo and we'll create your branded post.</p>
+              <UploadBox label="PROPERTY PHOTO" icon={ImageIcon} state={photo} hint="Choose listing photo, or drag and drop here" />
+              <PhotoReposition state={photo} aspect={form.aspect} />
+
+              {form.layout !== "modern" && (
+                <label className="block mt-3">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
+                  <input className="input" value={form.address} onChange={update("address")} />
+                </label>
+              )}
+
+              {form.layout !== "bold" && (
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <UploadBox label={form.layout === "collage" ? "PHOTO 2 (top right)" : "PHOTO 2 (strip)"} icon={ImageIcon} state={photo2} hint="Second photo" />
+                  <UploadBox label={form.layout === "collage" ? "PHOTO 3 (bottom right)" : "PHOTO 3 (strip)"} icon={ImageIcon} state={photo3} hint="Third photo" />
+                </div>
+              )}
+
+              {form.layout === "editorial" && (
+                <div className="grid grid-cols-4 gap-2 mt-3">
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
+                    <input className="input" value={form.beds} onChange={update("beds")} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
+                    <input className="input" value={form.baths} onChange={update("baths")} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
+                    <input className="input" value={form.sqft} onChange={update("sqft")} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PRICE</span>
+                    <input className="input" value={form.price} onChange={update("price")} />
+                  </label>
+                </div>
+              )}
+
+              {form.layout === "modern" && (
+                <div className="grid grid-cols-3 gap-2 mt-3">
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
+                    <input className="input" value={form.beds} onChange={update("beds")} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
+                    <input className="input" value={form.baths} onChange={update("baths")} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
+                    <input className="input" value={form.sqft} onChange={update("sqft")} />
+                  </label>
+                </div>
+              )}
+
+              <p className="font-body text-xs mt-2.5" style={{ color: UI.inkSoft }}>Tip: use a bright, high-quality photo for best results.</p>
+            </section>
+
+            <div className="lg:hidden flex items-center gap-2">
+              <button type="button" onClick={() => setMobileStep(2)}
+                className="py-2.5 px-4 rounded-lg border font-body font-semibold text-sm transition"
+                style={{ borderColor: UI.line, color: UI.ink }}>
+                Back
+              </button>
+              <button type="button" onClick={() => setMobileStep(4)}
+                className="flex-1 py-2.5 rounded-lg font-body font-semibold text-sm transition"
+                style={{ background: ACCENT, color: WHITE }}>
                 Continue to Preview &amp; Download
               </button>
             </div>
@@ -1070,12 +1085,12 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           </div>
 
           {/* RIGHT: PREVIEW */}
-          <div className={mobileStep === 3 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "1.5rem" }}>
-            {mobileStep === 3 && (
-              <button type="button" onClick={() => setMobileStep(2)}
+          <div className={mobileStep === 4 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "1.5rem" }}>
+            {mobileStep === 4 && (
+              <button type="button" onClick={() => setMobileStep(3)}
                 className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2"
                 style={{ color: UI.inkSoft }}>
-                ← Back to Customize
+                ← Back to Photo &amp; Details
               </button>
             )}
             <div className="rounded-2xl border p-2.5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
