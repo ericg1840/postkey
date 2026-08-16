@@ -1126,29 +1126,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         </div>
 
         <div className="hidden lg:block">
-        {/* READY TO DOWNLOAD */}
-        <div className="mt-8 rounded-2xl border p-5 sm:p-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" style={{ background: UI.card, borderColor: UI.line }}>
-          <div>
-            <h3 className="font-body text-base font-semibold" style={{ color: UI.ink }}>Ready to download your post?</h3>
-            <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>
-              Once you're happy with your design, download it below.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={downloadImage}
-              disabled={downloading}
-              className="py-2.5 px-5 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
-              style={{ background: ACCENT, color: WHITE }}
-            >
-              <Download size={16} /> {downloading ? "Preparing…" : "Download Image"}
-            </button>
-          </div>
-        </div>
-        {downloadError && (
-          <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
-        )}
-        <div className="mt-3">
+        <div className="mt-8">
           <PrivacyBadge />
         </div>
 
