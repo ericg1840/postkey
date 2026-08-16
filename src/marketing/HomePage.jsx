@@ -44,7 +44,7 @@ const EXAMPLES = [
 // A miniature version of an actual PostKey-generated graphic — same category
 // pill + headline + contact-band treatment as the real templates, so the
 // floating cards in the hero/CTA read as real output, not abstract shapes.
-function PostCard({ category, headline, color, rotate, top, left, scale = 1 }) {
+export function PostCard({ category, headline, color, rotate, top, left, scale = 1 }) {
   return (
     <div
       className="absolute rounded-2xl overflow-hidden"
@@ -75,11 +75,11 @@ function PostCard({ category, headline, color, rotate, top, left, scale = 1 }) {
   );
 }
 
-function FloatingDot({ top, left, right, bottom, size = 10, color }) {
+export function FloatingDot({ top, left, right, bottom, size = 10, color }) {
   return <div className="absolute rounded-full" style={{ top, left, right, bottom, width: size, height: size, background: color }} />;
 }
 
-function FloatingSparkle({ top, left, right, bottom, size = 22, color, rotate = 0 }) {
+export function FloatingSparkle({ top, left, right, bottom, size = 22, color, rotate = 0 }) {
   return (
     <div className="absolute" style={{ top, left, right, bottom, transform: `rotate(${rotate}deg)` }}>
       <Sparkles size={size} color={color} fill={color} strokeWidth={0} />
@@ -127,7 +127,7 @@ function BrandKitRow({ label, children }) {
 }
 
 // A miniature preview of the brand kit UI — shows what "set it once" actually looks like.
-function BrandKitPreview() {
+export function BrandKitPreview() {
   return (
     <div className="rounded-2xl p-5 w-full" style={{ maxWidth: 260, background: "#FFFFFF", boxShadow: "0 20px 45px rgba(27,36,48,0.14)" }}>
       <span className="font-mono font-bold block mb-4" style={{ color: AUTH.ink, letterSpacing: "0.04em", fontSize: "0.68rem" }}>YOUR BRAND KIT</span>
@@ -158,7 +158,7 @@ function BrandKitPreview() {
   );
 }
 
-export function HomePage({ onGetStarted, onLogIn }) {
+export function HomePage({ onGetStarted, onLogIn, onAbout }) {
   return (
     <div style={{ background: "#FDFBF7" }}>
       <header style={{ paddingTop: "env(safe-area-inset-top)" }}>
@@ -172,6 +172,9 @@ export function HomePage({ onGetStarted, onLogIn }) {
           <nav className="hidden sm:flex items-center gap-6">
             <a href="#features" className="font-body text-sm font-semibold" style={{ color: AUTH.muted }}>Features</a>
             <a href="#how-it-works" className="font-body text-sm font-semibold" style={{ color: AUTH.muted }}>How It Works</a>
+            {onAbout && (
+              <button onClick={onAbout} className="font-body text-sm font-semibold" style={{ color: AUTH.muted }}>About</button>
+            )}
           </nav>
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <button
@@ -454,6 +457,9 @@ export function HomePage({ onGetStarted, onLogIn }) {
             <div className="grid gap-2">
               <a href="#features" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>Features</a>
               <a href="#how-it-works" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>How It Works</a>
+              {onAbout && (
+                <button onClick={onAbout} className="font-body text-xs font-semibold text-left" style={{ color: AUTH.muted }}>About</button>
+              )}
             </div>
           </div>
         </div>

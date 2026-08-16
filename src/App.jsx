@@ -9,6 +9,7 @@ import { ResetPasswordScreen } from "./auth/ResetPasswordScreen.jsx";
 import { OnboardingWizard } from "./onboarding/OnboardingWizard.jsx";
 import { AUTH } from "./auth/AuthShell.jsx";
 import { HomePage } from "./marketing/HomePage.jsx";
+import { AboutPage } from "./marketing/AboutPage.jsx";
 
 function LoadingScreen() {
   return (
@@ -43,7 +44,14 @@ function AppShell() {
   const [resetParams, setResetParams] = useState(getResetParams);
   const [authView, setAuthView] = useState(null); // null (homepage) | "login" | "signup"
   const [showHome, setShowHome] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const { user, brandKit, loading } = useAuth();
+
+  // Shared by every entry point (logged-out homepage, standalone "go home"
+  // link, the About page itself) so "Get Started"/"Log in" always resolve
+  // the same way regardless of which screen they were clicked from.
+  const goGetStarted = () => { setShowAbout(false); setShowHome(false); if (!user) setAuthView("signup"); };
+  const goLogIn = () => { setShowAbout(false); setShowHome(false); if (!user) setAuthView("login"); };
 
   if (resetParams) {
     return (
@@ -60,15 +68,19 @@ function AppShell() {
 
   if (loading) return <LoadingScreen />;
 
+  if (showAbout) {
+    return <AboutPage onBack={() => setShowAbout(false)} onGetStarted={goGetStarted} onLogIn={goLogIn} />;
+  }
+
   if (!user) {
     if (!authView) {
-      return <HomePage onGetStarted={() => setAuthView("signup")} onLogIn={() => setAuthView("login")} />;
+      return <HomePage onGetStarted={goGetStarted} onLogIn={goLogIn} onAbout={() => setShowAbout(true)} />;
     }
     return <AuthScreen initialMode={authView} onBack={() => setAuthView(null)} />;
   }
 
   if (showHome) {
-    return <HomePage onGetStarted={() => setShowHome(false)} onLogIn={() => setShowHome(false)} />;
+    return <HomePage onGetStarted={goGetStarted} onLogIn={goLogIn} onAbout={() => setShowAbout(true)} />;
   }
 
   if (brandKit && !brandKit.onboarded) return <OnboardingWizard />;
