@@ -60,6 +60,10 @@ function addDays(date, n) {
 // number.
 const TARGET_MIX = { listing: 0.4, community: 0.4, other: 0.2 };
 
+// A realistic posting cadence — Monday/Wednesday/Friday — instead of every
+// single day. "Spread out" means a post every couple of days, not one a day.
+const FILL_WEEKDAYS = [1, 3, 5];
+
 const VIEW_MODES = ["month", "week", "day"];
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -193,7 +197,9 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   // Only days from today through the end of the viewed month — a day that's
   // already passed can't be "filled".
   const remainingMonthDays = monthCells.filter((c) => c.inMonth && toDateKey(c.date) >= todayKey).map((c) => c.date);
-  const monthOpenDays = remainingMonthDays.filter((d) => (entriesByDate[toDateKey(d)] || []).length === 0);
+  // "Open" only counts the Mon/Wed/Fri posting-rhythm days — every other day
+  // is deliberately left blank, so it shouldn't read as something missing.
+  const monthOpenDays = remainingMonthDays.filter((d) => FILL_WEEKDAYS.includes(d.getDay()) && (entriesByDate[toDateKey(d)] || []).length === 0);
 
   let mixTip = null;
   let mixAddType = null;
@@ -212,19 +218,20 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   }
 
   // Turns a set of still-empty days into real, saved entries drawn from the
-  // community suggestion pool, spread across the month instead of stacked
-  // into one week. Saturdays are always skipped — that's where real open
-  // houses go, and she may not know which listings have one yet, so this
-  // never invents one; it just leaves the day open with a light "Weekend
-  // Open House" suggestion she can fill in once she does know. Shared by
-  // "Fill my month" and "Plan next month".
+  // community suggestion pool, spread across the month at a realistic
+  // Monday/Wednesday/Friday cadence instead of stacked into one week or
+  // filling every single day. Saturdays are never touched — that's where
+  // real open houses go, and she may not know which listings have one yet,
+  // so this never invents one; it just leaves the day open with a light
+  // "Weekend Open House" suggestion she can fill in once she does know.
+  // Shared by "Fill my month" and "Plan next month".
   const fillDaysSpread = (days) => {
     let idx = 0;
     const additions = [];
     days.forEach((d) => {
       const dateKey = toDateKey(d);
       if (dateKey < todayKey) return;
-      if (d.getDay() === 6) return;
+      if (!FILL_WEEKDAYS.includes(d.getDay())) return;
       if ((entriesByDate[dateKey] || []).length > 0) return;
       const sugg = SUGGESTIONS[idx % SUGGESTIONS.length];
       idx += 1;
@@ -274,7 +281,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
     const isDragOver = dragOverDate === dateKey;
     const suggestion = inMonth && dayEntries.length === 0 && dateKey >= todayKey ? suggestionForDate(date) : null;
     const isEmpty = inMonth && dayEntries.length === 0 && !suggestion;
-    const isOpenHighlight = highlightOpenDays && inMonth && dayEntries.length === 0 && dateKey >= todayKey;
+    const isOpenHighlight = highlightOpenDays && inMonth && FILL_WEEKDAYS.includes(date.getDay()) && dayEntries.length === 0 && dateKey >= todayKey;
     return (
       <div
         key={i}
@@ -463,7 +470,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
             >
               ✨ Fill my month
             </button>
-            <p className="font-body text-xs mt-2" style={{ color: UI.inkSoft }}>Leaves Saturdays open — add your open houses once you know them.</p>
+            <p className="font-body text-xs mt-2" style={{ color: UI.inkSoft }}>Mon/Wed/Fri, not every day — Saturdays stay open for your open houses.</p>
           </div>
 
           <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
