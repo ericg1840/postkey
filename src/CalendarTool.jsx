@@ -183,41 +183,18 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
     commitEntries(entries.map((e) => (e.id === id ? { ...e, date: dateKey } : e)));
   };
 
-  // ---- Week-at-a-glance: the real calendar week containing today, not
-  // necessarily whatever the grid is currently navigated to. ----
-  const weekStart = addDays(today, -today.getDay());
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const weekDayKeys = new Set(weekDays.map(toDateKey));
-  const weekEntries = weekDays.flatMap((d) => entriesByDate[toDateKey(d)] || []);
-  const weekListingCount = weekEntries.filter((e) => e.type === "listing").length;
-  const weekCommunityCount = weekEntries.filter((e) => e.type === "community").length;
-  const openDayCount = weekDays.filter((d) => (entriesByDate[toDateKey(d)] || []).length === 0).length;
-
-  // Turns a week's still-empty days into real, saved entries drawn from the
-  // suggestion pool — an instant balanced week instead of a blank one.
-  // Shared by "Fill my week" and "Plan next week".
-  const fillDays = (days) => {
-    let idx = 0;
-    const additions = [];
-    days.forEach((d) => {
-      const dateKey = toDateKey(d);
-      if (dateKey < todayKey) return;
-      if ((entriesByDate[dateKey] || []).length > 0) return;
-      const sugg = d.getDay() === 6 ? WEEKEND_SUGGESTION : SUGGESTIONS[idx % SUGGESTIONS.length];
-      if (d.getDay() !== 6) idx += 1;
-      additions.push({ id: genCalendarEntryId(), date: dateKey, title: sugg.title, type: sugg.type, notes: "", time: "", done: false });
-    });
-    if (additions.length) commitEntries([...entries, ...additions]);
-  };
-  const fillWeek = () => fillDays(weekDays);
-  const nextWeekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, 7 + i));
-  const fillNextWeek = () => fillDays(nextWeekDays);
-
-  // ---- Content mix for the month currently in view ----
+  // ---- Content mix + month-at-a-glance for the month currently in view ----
   const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
   const monthEntries = entries.filter((e) => e.date && e.date.startsWith(monthPrefix));
   const mixCounts = POST_TYPES.map((t) => ({ ...t, count: monthEntries.filter((e) => e.type === t.key).length }));
   const mixTotal = monthEntries.length;
+  const monthListingCount = mixCounts.find((t) => t.key === "listing").count;
+  const monthCommunityCount = mixCounts.find((t) => t.key === "community").count;
+  // Only days from today through the end of the viewed month — a day that's
+  // already passed can't be "filled".
+  const remainingMonthDays = monthCells.filter((c) => c.inMonth && toDateKey(c.date) >= todayKey).map((c) => c.date);
+  const monthOpenDays = remainingMonthDays.filter((d) => (entriesByDate[toDateKey(d)] || []).length === 0);
+
   let mixTip = null;
   let mixAddType = null;
   if (mixTotal >= 3) {
@@ -229,20 +206,47 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
       .filter((t) => t.key !== "other")
       .sort((a, b) => (a.count / mixTotal - TARGET_MIX[a.key]) - (b.count / mixTotal - TARGET_MIX[b.key]))[0];
     if (actual - TARGET_MIX[top.key] >= 0.2 && under.key !== top.key) {
-      mixTip = `You've posted mostly ${top.label} lately — try adding a ${under.label} post this week.`;
+      mixTip = `You've posted mostly ${top.label} lately — try adding a ${under.label} post this month.`;
       mixAddType = under.key;
     }
   }
 
-  // ---- Left panel: what's coming up, what's still unplanned this week, and
-  // ideas saved without a date yet (e.g. from Community's "Need
+  // Turns a set of still-empty days into real, saved entries drawn from the
+  // community suggestion pool, spread across the month instead of stacked
+  // into one week. Saturdays are always skipped — that's where real open
+  // houses go, and she may not know which listings have one yet, so this
+  // never invents one; it just leaves the day open with a light "Weekend
+  // Open House" suggestion she can fill in once she does know. Shared by
+  // "Fill my month" and "Plan next month".
+  const fillDaysSpread = (days) => {
+    let idx = 0;
+    const additions = [];
+    days.forEach((d) => {
+      const dateKey = toDateKey(d);
+      if (dateKey < todayKey) return;
+      if (d.getDay() === 6) return;
+      if ((entriesByDate[dateKey] || []).length > 0) return;
+      const sugg = SUGGESTIONS[idx % SUGGESTIONS.length];
+      idx += 1;
+      additions.push({ id: genCalendarEntryId(), date: dateKey, title: sugg.title, type: sugg.type, notes: "", time: "", done: false });
+    });
+    if (additions.length) commitEntries([...entries, ...additions]);
+  };
+  const fillMonth = () => fillDaysSpread(remainingMonthDays);
+  const fillNextMonth = () => {
+    const nm = new Date(year, month + 1, 1);
+    const lastDay = new Date(nm.getFullYear(), nm.getMonth() + 1, 0).getDate();
+    fillDaysSpread(Array.from({ length: lastDay }, (_, i) => new Date(nm.getFullYear(), nm.getMonth(), i + 1)));
+  };
+
+  // ---- Left panel: what's coming up, what's still unplanned this month,
+  // and ideas saved without a date yet (e.g. from Community's "Need
   // inspiration" card) waiting to be scheduled. ----
   const upNext = entries.filter((e) => e.date >= todayKey).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6);
-  const weekIdeas = weekDays
-    .filter((d) => toDateKey(d) >= todayKey)
+  const monthIdeas = remainingMonthDays
     .map((d) => ({ date: d, suggestion: suggestionForDate(d) }))
     .filter(({ date, suggestion }) => suggestion && (entriesByDate[toDateKey(date)] || []).length === 0)
-    .slice(0, 3);
+    .slice(0, 5);
   const savedIdeas = entries.filter((e) => !e.date);
 
   // ---- Header label: what the nav row shows for the current mode ----
@@ -270,7 +274,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
     const isDragOver = dragOverDate === dateKey;
     const suggestion = inMonth && dayEntries.length === 0 && dateKey >= todayKey ? suggestionForDate(date) : null;
     const isEmpty = inMonth && dayEntries.length === 0 && !suggestion;
-    const isOpenHighlight = highlightOpenDays && weekDayKeys.has(dateKey) && dayEntries.length === 0 && dateKey >= todayKey;
+    const isOpenHighlight = highlightOpenDays && inMonth && dayEntries.length === 0 && dateKey >= todayKey;
     return (
       <div
         key={i}
@@ -413,12 +417,12 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
           </button>
         </div>
 
-        {/* WEEK-AT-A-GLANCE + CONTENT MIX */}
+        {/* MONTH-AT-A-GLANCE + CONTENT MIX */}
         <div className="grid sm:grid-cols-2 gap-4 mb-5">
           <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
-            <h3 className="font-body text-sm font-semibold mb-2" style={{ color: UI.ink }}>Your week</h3>
+            <h3 className="font-body text-sm font-semibold mb-2" style={{ color: UI.ink }}>Your month</h3>
             <ul className="font-body text-sm grid gap-1" style={{ color: UI.inkSoft }}>
-              <li>{weekEntries.length} post{weekEntries.length === 1 ? "" : "s"} planned</li>
+              <li>{mixTotal} post{mixTotal === 1 ? "" : "s"} planned</li>
               <li>
                 <button
                   type="button"
@@ -426,7 +430,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                   className="text-left underline-offset-2 hover:underline"
                   style={{ color: activeFilters.size === 1 && activeFilters.has("listing") ? UI.ink : UI.inkSoft, fontWeight: activeFilters.size === 1 && activeFilters.has("listing") ? 700 : 400 }}
                 >
-                  {weekListingCount} listing post{weekListingCount === 1 ? "" : "s"}
+                  {monthListingCount} listing post{monthListingCount === 1 ? "" : "s"}
                 </button>
               </li>
               <li>
@@ -436,7 +440,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                   className="text-left underline-offset-2 hover:underline"
                   style={{ color: activeFilters.size === 1 && activeFilters.has("community") ? UI.ink : UI.inkSoft, fontWeight: activeFilters.size === 1 && activeFilters.has("community") ? 700 : 400 }}
                 >
-                  {weekCommunityCount} community post{weekCommunityCount === 1 ? "" : "s"}
+                  {monthCommunityCount} community post{monthCommunityCount === 1 ? "" : "s"}
                 </button>
               </li>
               <li>
@@ -446,19 +450,20 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                   className="text-left underline-offset-2 hover:underline"
                   style={{ color: highlightOpenDays ? ACCENT : UI.inkSoft, fontWeight: highlightOpenDays ? 700 : 400 }}
                 >
-                  {openDayCount} open day{openDayCount === 1 ? "" : "s"}
+                  {monthOpenDays.length} open day{monthOpenDays.length === 1 ? "" : "s"}
                 </button>
               </li>
             </ul>
             <button
               type="button"
-              onClick={fillWeek}
-              disabled={openDayCount === 0}
+              onClick={fillMonth}
+              disabled={monthOpenDays.length === 0}
               className="mt-3 flex items-center gap-1.5 px-4 py-2 rounded-lg font-body text-sm font-semibold transition disabled:opacity-40"
               style={{ background: ACCENT, color: WHITE }}
             >
-              ✨ Fill my week
+              ✨ Fill my month
             </button>
+            <p className="font-body text-xs mt-2" style={{ color: UI.inkSoft }}>Leaves Saturdays open — add your open houses once you know them.</p>
           </div>
 
           <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
@@ -610,27 +615,27 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
             )}
 
             <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
-              <h3 className="font-body text-sm font-semibold mb-3" style={{ color: UI.ink }}>Ideas for this week</h3>
-              {weekIdeas.length === 0 ? (
-                openDayCount === 0 ? (
+              <h3 className="font-body text-sm font-semibold mb-3" style={{ color: UI.ink }}>Ideas for this month</h3>
+              {monthIdeas.length === 0 ? (
+                monthOpenDays.length === 0 ? (
                   <div>
-                    <p className="font-body text-sm font-semibold" style={{ color: UI.ink }}>You're covered this week ✓</p>
+                    <p className="font-body text-sm font-semibold" style={{ color: UI.ink }}>You're covered this month ✓</p>
                     <p className="font-body text-xs mt-1 mb-3" style={{ color: UI.inkSoft }}>Want to get ahead?</p>
                     <button
                       type="button"
-                      onClick={fillNextWeek}
+                      onClick={fillNextMonth}
                       className="px-3 py-1.5 rounded-lg border font-body text-xs font-semibold transition"
                       style={{ borderColor: ACCENT, color: ACCENT }}
                     >
-                      Plan next week
+                      Plan next month
                     </button>
                   </div>
                 ) : (
-                  <p className="font-body text-xs" style={{ color: UI.inkSoft }}>No specific ideas for your open days — try "Fill my week" above.</p>
+                  <p className="font-body text-xs" style={{ color: UI.inkSoft }}>No specific ideas for your open days — try "Fill my month" above.</p>
                 )
               ) : (
                 <ul className="grid gap-2">
-                  {weekIdeas.map(({ date, suggestion }) => {
+                  {monthIdeas.map(({ date, suggestion }) => {
                     const dateKey = toDateKey(date);
                     const label = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
                     return (
