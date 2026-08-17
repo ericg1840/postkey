@@ -60,17 +60,18 @@ function addDays(date, n) {
 // number.
 const TARGET_MIX = { listing: 0.4, community: 0.4, other: 0.2 };
 
+const VIEW_MODES = ["month", "week", "day"];
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 export function CalendarTool({ onSwitchTool, onGoHome }) {
   const { user, logout } = useAuth();
   const [entries, setEntries] = useState(() => loadCalendarEntries());
-  const [viewDate, setViewDate] = useState(() => {
-    const d = new Date();
-    d.setDate(1);
-    return d;
-  });
+  const [viewMode, setViewMode] = useState("month");
+  // What the grid/strip/agenda is currently centered on — a month for Month
+  // view, a week for Week view, a single day for Day view. Prev/Next and
+  // Today all act relative to this one date regardless of mode.
+  const [focusDate, setFocusDate] = useState(() => new Date());
   const [editing, setEditing] = useState(null);
   const [draggingId, setDraggingId] = useState(null);
   const [dragOverDate, setDragOverDate] = useState(null);
@@ -86,8 +87,8 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
     saveCalendarEntries(next);
   };
 
-  const year = viewDate.getFullYear();
-  const month = viewDate.getMonth();
+  const year = focusDate.getFullYear();
+  const month = focusDate.getMonth();
   const today = new Date();
   const todayKey = toDateKey(today);
 
@@ -96,16 +97,19 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   // Always 42 cells (6 full weeks) so the grid height never jumps between months.
-  const cells = [];
+  const monthCells = [];
   for (let i = 0; i < startWeekday; i++) {
-    cells.push({ date: new Date(year, month, i - startWeekday + 1), inMonth: false });
+    monthCells.push({ date: new Date(year, month, i - startWeekday + 1), inMonth: false });
   }
   for (let d = 1; d <= daysInMonth; d++) {
-    cells.push({ date: new Date(year, month, d), inMonth: true });
+    monthCells.push({ date: new Date(year, month, d), inMonth: true });
   }
-  while (cells.length < 42) {
-    cells.push({ date: new Date(year, month, cells.length - startWeekday + 1), inMonth: false });
+  while (monthCells.length < 42) {
+    monthCells.push({ date: new Date(year, month, monthCells.length - startWeekday + 1), inMonth: false });
   }
+
+  const viewWeekStart = addDays(focusDate, -focusDate.getDay());
+  const viewWeekDays = Array.from({ length: 7 }, (_, i) => addDays(viewWeekStart, i));
 
   const entriesByDate = {};
   entries.forEach((e) => { (entriesByDate[e.date] ||= []).push(e); });
@@ -126,9 +130,17 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
     prev.size === 1 && prev.has(key) ? new Set(POST_TYPES.map((t) => t.key)) : new Set([key])
   ));
 
-  const goPrevMonth = () => setViewDate(new Date(year, month - 1, 1));
-  const goNextMonth = () => setViewDate(new Date(year, month + 1, 1));
-  const goToday = () => { const d = new Date(); d.setDate(1); setViewDate(d); };
+  const goPrev = () => {
+    if (viewMode === "month") setFocusDate(new Date(year, month - 1, 1));
+    else if (viewMode === "week") setFocusDate(addDays(focusDate, -7));
+    else setFocusDate(addDays(focusDate, -1));
+  };
+  const goNext = () => {
+    if (viewMode === "month") setFocusDate(new Date(year, month + 1, 1));
+    else if (viewMode === "week") setFocusDate(addDays(focusDate, 7));
+    else setFocusDate(addDays(focusDate, 1));
+  };
+  const goToday = () => setFocusDate(new Date());
 
   const openNewEntry = (dateKey, overrides = {}) => setEditing({ date: dateKey, title: "", type: "listing", notes: "", time: "", done: false, ...overrides });
   // Ideas saved without a date (e.g. from Community's "Need inspiration"
@@ -172,7 +184,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   };
 
   // ---- Week-at-a-glance: the real calendar week containing today, not
-  // necessarily the month currently being viewed. ----
+  // necessarily whatever the grid is currently navigated to. ----
   const weekStart = addDays(today, -today.getDay());
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const weekDayKeys = new Set(weekDays.map(toDateKey));
@@ -201,7 +213,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   const nextWeekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, 7 + i));
   const fillNextWeek = () => fillDays(nextWeekDays);
 
-  // ---- Content mix for the viewed month ----
+  // ---- Content mix for the month currently in view ----
   const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
   const monthEntries = entries.filter((e) => e.date && e.date.startsWith(monthPrefix));
   const mixCounts = POST_TYPES.map((t) => ({ ...t, count: monthEntries.filter((e) => e.type === t.key).length }));
@@ -222,16 +234,164 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
     }
   }
 
-  // ---- Sidebar: what's coming up, what's still unplanned this week, and
+  // ---- Left panel: what's coming up, what's still unplanned this week, and
   // ideas saved without a date yet (e.g. from Community's "Need
   // inspiration" card) waiting to be scheduled. ----
-  const upNext = entries.filter((e) => e.date >= todayKey).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5);
+  const upNext = entries.filter((e) => e.date >= todayKey).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6);
   const weekIdeas = weekDays
     .filter((d) => toDateKey(d) >= todayKey)
     .map((d) => ({ date: d, suggestion: suggestionForDate(d) }))
     .filter(({ date, suggestion }) => suggestion && (entriesByDate[toDateKey(date)] || []).length === 0)
     .slice(0, 3);
   const savedIdeas = entries.filter((e) => !e.date);
+
+  // ---- Header label: what the nav row shows for the current mode ----
+  let headerLabel;
+  if (viewMode === "month") {
+    headerLabel = `${MONTH_NAMES[month]} ${year}`;
+  } else if (viewMode === "week") {
+    const s = viewWeekDays[0], e = viewWeekDays[6];
+    headerLabel = s.getMonth() === e.getMonth()
+      ? `${MONTH_NAMES[s.getMonth()]} ${s.getDate()}–${e.getDate()}, ${s.getFullYear()}`
+      : `${MONTH_NAMES[s.getMonth()].slice(0, 3)} ${s.getDate()} – ${MONTH_NAMES[e.getMonth()].slice(0, 3)} ${e.getDate()}, ${e.getFullYear()}`;
+  } else {
+    headerLabel = focusDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  }
+
+  // One cell renderer shared by Month (42 cells) and Week (7 cells) — same
+  // entries/suggestion/empty-state/drag-drop logic, just a taller minHeight
+  // for the single-row Week strip so it doesn't look cramped.
+  const renderCell = (date, inMonth, i, tall) => {
+    const dateKey = toDateKey(date);
+    const dayEntries = (entriesByDate[dateKey] || []).filter((e) => activeFilters.has(e.type));
+    const isToday = dateKey === todayKey;
+    const visible = dayEntries.slice(0, tall ? 6 : 3);
+    const overflow = dayEntries.length - visible.length;
+    const isDragOver = dragOverDate === dateKey;
+    const suggestion = inMonth && dayEntries.length === 0 && dateKey >= todayKey ? suggestionForDate(date) : null;
+    const isEmpty = inMonth && dayEntries.length === 0 && !suggestion;
+    const isOpenHighlight = highlightOpenDays && weekDayKeys.has(dateKey) && dayEntries.length === 0 && dateKey >= todayKey;
+    return (
+      <div
+        key={i}
+        className="group relative p-1.5 sm:p-2 flex flex-col gap-1.5"
+        style={{
+          minHeight: tall ? "16rem" : "8.5rem",
+          borderRight: (i + 1) % 7 !== 0 ? `1px solid ${UI.line}` : "none",
+          borderTop: i >= 7 ? `1px solid ${UI.line}` : "none",
+          background: isDragOver ? mixWithWhite(ACCENT, 0.92) : isOpenHighlight ? mixWithWhite("#E8792E", 0.9) : inMonth ? UI.card : UI.stone,
+          boxShadow: isDragOver ? `inset 0 0 0 2px ${ACCENT}` : isOpenHighlight ? `inset 0 0 0 2px #E8792E` : "none",
+          transition: "background 0.1s, box-shadow 0.1s",
+        }}
+        onDragOver={(e) => { e.preventDefault(); setDragOverDate(dateKey); }}
+        onDragLeave={() => setDragOverDate((d) => (d === dateKey ? null : d))}
+        onDrop={(e) => {
+          e.preventDefault();
+          const id = e.dataTransfer.getData("text/plain");
+          if (id) moveEntry(id, dateKey);
+          setDragOverDate(null);
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <span
+            className="flex items-center justify-center font-body text-xs font-semibold rounded-full flex-shrink-0"
+            style={{
+              width: 24, height: 24,
+              background: isToday ? ACCENT : "transparent",
+              color: isToday ? WHITE : inMonth ? UI.ink : UI.inkSoft,
+            }}
+          >
+            {date.getDate()}
+          </span>
+          <button
+            type="button"
+            onClick={() => openNewEntry(dateKey)}
+            className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition flex items-center justify-center rounded-full flex-shrink-0"
+            style={{ width: 18, height: 18, background: UI.stone, color: UI.inkSoft }}
+            aria-label="Add a post to this day"
+          >
+            <Plus size={11} />
+          </button>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          {visible.map((entry) => {
+            const t = typeInfo(entry.type);
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("text/plain", entry.id);
+                  e.dataTransfer.effectAllowed = "move";
+                  setDraggingId(entry.id);
+                }}
+                onDragEnd={() => { setDraggingId(null); setDragOverDate(null); }}
+                onClick={() => openEditEntry(entry)}
+                className="text-left rounded-lg transition"
+                style={{
+                  background: mixWithWhite(t.color, 0.85),
+                  padding: "0.4rem 0.55rem",
+                  fontSize: "0.72rem",
+                  lineHeight: 1.3,
+                  opacity: draggingId === entry.id ? 0.4 : 1,
+                  cursor: "grab",
+                }}
+              >
+                <span className="flex items-center gap-1.5">
+                  <span className="rounded-full flex-shrink-0" style={{ width: 7, height: 7, background: t.color }} />
+                  <span
+                    className="truncate font-semibold"
+                    style={{ textDecoration: entry.done ? "line-through" : "none", color: entry.done ? UI.inkSoft : UI.ink }}
+                  >
+                    {entry.title}
+                  </span>
+                </span>
+                <span className="block truncate" style={{ color: UI.inkSoft, marginLeft: "0.9rem" }}>
+                  {entry.time ? `${entry.time} · ` : ""}{entry.done ? "Posted" : "Planned"}
+                </span>
+              </button>
+            );
+          })}
+          {overflow > 0 && (
+            <span className="font-body px-1.5" style={{ fontSize: "0.68rem", color: UI.inkSoft }}>+{overflow} more</span>
+          )}
+          {suggestion && (
+            <button
+              type="button"
+              onClick={() => openSuggestion(dateKey, suggestion)}
+              className="text-left rounded-lg transition"
+              style={{
+                border: `1px dashed ${UI.line}`,
+                padding: "0.4rem 0.55rem",
+                fontSize: "0.7rem",
+                lineHeight: 1.3,
+                color: UI.inkSoft,
+              }}
+            >
+              <span className="block truncate italic">✨ {suggestion.title}</span>
+              <span className="block font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.03em" }}>SUGGESTED</span>
+            </button>
+          )}
+          {isEmpty && (
+            <button
+              type="button"
+              onClick={() => openNewEntry(dateKey)}
+              className="opacity-0 group-hover:opacity-100 transition text-center rounded-lg border border-dashed font-body text-xs font-semibold"
+              style={{ borderColor: UI.line, color: UI.inkSoft, padding: "0.4rem 0" }}
+            >
+              + Add post
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // ---- Day view data ----
+  const dayKey = toDateKey(focusDate);
+  const dayEntries = (entriesByDate[dayKey] || []).filter((e) => activeFilters.has(e.type));
+  const daySuggestion = dayEntries.length === 0 && dayKey >= todayKey ? suggestionForDate(focusDate) : null;
 
   return (
     <div className="min-h-screen" style={{ background: UI.stone, color: UI.ink }}>
@@ -255,7 +415,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
 
         {/* WEEK-AT-A-GLANCE + CONTENT MIX */}
         <div className="grid sm:grid-cols-2 gap-4 mb-5">
-          <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card }}>
+          <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
             <h3 className="font-body text-sm font-semibold mb-2" style={{ color: UI.ink }}>Your week</h3>
             <ul className="font-body text-sm grid gap-1" style={{ color: UI.inkSoft }}>
               <li>{weekEntries.length} post{weekEntries.length === 1 ? "" : "s"} planned</li>
@@ -301,7 +461,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
             </button>
           </div>
 
-          <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card }}>
+          <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
             <h3 className="font-body text-sm font-semibold mb-2" style={{ color: UI.ink }}>{MONTH_NAMES[month]} content mix</h3>
             {mixTotal === 0 ? (
               <p className="font-body text-sm" style={{ color: UI.inkSoft }}>No posts logged yet this month.</p>
@@ -336,21 +496,40 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
           </div>
         </div>
 
-        {/* MONTH NAV + FILTERS */}
+        {/* NAV + VIEW SWITCHER + FILTERS */}
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={goPrevMonth} className="p-2 rounded-lg border transition" style={{ borderColor: UI.line }} aria-label="Previous month">
-              <ChevronLeft size={16} color={UI.ink} />
-            </button>
-            <h2 className="font-body text-base font-semibold text-center" style={{ color: UI.ink, minWidth: "9rem" }}>
-              {MONTH_NAMES[month]} {year}
-            </h2>
-            <button type="button" onClick={goNextMonth} className="p-2 rounded-lg border transition" style={{ borderColor: UI.line }} aria-label="Next month">
-              <ChevronRight size={16} color={UI.ink} />
-            </button>
-            <button type="button" onClick={goToday} className="ml-1 px-3 py-1.5 rounded-lg border font-body text-xs font-semibold transition" style={{ borderColor: UI.line, color: UI.ink }}>
-              Today
-            </button>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: UI.stone }}>
+              {VIEW_MODES.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setViewMode(m)}
+                  className="px-3 py-1.5 rounded-full font-body text-xs font-semibold capitalize transition"
+                  style={{
+                    background: viewMode === m ? UI.card : "transparent",
+                    color: viewMode === m ? UI.ink : UI.inkSoft,
+                    boxShadow: viewMode === m ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+                  }}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={goPrev} className="p-2 rounded-lg border transition" style={{ borderColor: UI.line }} aria-label="Previous">
+                <ChevronLeft size={16} color={UI.ink} />
+              </button>
+              <h2 className="font-body text-base font-semibold text-center" style={{ color: UI.ink, minWidth: "9rem" }}>
+                {headerLabel}
+              </h2>
+              <button type="button" onClick={goNext} className="p-2 rounded-lg border transition" style={{ borderColor: UI.line }} aria-label="Next">
+                <ChevronRight size={16} color={UI.ink} />
+              </button>
+              <button type="button" onClick={goToday} className="ml-1 px-3 py-1.5 rounded-lg border font-body text-xs font-semibold transition" style={{ borderColor: UI.line, color: UI.ink }}>
+                Today
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {POST_TYPES.map((t) => {
@@ -375,161 +554,34 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
           </div>
         </div>
 
-        {/* CALENDAR + SIDEBAR */}
-        <div className="grid lg:grid-cols-[1fr_340px] gap-6 items-start">
-          <div className="rounded-2xl border overflow-hidden" style={{ borderColor: UI.line, background: UI.card }}>
-            <div className="grid grid-cols-7" style={{ borderBottom: `1px solid ${UI.line}` }}>
-              {WEEKDAYS.map((w) => (
-                <div key={w} className="py-2 text-center font-mono text-xs font-semibold" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
-                  {w.slice(0, 3).toUpperCase()}
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7">
-              {cells.map(({ date, inMonth }, i) => {
-                const dateKey = toDateKey(date);
-                const dayEntries = (entriesByDate[dateKey] || []).filter((e) => activeFilters.has(e.type));
-                const isToday = dateKey === todayKey;
-                const visible = dayEntries.slice(0, 3);
-                const overflow = dayEntries.length - visible.length;
-                const isDragOver = dragOverDate === dateKey;
-                const suggestion = inMonth && dayEntries.length === 0 && dateKey >= todayKey ? suggestionForDate(date) : null;
-                const isEmpty = inMonth && dayEntries.length === 0 && !suggestion;
-                const isOpenHighlight = highlightOpenDays && weekDayKeys.has(dateKey) && dayEntries.length === 0 && dateKey >= todayKey;
-                return (
-                  <div
-                    key={i}
-                    className="group relative p-1.5 sm:p-2 flex flex-col gap-1"
-                    style={{
-                      minHeight: "8.5rem",
-                      borderRight: (i + 1) % 7 !== 0 ? `1px solid ${UI.line}` : "none",
-                      borderTop: i >= 7 ? `1px solid ${UI.line}` : "none",
-                      background: isDragOver ? mixWithWhite(ACCENT, 0.92) : isOpenHighlight ? mixWithWhite("#E8792E", 0.9) : inMonth ? UI.card : UI.stone,
-                      boxShadow: isDragOver ? `inset 0 0 0 2px ${ACCENT}` : isOpenHighlight ? `inset 0 0 0 2px #E8792E` : "none",
-                      transition: "background 0.1s, box-shadow 0.1s",
-                    }}
-                    onDragOver={(e) => { e.preventDefault(); setDragOverDate(dateKey); }}
-                    onDragLeave={() => setDragOverDate((d) => (d === dateKey ? null : d))}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const id = e.dataTransfer.getData("text/plain");
-                      if (id) moveEntry(id, dateKey);
-                      setDragOverDate(null);
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className="flex items-center justify-center font-body text-xs font-semibold rounded-full flex-shrink-0"
-                        style={{
-                          width: 22, height: 22,
-                          background: isToday ? ACCENT : "transparent",
-                          color: isToday ? WHITE : inMonth ? UI.ink : UI.inkSoft,
-                        }}
-                      >
-                        {date.getDate()}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => openNewEntry(dateKey)}
-                        className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition flex items-center justify-center rounded-full flex-shrink-0"
-                        style={{ width: 18, height: 18, background: UI.stone, color: UI.inkSoft }}
-                        aria-label="Add a post to this day"
-                      >
-                        <Plus size={11} />
-                      </button>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      {visible.map((entry) => {
-                        const t = typeInfo(entry.type);
-                        return (
-                          <button
-                            key={entry.id}
-                            type="button"
-                            draggable
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData("text/plain", entry.id);
-                              e.dataTransfer.effectAllowed = "move";
-                              setDraggingId(entry.id);
-                            }}
-                            onDragEnd={() => { setDraggingId(null); setDragOverDate(null); }}
-                            onClick={() => openEditEntry(entry)}
-                            className="text-left rounded transition"
-                            style={{
-                              background: mixWithWhite(t.color, 0.85),
-                              borderLeft: `3px solid ${t.color}`,
-                              padding: "0.25rem 0.4rem",
-                              fontSize: "0.7rem",
-                              lineHeight: 1.3,
-                              opacity: draggingId === entry.id ? 0.4 : 1,
-                              cursor: "grab",
-                            }}
-                          >
-                            <span
-                              className="block truncate font-semibold"
-                              style={{ textDecoration: entry.done ? "line-through" : "none", color: entry.done ? UI.inkSoft : UI.ink }}
-                            >
-                              {t.emoji} {entry.title}
-                            </span>
-                            {entry.time && <span className="block truncate" style={{ color: UI.inkSoft }}>{entry.time}</span>}
-                            <span className="block font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.03em", color: t.color }}>
-                              {entry.done ? "POSTED" : "PLANNED"}
-                            </span>
-                          </button>
-                        );
-                      })}
-                      {overflow > 0 && (
-                        <span className="font-body px-1.5" style={{ fontSize: "0.68rem", color: UI.inkSoft }}>+{overflow} more</span>
-                      )}
-                      {suggestion && (
-                        <button
-                          type="button"
-                          onClick={() => openSuggestion(dateKey, suggestion)}
-                          className="text-left rounded transition"
-                          style={{
-                            border: `1px dashed ${UI.line}`,
-                            padding: "0.25rem 0.4rem",
-                            fontSize: "0.68rem",
-                            lineHeight: 1.3,
-                            color: UI.inkSoft,
-                          }}
-                        >
-                          <span className="block truncate italic">✨ {suggestion.title}</span>
-                          <span className="block font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.03em" }}>SUGGESTED</span>
-                        </button>
-                      )}
-                      {isEmpty && (
-                        <button
-                          type="button"
-                          onClick={() => openNewEntry(dateKey)}
-                          className="opacity-0 group-hover:opacity-100 transition text-center rounded border border-dashed font-body text-xs font-semibold"
-                          style={{ borderColor: UI.line, color: UI.inkSoft, padding: "0.3rem 0" }}
-                        >
-                          + Add post
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* SIDEBAR */}
-          <div className="grid gap-4">
-            <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card }}>
-              <h3 className="font-body text-sm font-semibold mb-3" style={{ color: UI.ink }}>Up next</h3>
+        {/* LEFT PANEL + CALENDAR */}
+        <div className="grid lg:grid-cols-[300px_1fr] gap-6 items-start">
+          {/* LEFT PANEL */}
+          <div className="grid gap-4 order-2 lg:order-1">
+            <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
+              <h3 className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Upcoming events</h3>
+              <p className="font-body text-xs mt-0.5 mb-3" style={{ color: UI.inkSoft }}>Don't miss scheduled posts</p>
               {upNext.length === 0 ? (
                 <p className="font-body text-xs" style={{ color: UI.inkSoft }}>Nothing planned yet — pick a day on the calendar to get started.</p>
               ) : (
-                <ul className="grid gap-2">
+                <ul className="grid gap-3">
                   {upNext.map((entry) => {
                     const t = typeInfo(entry.type);
                     const label = new Date(`${entry.date}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
                     return (
                       <li key={entry.id}>
-                        <button type="button" onClick={() => openEditEntry(entry)} className="text-left w-full font-body text-xs" style={{ color: UI.ink }}>
-                          <span className="font-mono font-semibold" style={{ color: UI.inkSoft }}>{label}</span>{" — "}
-                          {t.emoji} {entry.title}
+                        <button type="button" onClick={() => openEditEntry(entry)} className="text-left w-full">
+                          <span className="flex items-center gap-1.5">
+                            <span className="rounded-full flex-shrink-0" style={{ width: 7, height: 7, background: t.color }} />
+                            <span className="font-mono" style={{ fontSize: "0.68rem", color: UI.inkSoft }}>{label}{entry.time ? ` · ${entry.time}` : ""}</span>
+                          </span>
+                          <span
+                            className="block font-body text-sm font-semibold mt-0.5"
+                            style={{ marginLeft: "0.9rem", color: UI.ink, textDecoration: entry.done ? "line-through" : "none" }}
+                          >
+                            {entry.title}
+                          </span>
+                          <span className="block font-body text-xs" style={{ marginLeft: "0.9rem", color: UI.inkSoft }}>{t.label} post</span>
                         </button>
                       </li>
                     );
@@ -539,7 +591,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
             </div>
 
             {savedIdeas.length > 0 && (
-              <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card }}>
+              <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
                 <h3 className="font-body text-sm font-semibold mb-1" style={{ color: UI.ink }}>Saved ideas</h3>
                 <p className="font-body text-xs mb-3" style={{ color: UI.inkSoft }}>Not scheduled yet — click one to give it a date.</p>
                 <ul className="grid gap-2">
@@ -557,7 +609,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
               </div>
             )}
 
-            <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card }}>
+            <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
               <h3 className="font-body text-sm font-semibold mb-3" style={{ color: UI.ink }}>Ideas for this week</h3>
               {weekIdeas.length === 0 ? (
                 openDayCount === 0 ? (
@@ -592,6 +644,83 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                 </ul>
               )}
             </div>
+          </div>
+
+          {/* CALENDAR */}
+          <div className="rounded-2xl border overflow-hidden order-1 lg:order-2" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
+            {viewMode === "day" ? (
+              <div className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-body text-sm font-semibold" style={{ color: UI.ink }}>
+                    {dayEntries.length} post{dayEntries.length === 1 ? "" : "s"} planned
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => openNewEntry(dayKey)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-body text-xs font-semibold transition"
+                    style={{ background: ACCENT, color: WHITE }}
+                  >
+                    <Plus size={13} /> Add post
+                  </button>
+                </div>
+                {dayEntries.length === 0 && !daySuggestion && (
+                  <p className="font-body text-sm mb-2" style={{ color: UI.inkSoft }}>Nothing planned for this day yet.</p>
+                )}
+                <div className="grid gap-2">
+                  {dayEntries.map((entry) => {
+                    const t = typeInfo(entry.type);
+                    return (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        onClick={() => openEditEntry(entry)}
+                        className="text-left rounded-xl p-3 transition"
+                        style={{ background: mixWithWhite(t.color, 0.85) }}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span className="rounded-full flex-shrink-0" style={{ width: 8, height: 8, background: t.color }} />
+                          <span
+                            className="font-body text-sm font-semibold"
+                            style={{ color: entry.done ? UI.inkSoft : UI.ink, textDecoration: entry.done ? "line-through" : "none" }}
+                          >
+                            {entry.title}
+                          </span>
+                        </span>
+                        <span className="block font-body text-xs mt-1" style={{ marginLeft: "1.25rem", color: UI.inkSoft }}>
+                          {t.label} post{entry.time ? ` · ${entry.time}` : ""} · {entry.done ? "Posted" : "Planned"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {daySuggestion && dayEntries.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => openSuggestion(dayKey, daySuggestion)}
+                      className="text-left rounded-xl p-3 transition"
+                      style={{ border: `1px dashed ${UI.line}`, color: UI.inkSoft }}
+                    >
+                      <span className="block italic">✨ {daySuggestion.title}</span>
+                      <span className="block font-mono mt-0.5" style={{ fontSize: "0.68rem", letterSpacing: "0.03em" }}>SUGGESTED</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-7" style={{ borderBottom: `1px solid ${UI.line}` }}>
+                  {WEEKDAYS.map((w) => (
+                    <div key={w} className="py-2 text-center font-mono text-xs font-semibold" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
+                      {w.slice(0, 3).toUpperCase()}
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7">
+                  {viewMode === "week"
+                    ? viewWeekDays.map((date, i) => renderCell(date, true, i, true))
+                    : monthCells.map(({ date, inMonth }, i) => renderCell(date, inMonth, i, false))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </main>
