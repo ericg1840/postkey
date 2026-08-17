@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, X, Trash2, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, Trash2 } from "lucide-react";
 import {
   UI, ACCENT, WHITE, mixWithWhite, TopNav, writePostHandoff,
   loadCalendarEntries, saveCalendarEntries, genCalendarEntryId,
@@ -55,6 +55,11 @@ function addDays(date, n) {
   return d;
 }
 
+// The rough split a healthy, varied posting habit tends toward — shown
+// alongside the actual mix so "Community 100%" reads as a gap, not just a
+// number.
+const TARGET_MIX = { listing: 0.4, community: 0.4, other: 0.2 };
+
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -70,6 +75,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   const [draggingId, setDraggingId] = useState(null);
   const [dragOverDate, setDragOverDate] = useState(null);
   const [activeFilters, setActiveFilters] = useState(() => new Set(POST_TYPES.map((t) => t.key)));
+  const [highlightOpenDays, setHighlightOpenDays] = useState(false);
 
   // Writes localStorage synchronously instead of via a useEffect on
   // `entries`: createPost immediately switches tools in the same update,
@@ -113,6 +119,12 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
     }
     return next;
   });
+
+  // Clicking a stat like "3 listing posts" isolates the grid to just that
+  // type; clicking it again (or the same stat) restores every type.
+  const isolateFilter = (key) => setActiveFilters((prev) => (
+    prev.size === 1 && prev.has(key) ? new Set(POST_TYPES.map((t) => t.key)) : new Set([key])
+  ));
 
   const goPrevMonth = () => setViewDate(new Date(year, month - 1, 1));
   const goNextMonth = () => setViewDate(new Date(year, month + 1, 1));
@@ -163,17 +175,19 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   // necessarily the month currently being viewed. ----
   const weekStart = addDays(today, -today.getDay());
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const weekDayKeys = new Set(weekDays.map(toDateKey));
   const weekEntries = weekDays.flatMap((d) => entriesByDate[toDateKey(d)] || []);
   const weekListingCount = weekEntries.filter((e) => e.type === "listing").length;
   const weekCommunityCount = weekEntries.filter((e) => e.type === "community").length;
   const openDayCount = weekDays.filter((d) => (entriesByDate[toDateKey(d)] || []).length === 0).length;
 
-  // Turns this week's still-empty days into real, saved entries drawn from
-  // the suggestion pool — an instant balanced week instead of a blank one.
-  const fillWeek = () => {
+  // Turns a week's still-empty days into real, saved entries drawn from the
+  // suggestion pool — an instant balanced week instead of a blank one.
+  // Shared by "Fill my week" and "Plan next week".
+  const fillDays = (days) => {
     let idx = 0;
     const additions = [];
-    weekDays.forEach((d) => {
+    days.forEach((d) => {
       const dateKey = toDateKey(d);
       if (dateKey < todayKey) return;
       if ((entriesByDate[dateKey] || []).length > 0) return;
@@ -183,6 +197,9 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
     });
     if (additions.length) commitEntries([...entries, ...additions]);
   };
+  const fillWeek = () => fillDays(weekDays);
+  const nextWeekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, 7 + i));
+  const fillNextWeek = () => fillDays(nextWeekDays);
 
   // ---- Content mix for the viewed month ----
   const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
@@ -190,11 +207,18 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   const mixCounts = POST_TYPES.map((t) => ({ ...t, count: monthEntries.filter((e) => e.type === t.key).length }));
   const mixTotal = monthEntries.length;
   let mixTip = null;
+  let mixAddType = null;
   if (mixTotal >= 3) {
     const top = mixCounts.reduce((a, b) => (b.count > a.count ? b : a), mixCounts[0]);
-    if (top.count / mixTotal >= 0.6) {
-      const other = mixCounts.find((t) => t.key !== top.key && t.count <= top.count) || mixCounts.find((t) => t.key !== top.key);
-      mixTip = `You've posted mostly ${top.label} lately — try adding a ${other.label} post this week.`;
+    const actual = top.count / mixTotal;
+    // Only ever suggest adding a Listing or Community post — "Other" isn't
+    // a real content category worth nudging someone toward.
+    const under = mixCounts
+      .filter((t) => t.key !== "other")
+      .sort((a, b) => (a.count / mixTotal - TARGET_MIX[a.key]) - (b.count / mixTotal - TARGET_MIX[b.key]))[0];
+    if (actual - TARGET_MIX[top.key] >= 0.2 && under.key !== top.key) {
+      mixTip = `You've posted mostly ${top.label} lately — try adding a ${under.label} post this week.`;
+      mixAddType = under.key;
     }
   }
 
@@ -217,7 +241,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
         <div className="mb-4 sm:mb-6 flex items-start justify-between flex-wrap gap-3">
           <div>
             <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Content Planner</h1>
-            <p className="font-body text-sm mt-1" style={{ color: UI.inkSoft }}>Here's your plan for the month — this tracks it, it doesn't publish anything for you.</p>
+            <p className="font-body text-sm mt-1" style={{ color: UI.inkSoft }}>Plan your content, stay consistent, and always know what's next — publishing still happens on your social platforms.</p>
           </div>
           <button
             type="button"
@@ -235,18 +259,45 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
             <h3 className="font-body text-sm font-semibold mb-2" style={{ color: UI.ink }}>Your week</h3>
             <ul className="font-body text-sm grid gap-1" style={{ color: UI.inkSoft }}>
               <li>{weekEntries.length} post{weekEntries.length === 1 ? "" : "s"} planned</li>
-              <li>{weekListingCount} listing post{weekListingCount === 1 ? "" : "s"}</li>
-              <li>{weekCommunityCount} community post{weekCommunityCount === 1 ? "" : "s"}</li>
-              <li>{openDayCount} open day{openDayCount === 1 ? "" : "s"}</li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => isolateFilter("listing")}
+                  className="text-left underline-offset-2 hover:underline"
+                  style={{ color: activeFilters.size === 1 && activeFilters.has("listing") ? UI.ink : UI.inkSoft, fontWeight: activeFilters.size === 1 && activeFilters.has("listing") ? 700 : 400 }}
+                >
+                  {weekListingCount} listing post{weekListingCount === 1 ? "" : "s"}
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => isolateFilter("community")}
+                  className="text-left underline-offset-2 hover:underline"
+                  style={{ color: activeFilters.size === 1 && activeFilters.has("community") ? UI.ink : UI.inkSoft, fontWeight: activeFilters.size === 1 && activeFilters.has("community") ? 700 : 400 }}
+                >
+                  {weekCommunityCount} community post{weekCommunityCount === 1 ? "" : "s"}
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setHighlightOpenDays((s) => !s)}
+                  className="text-left underline-offset-2 hover:underline"
+                  style={{ color: highlightOpenDays ? ACCENT : UI.inkSoft, fontWeight: highlightOpenDays ? 700 : 400 }}
+                >
+                  {openDayCount} open day{openDayCount === 1 ? "" : "s"}
+                </button>
+              </li>
             </ul>
             <button
               type="button"
               onClick={fillWeek}
               disabled={openDayCount === 0}
-              className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-body text-xs font-semibold transition disabled:opacity-40"
-              style={{ borderColor: ACCENT, color: ACCENT }}
+              className="mt-3 flex items-center gap-1.5 px-4 py-2 rounded-lg font-body text-sm font-semibold transition disabled:opacity-40"
+              style={{ background: ACCENT, color: WHITE }}
             >
-              <Sparkles size={13} /> Fill my week
+              ✨ Fill my week
             </button>
           </div>
 
@@ -264,7 +315,22 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                 <p className="font-body text-sm" style={{ color: UI.inkSoft }}>
                   {mixCounts.filter((t) => t.count > 0).map((t) => `${t.label} ${Math.round((t.count / mixTotal) * 100)}%`).join(" · ")}
                 </p>
-                {mixTip && <p className="font-body text-xs mt-2" style={{ color: UI.ink }}>{mixTip}</p>}
+                <p className="font-mono mt-2" style={{ fontSize: "0.68rem", color: UI.inkSoft, letterSpacing: "0.02em" }}>
+                  Suggested: {POST_TYPES.map((t) => `${Math.round(TARGET_MIX[t.key] * 100)}% ${t.label}`).join(" · ")}
+                </p>
+                {mixTip && (
+                  <div className="mt-2">
+                    <p className="font-body text-xs mb-2" style={{ color: UI.ink }}>{mixTip}</p>
+                    <button
+                      type="button"
+                      onClick={() => openNewEntry(todayKey, { type: mixAddType })}
+                      className="px-3 py-1.5 rounded-lg border font-body text-xs font-semibold transition"
+                      style={{ borderColor: ACCENT, color: ACCENT }}
+                    >
+                      Add a {typeInfo(mixAddType).label} post
+                    </button>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -310,7 +376,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
         </div>
 
         {/* CALENDAR + SIDEBAR */}
-        <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
+        <div className="grid lg:grid-cols-[1fr_340px] gap-6 items-start">
           <div className="rounded-2xl border overflow-hidden" style={{ borderColor: UI.line, background: UI.card }}>
             <div className="grid grid-cols-7" style={{ borderBottom: `1px solid ${UI.line}` }}>
               {WEEKDAYS.map((w) => (
@@ -328,16 +394,18 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                 const overflow = dayEntries.length - visible.length;
                 const isDragOver = dragOverDate === dateKey;
                 const suggestion = inMonth && dayEntries.length === 0 && dateKey >= todayKey ? suggestionForDate(date) : null;
+                const isEmpty = inMonth && dayEntries.length === 0 && !suggestion;
+                const isOpenHighlight = highlightOpenDays && weekDayKeys.has(dateKey) && dayEntries.length === 0 && dateKey >= todayKey;
                 return (
                   <div
                     key={i}
                     className="group relative p-1.5 sm:p-2 flex flex-col gap-1"
                     style={{
-                      minHeight: "7.5rem",
+                      minHeight: "8.5rem",
                       borderRight: (i + 1) % 7 !== 0 ? `1px solid ${UI.line}` : "none",
                       borderTop: i >= 7 ? `1px solid ${UI.line}` : "none",
-                      background: isDragOver ? mixWithWhite(ACCENT, 0.92) : inMonth ? UI.card : UI.stone,
-                      boxShadow: isDragOver ? `inset 0 0 0 2px ${ACCENT}` : "none",
+                      background: isDragOver ? mixWithWhite(ACCENT, 0.92) : isOpenHighlight ? mixWithWhite("#E8792E", 0.9) : inMonth ? UI.card : UI.stone,
+                      boxShadow: isDragOver ? `inset 0 0 0 2px ${ACCENT}` : isOpenHighlight ? `inset 0 0 0 2px #E8792E` : "none",
                       transition: "background 0.1s, box-shadow 0.1s",
                     }}
                     onDragOver={(e) => { e.preventDefault(); setDragOverDate(dateKey); }}
@@ -385,19 +453,27 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                             }}
                             onDragEnd={() => { setDraggingId(null); setDragOverDate(null); }}
                             onClick={() => openEditEntry(entry)}
-                            className="text-left rounded px-1.5 py-1 font-body transition"
+                            className="text-left rounded transition"
                             style={{
                               background: mixWithWhite(t.color, 0.85),
+                              borderLeft: `3px solid ${t.color}`,
+                              padding: "0.25rem 0.4rem",
                               fontSize: "0.7rem",
-                              lineHeight: 1.25,
-                              textDecoration: entry.done ? "line-through" : "none",
-                              color: entry.done ? UI.inkSoft : UI.ink,
+                              lineHeight: 1.3,
                               opacity: draggingId === entry.id ? 0.4 : 1,
                               cursor: "grab",
                             }}
                           >
-                            <span className="block truncate font-semibold">{t.emoji} {entry.title}</span>
+                            <span
+                              className="block truncate font-semibold"
+                              style={{ textDecoration: entry.done ? "line-through" : "none", color: entry.done ? UI.inkSoft : UI.ink }}
+                            >
+                              {t.emoji} {entry.title}
+                            </span>
                             {entry.time && <span className="block truncate" style={{ color: UI.inkSoft }}>{entry.time}</span>}
+                            <span className="block font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.03em", color: t.color }}>
+                              {entry.done ? "POSTED" : "PLANNED"}
+                            </span>
                           </button>
                         );
                       })}
@@ -408,16 +484,27 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                         <button
                           type="button"
                           onClick={() => openSuggestion(dateKey, suggestion)}
-                          className="text-left rounded px-1.5 py-1 font-body transition"
+                          className="text-left rounded transition"
                           style={{
                             border: `1px dashed ${UI.line}`,
+                            padding: "0.25rem 0.4rem",
                             fontSize: "0.68rem",
-                            lineHeight: 1.25,
+                            lineHeight: 1.3,
                             color: UI.inkSoft,
-                            fontStyle: "italic",
                           }}
                         >
-                          ✨ {suggestion.title}
+                          <span className="block truncate italic">✨ {suggestion.title}</span>
+                          <span className="block font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.03em" }}>SUGGESTED</span>
+                        </button>
+                      )}
+                      {isEmpty && (
+                        <button
+                          type="button"
+                          onClick={() => openNewEntry(dateKey)}
+                          className="opacity-0 group-hover:opacity-100 transition text-center rounded border border-dashed font-body text-xs font-semibold"
+                          style={{ borderColor: UI.line, color: UI.inkSoft, padding: "0.3rem 0" }}
+                        >
+                          + Add post
                         </button>
                       )}
                     </div>
@@ -473,7 +560,22 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
             <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card }}>
               <h3 className="font-body text-sm font-semibold mb-3" style={{ color: UI.ink }}>Ideas for this week</h3>
               {weekIdeas.length === 0 ? (
-                <p className="font-body text-xs" style={{ color: UI.inkSoft }}>You're all set for this week.</p>
+                openDayCount === 0 ? (
+                  <div>
+                    <p className="font-body text-sm font-semibold" style={{ color: UI.ink }}>You're covered this week ✓</p>
+                    <p className="font-body text-xs mt-1 mb-3" style={{ color: UI.inkSoft }}>Want to get ahead?</p>
+                    <button
+                      type="button"
+                      onClick={fillNextWeek}
+                      className="px-3 py-1.5 rounded-lg border font-body text-xs font-semibold transition"
+                      style={{ borderColor: ACCENT, color: ACCENT }}
+                    >
+                      Plan next week
+                    </button>
+                  </div>
+                ) : (
+                  <p className="font-body text-xs" style={{ color: UI.inkSoft }}>No specific ideas for your open days — try "Fill my week" above.</p>
+                )
               ) : (
                 <ul className="grid gap-2">
                   {weekIdeas.map(({ date, suggestion }) => {
