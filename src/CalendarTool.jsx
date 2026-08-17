@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, X, Trash2 } from "lucide-react";
-import { UI, ACCENT, WHITE, mixWithWhite, TopNav } from "./shared.jsx";
+import { UI, ACCENT, WHITE, mixWithWhite, TopNav, writePostHandoff } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 
 // Purely a planning/tracking calendar — PostKey has no social API
@@ -51,8 +51,17 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
     return d;
   });
   const [editing, setEditing] = useState(null);
+  const [draggingId, setDraggingId] = useState(null);
+  const [dragOverDate, setDragOverDate] = useState(null);
 
-  useEffect(() => { saveEntries(entries); }, [entries]);
+  // Writes localStorage synchronously instead of via a useEffect on
+  // `entries`: createPost immediately switches tools in the same update,
+  // which unmounts this component before a state-driven effect would get
+  // a chance to run, silently dropping the save.
+  const commitEntries = (next) => {
+    setEntries(next);
+    saveEntries(next);
+  };
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -84,19 +93,37 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   const openNewEntry = (dateKey) => setEditing({ date: dateKey, title: "", type: "listing", notes: "", done: false });
   const openEditEntry = (entry) => setEditing({ ...entry });
 
+  const upsert = (prev, entry) => (
+    entry.id
+      ? prev.map((e) => (e.id === entry.id ? entry : e))
+      : [...prev, { ...entry, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }]
+  );
+
   const saveEntry = () => {
     if (!editing.title.trim()) return;
-    setEntries((prev) => (
-      editing.id
-        ? prev.map((e) => (e.id === editing.id ? editing : e))
-        : [...prev, { ...editing, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }]
-    ));
+    commitEntries(upsert(entries, editing));
     setEditing(null);
   };
 
   const deleteEntry = () => {
-    setEntries((prev) => prev.filter((e) => e.id !== editing.id));
+    commitEntries(entries.filter((e) => e.id !== editing.id));
     setEditing(null);
+  };
+
+  // Saves the entry (so it's on the calendar either way) and jumps into
+  // whichever tool makes that kind of post, prefilled with its title.
+  const createPost = () => {
+    if (!editing.title.trim()) return;
+    commitEntries(upsert(entries, editing));
+    const targetTool = editing.type === "listing" ? "listings" : "community";
+    const field = editing.type === "listing" ? "address" : "subject";
+    writePostHandoff({ tool: targetTool, field, value: editing.title });
+    setEditing(null);
+    onSwitchTool(targetTool);
+  };
+
+  const moveEntry = (id, dateKey) => {
+    commitEntries(entries.map((e) => (e.id === id ? { ...e, date: dateKey } : e)));
   };
 
   return (
@@ -151,6 +178,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
               const isToday = dateKey === todayKey;
               const visible = dayEntries.slice(0, 3);
               const overflow = dayEntries.length - visible.length;
+              const isDragOver = dragOverDate === dateKey;
               return (
                 <div
                   key={i}
@@ -159,7 +187,17 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                     minHeight: "5.75rem",
                     borderRight: (i + 1) % 7 !== 0 ? `1px solid ${UI.line}` : "none",
                     borderTop: i >= 7 ? `1px solid ${UI.line}` : "none",
-                    background: inMonth ? UI.card : UI.stone,
+                    background: isDragOver ? mixWithWhite(ACCENT, 0.92) : inMonth ? UI.card : UI.stone,
+                    boxShadow: isDragOver ? `inset 0 0 0 2px ${ACCENT}` : "none",
+                    transition: "background 0.1s, box-shadow 0.1s",
+                  }}
+                  onDragOver={(e) => { e.preventDefault(); setDragOverDate(dateKey); }}
+                  onDragLeave={() => setDragOverDate((d) => (d === dateKey ? null : d))}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const id = e.dataTransfer.getData("text/plain");
+                    if (id) moveEntry(id, dateKey);
+                    setDragOverDate(null);
                   }}
                 >
                   <div className="flex items-center justify-between">
@@ -190,6 +228,13 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                         <button
                           key={entry.id}
                           type="button"
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData("text/plain", entry.id);
+                            e.dataTransfer.effectAllowed = "move";
+                            setDraggingId(entry.id);
+                          }}
+                          onDragEnd={() => { setDraggingId(null); setDragOverDate(null); }}
                           onClick={() => openEditEntry(entry)}
                           className="text-left rounded px-1.5 py-1 font-body transition flex items-center gap-1"
                           style={{
@@ -198,6 +243,8 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                             lineHeight: 1.15,
                             textDecoration: entry.done ? "line-through" : "none",
                             color: entry.done ? UI.inkSoft : UI.ink,
+                            opacity: draggingId === entry.id ? 0.4 : 1,
+                            cursor: "grab",
                           }}
                         >
                           <span className="rounded-full flex-shrink-0" style={{ width: 6, height: 6, background: t.color }} />
@@ -222,6 +269,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
           setEditing={setEditing}
           onSave={saveEntry}
           onDelete={editing.id ? deleteEntry : null}
+          onCreatePost={createPost}
           onClose={() => setEditing(null)}
         />
       )}
@@ -229,7 +277,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   );
 }
 
-function EntryModal({ editing, setEditing, onSave, onDelete, onClose }) {
+function EntryModal({ editing, setEditing, onSave, onDelete, onCreatePost, onClose }) {
   const dateLabel = new Date(`${editing.date}T00:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   return (
     <div
@@ -259,6 +307,16 @@ function EntryModal({ editing, setEditing, onSave, onDelete, onClose }) {
               onChange={(e) => setEditing((f) => ({ ...f, title: e.target.value }))}
               placeholder="419 Tall Oaks Dr — Just Listed"
               autoFocus
+            />
+          </label>
+
+          <label className="block">
+            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>DATE</span>
+            <input
+              type="date"
+              className="input"
+              value={editing.date}
+              onChange={(e) => setEditing((f) => ({ ...f, date: e.target.value }))}
             />
           </label>
 
@@ -304,26 +362,37 @@ function EntryModal({ editing, setEditing, onSave, onDelete, onClose }) {
           )}
         </div>
 
-        <div className="px-6 pb-5 flex items-center gap-2">
-          {onDelete && (
-            <button
-              type="button"
-              onClick={onDelete}
-              className="flex items-center gap-1.5 py-2.5 px-3 rounded-lg border font-body text-xs font-semibold transition"
-              style={{ borderColor: UI.line, color: "#C0392B" }}
-            >
-              <Trash2 size={14} /> Delete
-            </button>
-          )}
+        <div className="px-6 pb-5 grid gap-2">
           <button
             type="button"
-            onClick={onSave}
+            onClick={onCreatePost}
             disabled={!editing.title.trim()}
-            className="flex-1 py-2.5 rounded-lg font-body font-semibold text-sm transition disabled:opacity-50"
-            style={{ background: ACCENT, color: WHITE }}
+            className="w-full py-2.5 rounded-lg border font-body font-semibold text-sm transition disabled:opacity-50"
+            style={{ borderColor: ACCENT, color: ACCENT }}
           >
-            {editing.id ? "Save changes" : "Add to calendar"}
+            Create this post →
           </button>
+          <div className="flex items-center gap-2">
+            {onDelete && (
+              <button
+                type="button"
+                onClick={onDelete}
+                className="flex items-center gap-1.5 py-2.5 px-3 rounded-lg border font-body text-xs font-semibold transition"
+                style={{ borderColor: UI.line, color: "#C0392B" }}
+              >
+                <Trash2 size={14} /> Delete
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={!editing.title.trim()}
+              className="flex-1 py-2.5 rounded-lg font-body font-semibold text-sm transition disabled:opacity-50"
+              style={{ background: ACCENT, color: WHITE }}
+            >
+              {editing.id ? "Save changes" : "Add to calendar"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

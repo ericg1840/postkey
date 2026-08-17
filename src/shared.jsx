@@ -617,6 +617,43 @@ export function firstNameOf(fullName) {
   return trimmed.split(/\s+/)[0];
 }
 
+// One-shot handback from the Calendar's "Create this post" button —
+// written right before switching tools, read here on the next mount.
+// sessionStorage (not localStorage) so a stale handoff can never reapply
+// itself on some unrelated later visit — but reading it must stay
+// side-effect-free: it's called from a useState lazy initializer, which
+// React.StrictMode invokes twice in dev, so clearing it on read would
+// wipe it out before the second (the one actually used) call sees it.
+// Callers clear it separately via clearPostHandoff() in a mount effect.
+const POST_HANDOFF_KEY = "postkey_post_handoff";
+
+export function writePostHandoff(handoff) {
+  try {
+    sessionStorage.setItem(POST_HANDOFF_KEY, JSON.stringify(handoff));
+  } catch {
+    // sessionStorage unavailable — the title just won't be prefilled on the other side.
+  }
+}
+
+export function peekPostHandoff(tool) {
+  try {
+    const raw = sessionStorage.getItem(POST_HANDOFF_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return data && data.tool === tool ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPostHandoff() {
+  try {
+    sessionStorage.removeItem(POST_HANDOFF_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 // "Just SOLD!" -> { lead: "Just", emphasis: "SOLD!" } and back — lets the
 // UI show one plain-language Headline field while the canvas code keeps
 // treating the last word as the differently-styled/colored one.

@@ -6,6 +6,7 @@ import {
   mixWithWhite, drawCover, wrapText, roundRect, archedRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, PhotoReposition, TopNav, isMobileDevice,
   Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord, firstNameOf,
+  peekPostHandoff, clearPostHandoff,
 } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 
@@ -63,6 +64,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
   const { user, brandKit, logout, saveBrandKit } = useAuth();
   const [form, setForm] = useState(() => {
     const agentName = brandKit?.agentName ?? DEFAULTS.agentName;
+    const handoff = peekPostHandoff("listings");
     return {
       ...DEFAULTS,
       agentName,
@@ -76,6 +78,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       accentColor: brandKit?.accentColor || DEFAULTS.accentColor,
       scriptFont: brandKit?.scriptFont || DEFAULTS.scriptFont,
       badgeText: DEFAULTS.badgeText.replace("{agent}", firstNameOf(agentName)),
+      ...(handoff ? { [handoff.field]: handoff.value } : null),
     };
   });
   const [fontsReady, setFontsReady] = useState(false);
@@ -112,6 +115,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       setBrandStatus("error");
     }
   };
+
+  useEffect(() => { clearPostHandoff(); }, []);
 
   useEffect(() => {
     Promise.all([
