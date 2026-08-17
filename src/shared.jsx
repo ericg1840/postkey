@@ -530,7 +530,7 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
               boxShadow: active === "calendar" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
             }}
           >
-            Calendar
+            Planner
           </button>
         </nav>
         <div className="flex items-center gap-4">
