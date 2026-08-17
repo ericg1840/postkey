@@ -611,6 +611,13 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     else if (layoutKey === "collage") drawCollageLayout(ctx, w, h);
     else if (layoutKey === "modern") drawModernLayout(ctx, w, h);
     else drawBoldLayout(ctx, w, h);
+    // A real listing photo is busy/dark at full opacity and, shrunk to
+    // thumbnail size, drowns out the very layout differences (band
+    // placement, headline position, colors) these cards exist to show off.
+    // A light wash mutes the photo without meaningfully hurting the
+    // already-high-contrast text/band elements drawn on top of it.
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.fillRect(0, 0, w, h);
   };
   const styleThumbRefs = useRef({});
   useEffect(() => {

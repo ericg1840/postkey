@@ -944,6 +944,13 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     else if (styleKey === "quote") drawQuoteStyle(ctx, w, h);
     else if (styleKey === "poll") drawPollStyle(ctx, w, h);
     else drawCardStyle(ctx, w, h);
+    // A real photo is busy/dark at full opacity and, shrunk to thumbnail
+    // size, drowns out the very layout differences (band placement,
+    // headline position, colors) these cards exist to show off. A light
+    // wash mutes the photo without hurting the already-high-contrast
+    // text/band elements drawn on top of it.
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.fillRect(0, 0, w, h);
   };
   const styleThumbRefs = useRef({});
   useEffect(() => {
