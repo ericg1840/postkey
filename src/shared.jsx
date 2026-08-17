@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Image as ImageIcon, ChevronDown, Lock } from "lucide-react";
+import { X, Key, ChevronDown, Lock } from "lucide-react";
 import { ChangePasswordModal } from "./auth/ChangePasswordModal.jsx";
 
 // The Web Share API is also implemented by some desktop browsers now, which
@@ -10,18 +10,20 @@ export function isMobileDevice() {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
-// App-chrome palette — cool neutral blue/ink, kept separate from the
-// per-post ACCENT_PRESETS below so a shared multi-agent app doesn't read
-// as "branded pink" while each agent's actual graphics stay customizable.
+// App-chrome palette — matches the warm cream/ink palette used on the
+// marketing site (HomePage/AuthShell), kept separate from the per-post
+// ACCENT_PRESETS below so a shared multi-agent app doesn't read as
+// "branded pink" while each agent's actual graphics stay customizable.
 export const UI = {
-  stone: "#EAF2FA",
+  stone: "#F1EFE8",
+  page: "#FDFBF7",
   card: "#FFFFFF",
   ink: "#1B2430",
   inkSoft: "#697386",
   line: "rgba(27,36,48,0.12)",
 };
 
-export const ACCENT = "#1B2430";
+export const ACCENT = "#0043FF";
 export const ERROR = "#C0392B";
 export const PINK = "#E0298C"; // still used as a default post accent color, not app chrome
 export const PINK_PALE = "#F6C9E0";
@@ -474,7 +476,7 @@ export function GlobalStyles() {
       .font-display { font-family: 'Fraunces', serif; }
       .font-body { font-family: 'Public Sans', sans-serif; }
       .font-mono { font-family: 'IBM Plex Mono', monospace; }
-      .input { width: 100%; background: ${UI.card}; border: 1px solid ${UI.line}; border-radius: 3px; padding: 0.55rem 0.7rem; font-family: 'Public Sans', sans-serif; font-size: 0.88rem; color: ${UI.ink}; }
+      .input { width: 100%; background: ${UI.card}; border: 1px solid ${UI.line}; border-radius: 10px; padding: 0.55rem 0.7rem; font-family: 'Public Sans', sans-serif; font-size: 0.88rem; color: ${UI.ink}; }
       textarea.input { resize: none; }
       .input:focus { outline: 2px solid ${ACCENT}; outline-offset: 1px; }
     `}</style>
@@ -489,12 +491,16 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-5 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         {onLogoClick ? (
           <button type="button" onClick={onLogoClick} className="flex items-center gap-2">
-            <ImageIcon size={20} style={{ color: ACCENT }} />
+            <div className="flex items-center justify-center rounded-lg flex-shrink-0" style={{ width: 28, height: 28, background: UI.ink }}>
+              <Key size={14} color="#FFFFFF" style={{ transform: "rotate(-45deg)" }} />
+            </div>
             <span className="font-display font-bold text-lg" style={{ color: UI.ink }}>PostKey</span>
           </button>
         ) : (
           <div className="flex items-center gap-2">
-            <ImageIcon size={20} style={{ color: ACCENT }} />
+            <div className="flex items-center justify-center rounded-lg flex-shrink-0" style={{ width: 28, height: 28, background: UI.ink }}>
+              <Key size={14} color="#FFFFFF" style={{ transform: "rotate(-45deg)" }} />
+            </div>
             <span className="font-display font-bold text-lg" style={{ color: UI.ink }}>PostKey</span>
           </div>
         )}
