@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, X, Trash2, Sparkles } from "lucide-react";
-import { UI, ACCENT, WHITE, mixWithWhite, TopNav, writePostHandoff } from "./shared.jsx";
+import {
+  UI, ACCENT, WHITE, mixWithWhite, TopNav, writePostHandoff,
+  loadCalendarEntries, saveCalendarEntries, genCalendarEntryId,
+} from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 
 // Purely a planning/tracking calendar — PostKey has no social API
 // integration, so nothing here actually publishes anything. It just helps
 // people decide what to post and when, then remember whether they did.
-const STORAGE_KEY = "postkey_calendar_entries";
 
 const POST_TYPES = [
   { key: "listing", label: "Listing", color: "#0043FF", emoji: "🏡" },
@@ -34,23 +36,6 @@ function suggestionForDate(date) {
   return SUGGESTIONS[Math.floor(day / 4) % SUGGESTIONS.length];
 }
 
-function loadEntries() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveEntries(entries) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  } catch {
-    // localStorage unavailable (private browsing, etc) — entries just won't persist across refreshes.
-  }
-}
-
 function toDateKey(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -64,16 +49,12 @@ function addDays(date, n) {
   return d;
 }
 
-function genId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 export function CalendarTool({ onSwitchTool, onGoHome }) {
   const { user, logout } = useAuth();
-  const [entries, setEntries] = useState(() => loadEntries());
+  const [entries, setEntries] = useState(() => loadCalendarEntries());
   const [viewDate, setViewDate] = useState(() => {
     const d = new Date();
     d.setDate(1);
@@ -90,7 +71,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   // a chance to run, silently dropping the save.
   const commitEntries = (next) => {
     setEntries(next);
-    saveEntries(next);
+    saveCalendarEntries(next);
   };
 
   const year = viewDate.getFullYear();
@@ -132,13 +113,17 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   const goToday = () => { const d = new Date(); d.setDate(1); setViewDate(d); };
 
   const openNewEntry = (dateKey, overrides = {}) => setEditing({ date: dateKey, title: "", type: "listing", notes: "", time: "", done: false, ...overrides });
-  const openEditEntry = (entry) => setEditing({ time: "", ...entry });
+  // Ideas saved without a date (e.g. from Community's "Need inspiration"
+  // card) get today's date as a default the moment they're opened, so the
+  // modal always has something valid to show/save — picking a different
+  // date is just editing that default like any other field.
+  const openEditEntry = (entry) => setEditing({ time: "", ...entry, date: entry.date || todayKey });
   const openSuggestion = (dateKey, suggestion) => openNewEntry(dateKey, { title: suggestion.title, type: suggestion.type });
 
   const upsert = (prev, entry) => (
     entry.id
       ? prev.map((e) => (e.id === entry.id ? entry : e))
-      : [...prev, { ...entry, id: genId() }]
+      : [...prev, { ...entry, id: genCalendarEntryId() }]
   );
 
   const saveEntry = () => {
@@ -188,14 +173,14 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
       if ((entriesByDate[dateKey] || []).length > 0) return;
       const sugg = SUGGESTIONS[idx % SUGGESTIONS.length];
       idx += 1;
-      additions.push({ id: genId(), date: dateKey, title: sugg.title, type: sugg.type, notes: "", time: "", done: false });
+      additions.push({ id: genCalendarEntryId(), date: dateKey, title: sugg.title, type: sugg.type, notes: "", time: "", done: false });
     });
     if (additions.length) commitEntries([...entries, ...additions]);
   };
 
   // ---- Content mix for the viewed month ----
   const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
-  const monthEntries = entries.filter((e) => e.date.startsWith(monthPrefix));
+  const monthEntries = entries.filter((e) => e.date && e.date.startsWith(monthPrefix));
   const mixCounts = POST_TYPES.map((t) => ({ ...t, count: monthEntries.filter((e) => e.type === t.key).length }));
   const mixTotal = monthEntries.length;
   let mixTip = null;
@@ -207,13 +192,16 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
     }
   }
 
-  // ---- Sidebar: what's coming up, and what's still unplanned this week ----
+  // ---- Sidebar: what's coming up, what's still unplanned this week, and
+  // ideas saved without a date yet (e.g. from Community's "Need
+  // inspiration" card) waiting to be scheduled. ----
   const upNext = entries.filter((e) => e.date >= todayKey).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5);
   const weekIdeas = weekDays
     .filter((d) => toDateKey(d) >= todayKey)
     .map((d) => ({ date: d, suggestion: suggestionForDate(d) }))
     .filter(({ date, suggestion }) => suggestion && (entriesByDate[toDateKey(date)] || []).length === 0)
     .slice(0, 3);
+  const savedIdeas = entries.filter((e) => !e.date);
 
   return (
     <div className="min-h-screen" style={{ background: UI.stone, color: UI.ink }}>
@@ -456,6 +444,25 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                 </ul>
               )}
             </div>
+
+            {savedIdeas.length > 0 && (
+              <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card }}>
+                <h3 className="font-body text-sm font-semibold mb-1" style={{ color: UI.ink }}>Saved ideas</h3>
+                <p className="font-body text-xs mb-3" style={{ color: UI.inkSoft }}>Not scheduled yet — click one to give it a date.</p>
+                <ul className="grid gap-2">
+                  {savedIdeas.map((entry) => {
+                    const t = typeInfo(entry.type);
+                    return (
+                      <li key={entry.id}>
+                        <button type="button" onClick={() => openEditEntry(entry)} className="text-left w-full font-body text-xs" style={{ color: UI.ink }}>
+                          {t.emoji} {entry.title}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
 
             <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card }}>
               <h3 className="font-body text-sm font-semibold mb-3" style={{ color: UI.ink }}>Ideas for this week</h3>

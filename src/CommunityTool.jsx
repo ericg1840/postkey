@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Download, Image as ImageIcon, User, Building2, Sparkles, SlidersHorizontal, Check, Copy, ChevronDown } from "lucide-react";
+import { Download, Image as ImageIcon, User, Building2, Sparkles, SlidersHorizontal, Check, Copy, ChevronDown, CalendarPlus } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
@@ -7,6 +7,7 @@ import {
   useUploadedImage, useAgentAsset, UploadBox, PhotoReposition, TopNav, isMobileDevice,
   Accordion, PrivacyBadge, splitHeadlineLastWord, drawHouseBackdrop, useDefaultImage, firstNameOf,
   peekPostHandoff, clearPostHandoff,
+  loadCalendarEntries, saveCalendarEntries, genCalendarEntryId,
 } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 
@@ -339,9 +340,22 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
   };
 
   const [idea, setIdea] = useState(null);
+  const [ideaSaved, setIdeaSaved] = useState(false);
   const giveIdea = () => {
     const others = IDEAS.filter((i) => i !== idea);
     setIdea(others[Math.floor(Math.random() * others.length)]);
+    setIdeaSaved(false);
+  };
+  // Saves the idea into the Content Planner without a date yet — it shows
+  // up there as a "Saved idea" waiting to be scheduled, so a good prompt
+  // you can't act on right now doesn't just get lost when you move on.
+  const saveIdeaForLater = () => {
+    if (!idea) return;
+    const entries = loadCalendarEntries();
+    saveCalendarEntries([...entries, {
+      id: genCalendarEntryId(), date: null, title: idea.text, type: "community", notes: "", time: "", done: false,
+    }]);
+    setIdeaSaved(true);
   };
   const createFromIdea = () => {
     if (!idea) return;
@@ -1154,7 +1168,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               {idea ? idea.text : "Not sure what to post? We'll suggest something — a coffee shop, a neighborhood tip, a weekend event."}
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-wrap flex-shrink-0 justify-end">
             {idea && (
               <button
                 onClick={createFromIdea}
@@ -1162,6 +1176,17 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                 style={{ background: ACCENT, color: WHITE }}
               >
                 Create this post →
+              </button>
+            )}
+            {idea && (
+              <button
+                onClick={saveIdeaForLater}
+                disabled={ideaSaved}
+                className="flex items-center gap-1.5 py-2.5 px-4 rounded-lg border font-body text-sm font-semibold transition whitespace-nowrap disabled:opacity-70"
+                style={{ borderColor: UI.line, color: UI.ink, background: UI.card }}
+              >
+                <CalendarPlus size={15} />
+                {ideaSaved ? "Saved to Planner" : "Save for later"}
               </button>
             )}
             <button
