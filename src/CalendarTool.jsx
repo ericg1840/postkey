@@ -398,7 +398,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   const daySuggestion = dayEntries.length === 0 && dayKey >= todayKey ? suggestionForDate(focusDate) : null;
 
   return (
-    <div className="min-h-screen" style={{ background: UI.stone, color: UI.ink }}>
+    <div className="min-h-screen" style={{ background: UI.page, color: UI.ink }}>
       <TopNav active="calendar" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} onLogoClick={onGoHome} />
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-10">
