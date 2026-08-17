@@ -598,7 +598,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
   }, [form, photo.img, photo.focus, photo.zoom, photo2.img, photo3.img, headshot.img, logo.img, fontsReady]);
 
   const [showCustomize, setShowCustomize] = useState(false);
-  const [wantSocialSet, setWantSocialSet] = useState(true);
   const [showSocialSetPreview, setShowSocialSetPreview] = useState(false);
 
   const [downloadError, setDownloadError] = useState("");
@@ -761,7 +760,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
             <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section>
               <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>2. Choose a style <span className="font-normal" style={{ color: UI.inkSoft }}>(optional)</span></h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => setForm((f) => ({ ...f, layout: "bold" }))}
                   className="text-left p-3 rounded-lg border transition font-body text-xs"
                   style={{ borderColor: form.layout === "bold" ? ACCENT : UI.line, background: form.layout === "bold" ? UI.card : "transparent" }}>
@@ -788,29 +787,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 </button>
               </div>
             </section>
-
-            <label
-              className="flex items-center gap-3 p-4 rounded-xl border cursor-pointer"
-              style={{ borderColor: UI.line, background: UI.card }}
-            >
-              <input type="checkbox" checked={wantSocialSet} onChange={(e) => setWantSocialSet(e.target.checked)} className="hidden" />
-              <span className="flex-1">
-                <span className="flex items-center gap-2">
-                  <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Create My Social Set</span>
-                  <span className="font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.04em", color: WHITE, background: ACCENT, padding: "1px 6px", borderRadius: 999 }}>NEW</span>
-                </span>
-                <span className="font-body text-xs block mt-0.5" style={{ color: UI.inkSoft }}>Get square, story, and landscape versions in seconds.</span>
-              </span>
-              <span
-                className="flex-shrink-0 rounded-full transition"
-                style={{ width: 40, height: 24, background: wantSocialSet ? ACCENT : UI.line, position: "relative" }}
-              >
-                <span
-                  className="absolute rounded-full transition"
-                  style={{ width: 18, height: 18, top: 3, left: wantSocialSet ? 19 : 3, background: WHITE }}
-                />
-              </span>
-            </label>
 
             <button
               type="button"
