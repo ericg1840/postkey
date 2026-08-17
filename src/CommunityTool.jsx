@@ -966,6 +966,18 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
   // every section. At the `lg` breakpoint desktop keeps everything visible.
   const [mobileStep, setMobileStep] = useState(1);
 
+  // On desktop every step's content is already visible on one continuous
+  // page (see the comment above), so clicking a step number there scrolls
+  // to that section instead of switching a hidden panel.
+  const sectionRefs = useRef({});
+  const goToStep = (n) => {
+    setMobileStep(n);
+    const el = sectionRefs.current[n];
+    if (el && window.matchMedia("(min-width: 1024px)").matches) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   const [downloadError, setDownloadError] = useState("");
   const [downloading, setDownloading] = useState(false);
 
@@ -1087,11 +1099,13 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
           <p className="font-body text-sm mt-1 hidden sm:block" style={{ color: UI.inkSoft }}>Stay visible even when you don't have a listing to share.</p>
         </div>
 
-        {/* STEP INDICATOR */}
-        <div className="flex items-center gap-1 sm:gap-3 mb-5 sm:mb-8 lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}>
+        {/* STEP INDICATOR — connecting lines are flex-1 so the steps spread
+            evenly across the full width instead of bunching together at
+            the left edge on wide screens. */}
+        <div className="flex items-center mb-5 sm:mb-8 lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}>
           {[{ n: 1, label: "Choose a Post Idea" }, { n: 2, label: "Make It Yours" }, { n: 3, label: "Post It" }].map((s, i, arr) => (
-            <div key={s.n} className="flex items-center gap-1 sm:gap-3 min-w-0">
-              <button type="button" onClick={() => setMobileStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <div key={s.n} className={`flex items-center min-w-0 ${i < arr.length - 1 ? "flex-1" : "flex-shrink-0"}`}>
+              <button type="button" onClick={() => goToStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-0">
                 <span
                   className="flex items-center justify-center rounded-full font-body text-xs font-semibold flex-shrink-0"
                   style={{
@@ -1110,7 +1124,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                   {s.label}
                 </span>
               </button>
-              {i < arr.length - 1 && <div className="flex-shrink-0" style={{ width: 16, height: 1.5, background: UI.line }} />}
+              {i < arr.length - 1 && <div className="flex-1 mx-2 sm:mx-3" style={{ height: 1.5, background: UI.line }} />}
             </div>
           ))}
         </div>
@@ -1153,7 +1167,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
           {/* LEFT: CONTROLS */}
           <div className={mobileStep === 3 ? "hidden lg:flex lg:flex-col lg:gap-6" : "flex flex-col gap-6"}>
           <div className={`${mobileStep === 1 ? "grid gap-6" : "hidden"} lg:contents`}>
-            <section>
+            <section ref={(el) => { sectionRefs.current[1] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
               <h3 className="font-body text-base font-semibold mb-3" style={{ color: UI.ink }}>What do you want to share?</h3>
               <div className="grid grid-cols-2 gap-3">
                 {Object.entries(CATEGORIES).map(([key, c]) => (
@@ -1200,7 +1214,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
           </div>
 
             <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
-            <section>
+            <section ref={(el) => { sectionRefs.current[2] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
               <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>2. Add the details</h3>
               <div className="grid gap-3">
                 {form.style !== "testimonial" && form.style !== "poll" && (
@@ -1555,7 +1569,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
           </div>
 
           {/* RIGHT: PREVIEW */}
-          <div className={mobileStep === 3 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "1.5rem" }}>
+          <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "1.5rem", scrollMarginTop: "1.5rem" }}>
             {mobileStep === 3 && (
               <button type="button" onClick={() => setMobileStep(2)}
                 className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2"
