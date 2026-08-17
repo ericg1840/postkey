@@ -3,6 +3,7 @@ import { Key } from "lucide-react";
 import { GlobalStyles } from "./shared.jsx";
 import { ListingTool } from "./ListingTool.jsx";
 import { CommunityTool } from "./CommunityTool.jsx";
+import { CalendarTool } from "./CalendarTool.jsx";
 import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
 import { AuthScreen } from "./auth/AuthScreen.jsx";
 import { ResetPasswordScreen } from "./auth/ResetPasswordScreen.jsx";
@@ -85,11 +86,9 @@ function AppShell() {
 
   if (brandKit && !brandKit.onboarded) return <OnboardingWizard />;
 
-  return activeTool === "listings" ? (
-    <ListingTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />
-  ) : (
-    <CommunityTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />
-  );
+  if (activeTool === "listings") return <ListingTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
+  if (activeTool === "calendar") return <CalendarTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
+  return <CommunityTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
 }
 
 export default function App() {

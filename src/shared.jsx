@@ -521,10 +521,21 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
           >
             Community
           </button>
+          <button
+            onClick={() => onSwitch("calendar")}
+            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
+            style={{
+              background: active === "calendar" ? UI.card : "transparent",
+              color: active === "calendar" ? UI.ink : UI.inkSoft,
+              boxShadow: active === "calendar" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+            }}
+          >
+            Calendar
+          </button>
         </nav>
         <div className="flex items-center gap-4">
           <span className="font-mono text-xs hidden sm:inline" style={{ color: UI.inkSoft }}>
-            {active === "listings" ? "PHOTO IN, POST OUT" : "LOCAL LOVE, POSTED"}
+            {active === "listings" ? "PHOTO IN, POST OUT" : active === "community" ? "LOCAL LOVE, POSTED" : "PLAN AHEAD, POST ON TIME"}
           </span>
           {onLogout && (
             <div className="flex items-center gap-2">
