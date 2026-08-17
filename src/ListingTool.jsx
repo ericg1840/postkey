@@ -758,7 +758,10 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         {/* STEP INDICATOR — connecting lines are flex-1 so the four steps
             spread evenly across the full width instead of bunching together
             at the left edge on wide screens. */}
-        <div className="flex items-center mb-5 sm:mb-8 lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}>
+        <div
+          className={`flex items-center mb-5 sm:mb-8 lg:mb-8 ${mobileStep === 1 ? "" : "pt-4 lg:pt-0"}`}
+          style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}
+        >
           {[{ n: 1, label: "What to Post" }, { n: 2, label: "Choose Your Look" }, { n: 3, label: "Add Listing Details" }, { n: 4, label: "Download" }].map((s, i, arr) => (
             <div key={s.n} className={`flex items-center min-w-0 ${i < arr.length - 1 ? "flex-1" : "flex-shrink-0"}`}>
               <button type="button" onClick={() => goToStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-0">
