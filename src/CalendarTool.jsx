@@ -20,18 +20,24 @@ const typeInfo = (key) => POST_TYPES.find((t) => t.key === key) || POST_TYPES[2]
 // A light, rotating pool of post ideas sprinkled onto open days so a month
 // with nothing planned yet still feels useful — these are prompts, not
 // real posts, and are styled dashed/muted in the grid to make that obvious.
+// "Weekend Open House" is kept separate and only ever suggested on a
+// Saturday/Sunday — open houses don't happen on a Tuesday.
 const SUGGESTIONS = [
   { title: "Local Favorite", type: "community" },
   { title: "Seller Tip", type: "community" },
-  { title: "Weekend Open House", type: "listing" },
   { title: "Home Maintenance", type: "community" },
   { title: "Client Love", type: "community" },
 ];
+const WEEKEND_SUGGESTION = { title: "Weekend Open House", type: "listing" };
 
 // Deterministic (not random) so a suggestion doesn't jump around on every
-// re-render — every 4th day of the month cycles through the pool.
+// re-render. Weekends get their own once-every-other-Saturday cadence;
+// weekdays cycle through the general pool every 4th day.
 function suggestionForDate(date) {
   const day = date.getDate();
+  const weekday = date.getDay();
+  if (weekday === 6) return day % 4 < 2 ? WEEKEND_SUGGESTION : null; // Saturday, every other week
+  if (weekday === 0) return null; // Sunday: skip, Saturday already covers the weekend
   if (day % 4 !== 1) return null;
   return SUGGESTIONS[Math.floor(day / 4) % SUGGESTIONS.length];
 }
@@ -171,8 +177,8 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
       const dateKey = toDateKey(d);
       if (dateKey < todayKey) return;
       if ((entriesByDate[dateKey] || []).length > 0) return;
-      const sugg = SUGGESTIONS[idx % SUGGESTIONS.length];
-      idx += 1;
+      const sugg = d.getDay() === 6 ? WEEKEND_SUGGESTION : SUGGESTIONS[idx % SUGGESTIONS.length];
+      if (d.getDay() !== 6) idx += 1;
       additions.push({ id: genCalendarEntryId(), date: dateKey, title: sugg.title, type: sugg.type, notes: "", time: "", done: false });
     });
     if (additions.length) commitEntries([...entries, ...additions]);
