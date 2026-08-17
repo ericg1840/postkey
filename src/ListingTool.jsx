@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Download, Image as ImageIcon, User, Building2, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { Download, Image as ImageIcon, User, Building2, ChevronDown } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
@@ -8,6 +8,15 @@ import {
   Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord, firstNameOf,
 } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
+
+// The four visual Styles, rendered as live thumbnail previews in "Choose
+// your look" so people pick with their eyes instead of reading captions.
+const STYLE_OPTIONS = [
+  { key: "bold", label: "Bold", description: "Photo with headline overlay" },
+  { key: "editorial", label: "Editorial", description: "Hero photo, stats row, photo strip" },
+  { key: "collage", label: "Collage", description: "Offset photos with signature" },
+  { key: "modern", label: "Modern", description: "Script headline with photo strip" },
+];
 
 // "What are you posting?" — the event, independent of which visual Style
 // draws it. Applying one fills in every layout's headline representation
@@ -585,6 +594,28 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
   useEffect(() => { if (fontsReady) draw(); }, [draw, fontsReady]);
 
+  // Live thumbnail preview for each Style option, rendered with the
+  // person's own photo/headline/colors — always square regardless of the
+  // export aspect, so the four cards stay a clean, comparable grid.
+  const drawStyleThumb = (canvas, layoutKey) => {
+    const { w, h } = ASPECTS.square;
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, w, h);
+    if (layoutKey === "editorial") drawEditorialLayout(ctx, w, h);
+    else if (layoutKey === "collage") drawCollageLayout(ctx, w, h);
+    else if (layoutKey === "modern") drawModernLayout(ctx, w, h);
+    else drawBoldLayout(ctx, w, h);
+  };
+  const styleThumbRefs = useRef({});
+  useEffect(() => {
+    if (!fontsReady) return;
+    STYLE_OPTIONS.forEach(({ key }) => {
+      const canvas = styleThumbRefs.current[key];
+      if (canvas) drawStyleThumb(canvas, key);
+    });
+  }, [form, photo.img, photo.focus, photo.zoom, photo2.img, photo3.img, headshot.img, logo.img, fontsReady]);
+
   // Small live previews of the other sizes in the social set, so the promise
   // of "we'll generate every size" is visible before anyone downloads.
   const THUMB_ASPECTS = ["square", "story", "landscape"];
@@ -597,7 +628,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     });
   }, [form, photo.img, photo.focus, photo.zoom, photo2.img, photo3.img, headshot.img, logo.img, fontsReady]);
 
-  const [showCustomize, setShowCustomize] = useState(false);
   const [showSocialSetPreview, setShowSocialSetPreview] = useState(false);
 
   const [downloadError, setDownloadError] = useState("");
@@ -703,7 +733,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
         {/* STEP INDICATOR */}
         <div className="flex items-center gap-1 sm:gap-3 mb-5 sm:mb-8 lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}>
-          {[{ n: 1, label: "What to Post" }, { n: 2, label: "Style" }, { n: 3, label: "Photo & Details" }, { n: 4, label: "Download" }].map((s, i, arr) => (
+          {[{ n: 1, label: "What to Post" }, { n: 2, label: "Choose Your Look" }, { n: 3, label: "Add Listing Details" }, { n: 4, label: "Download" }].map((s, i, arr) => (
             <div key={s.n} className="flex items-center gap-1 sm:gap-3 min-w-0">
               <button type="button" onClick={() => setMobileStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                 <span
@@ -730,7 +760,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         </div>
 
         {/* MAIN GRID: controls + preview */}
-        <div className="grid lg:grid-cols-2 gap-8 items-start">
+        <div className="grid lg:grid-cols-[55fr_45fr] gap-8 items-start">
           {/* LEFT: CONTROLS */}
           <div className={mobileStep === 4 ? "hidden lg:grid lg:gap-6" : "grid gap-6"}>
           <div className={`${mobileStep === 1 ? "grid gap-6" : "hidden"} lg:contents`}>
@@ -759,50 +789,28 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
             <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section>
-              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>2. Choose a style <span className="font-normal" style={{ color: UI.inkSoft }}>(optional)</span></h3>
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => setForm((f) => ({ ...f, layout: "bold" }))}
-                  className="text-left p-3 rounded-lg border transition font-body text-xs"
-                  style={{ borderColor: form.layout === "bold" ? ACCENT : UI.line, background: form.layout === "bold" ? UI.card : "transparent" }}>
-                  <span className="font-semibold block">Bold</span>
-                  <span style={{ color: UI.inkSoft }}>Photo + headline overlay</span>
-                </button>
-                <button onClick={() => setForm((f) => ({ ...f, layout: "editorial" }))}
-                  className="text-left p-3 rounded-lg border transition font-body text-xs"
-                  style={{ borderColor: form.layout === "editorial" ? ACCENT : UI.line, background: form.layout === "editorial" ? UI.card : "transparent" }}>
-                  <span className="font-semibold block">Editorial</span>
-                  <span style={{ color: UI.inkSoft }}>Hero photo, stats row, photo strip</span>
-                </button>
-                <button onClick={() => setForm((f) => ({ ...f, layout: "collage" }))}
-                  className="text-left p-3 rounded-lg border transition font-body text-xs"
-                  style={{ borderColor: form.layout === "collage" ? ACCENT : UI.line, background: form.layout === "collage" ? UI.card : "transparent" }}>
-                  <span className="font-semibold block">Collage</span>
-                  <span style={{ color: UI.inkSoft }}>Offset photos + signature</span>
-                </button>
-                <button onClick={() => setForm((f) => ({ ...f, layout: "modern" }))}
-                  className="text-left p-3 rounded-lg border transition font-body text-xs"
-                  style={{ borderColor: form.layout === "modern" ? ACCENT : UI.line, background: form.layout === "modern" ? UI.card : "transparent" }}>
-                  <span className="font-semibold block">Modern</span>
-                  <span style={{ color: UI.inkSoft }}>Script headline + 4-up photo strip</span>
-                </button>
+              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>2. Choose your look</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {STYLE_OPTIONS.map(({ key, label, description }) => (
+                  <button key={key} type="button" onClick={() => setForm((f) => ({ ...f, layout: key }))}
+                    aria-label={`${label} — ${description}`}
+                    className="text-left rounded-lg border-2 overflow-hidden transition"
+                    style={{ borderColor: form.layout === key ? ACCENT : UI.line, background: UI.card }}>
+                    <div style={{ background: UI.stone }}>
+                      <canvas
+                        ref={(el) => { styleThumbRefs.current[key] = el; }}
+                        style={{ display: "block", width: "100%", height: "auto" }}
+                      />
+                    </div>
+                    <span className="font-body text-xs font-semibold block px-2.5 py-2" style={{ color: UI.ink }}>{label}</span>
+                  </button>
+                ))}
               </div>
             </section>
 
-            <button
-              type="button"
-              onClick={() => setShowCustomize((s) => !s)}
-              className="flex items-center justify-center gap-2 py-2.5 rounded-lg border font-body text-sm font-semibold transition"
-              style={{ borderColor: UI.line, color: UI.ink }}
-            >
-              <SlidersHorizontal size={15} />
-              {showCustomize ? "Hide customize options" : "Customize More"}
-            </button>
-
-            {showCustomize && (
-              <div className="grid gap-5">
-                <Accordion title="Customize design" subtitle="Colors, wording, banners, badge" defaultOpen>
+            <Accordion title="Personalize your design" subtitle="Colors, fonts & wording">
               <div className="md:col-span-2">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT COLOR</span>
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BRAND COLOR</span>
                 <div className="flex items-center gap-2 flex-wrap">
                   {ACCENT_PRESETS.map((c) => (
                     <button key={c} onClick={() => setForm((f) => ({ ...f, accentColor: c }))}
@@ -823,20 +831,18 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 </div>
               </div>
 
-              <div className="md:col-span-2">
+              <label className="block md:col-span-2">
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT FONT</span>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <select
+                  className="input"
+                  value={form.scriptFont}
+                  onChange={(e) => setForm((f) => ({ ...f, scriptFont: e.target.value }))}
+                >
                   {SCRIPT_FONTS.map((f) => (
-                    <button key={f.name} onClick={() => setForm((prev) => ({ ...prev, scriptFont: f.name }))}
-                      className="text-left p-2.5 rounded border transition"
-                      style={{ borderColor: form.scriptFont === f.name ? ACCENT : UI.line, background: form.scriptFont === f.name ? UI.card : "transparent" }}>
-                      <span style={{ fontFamily: `"${f.name}", ${f.fallback}`, fontWeight: f.weight, fontSize: "1.15rem", color: UI.ink, lineHeight: 1.2, display: "block" }}>
-                        {f.name}
-                      </span>
-                    </button>
+                    <option key={f.name} value={f.name}>{f.name}</option>
                   ))}
-                </div>
-              </div>
+                </select>
+              </label>
 
               {form.layout === "bold" && (
                 <label className="block md:col-span-2">
@@ -898,39 +904,24 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               )}
 
               <div>
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CONTACT BAND</span>
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>AGENT INFO STYLE</span>
                 <div className="grid grid-cols-2 gap-2">
                   <button onClick={() => setForm((f) => ({ ...f, contactBg: "black" }))}
                     className="p-2 rounded border font-body text-xs font-semibold transition"
                     style={{ borderColor: form.contactBg === "black" ? ACCENT : UI.line, background: form.contactBg === "black" ? UI.card : "transparent" }}>
-                    Black background
+                    Dark
                   </button>
                   <button onClick={() => setForm((f) => ({ ...f, contactBg: "white" }))}
                     className="p-2 rounded border font-body text-xs font-semibold transition"
                     style={{ borderColor: form.contactBg === "white" ? ACCENT : UI.line, background: form.contactBg === "white" ? UI.card : "transparent" }}>
-                    White background
+                    Light
                   </button>
                 </div>
               </div>
+            </Accordion>
 
-              <div className="md:col-span-2">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SIZE (for single-image download)</span>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {Object.entries(ASPECTS).map(([key, a]) => (
-                    <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
-                      className="p-2 rounded border font-body text-xs font-semibold transition whitespace-nowrap"
-                      style={{ borderColor: form.aspect === key ? ACCENT : UI.line, background: form.aspect === key ? UI.card : "transparent" }}>
-                      {a.shortLabel}
-                    </button>
-                  ))}
-                </div>
-              </div>
-                </Accordion>
-              </div>
-            )}
-
-            {/* Kept outside "Customize More" — this is the info every post
-                needs, so it shouldn't be a second click deep. */}
+            {/* Kept outside "Personalize your design" — this is the info
+                every post needs, so it shouldn't be a second click deep. */}
             <Accordion title="Brand settings" subtitle="Set this up once — it carries to every post">
               <div className="grid grid-cols-2 gap-3 md:col-span-2">
                 <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
@@ -996,14 +987,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               <button type="button" onClick={() => setMobileStep(3)}
                 className="flex-1 py-2.5 rounded-lg font-body font-semibold text-sm transition"
                 style={{ background: ACCENT, color: WHITE }}>
-                Continue to Add Photo &amp; Details
+                Continue to Add Listing Details
               </button>
             </div>
             </div>
 
             <div className={`${mobileStep === 3 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section>
-              <h3 className="font-body text-sm font-semibold mb-1" style={{ color: UI.ink }}>3. Add your photo &amp; listing details</h3>
+              <h3 className="font-body text-sm font-semibold mb-1" style={{ color: UI.ink }}>3. Add listing details</h3>
               <p className="font-body text-xs mb-2.5" style={{ color: UI.inkSoft }}>Upload a listing photo and we'll create your branded post.</p>
               <UploadBox label="PROPERTY PHOTO" icon={ImageIcon} state={photo} hint="Choose listing photo, or drag and drop here" />
               <PhotoReposition state={photo} aspect={form.aspect} />
@@ -1084,7 +1075,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               <button type="button" onClick={() => setMobileStep(3)}
                 className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2"
                 style={{ color: UI.inkSoft }}>
-                ← Back to Photo &amp; Details
+                ← Back to Listing Details
               </button>
             )}
             <div className="rounded-2xl border p-2.5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
