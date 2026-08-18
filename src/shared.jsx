@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Key, ChevronDown, Lock } from "lucide-react";
+import { X, ChevronDown, Lock } from "lucide-react";
 import { ChangePasswordModal } from "./auth/ChangePasswordModal.jsx";
 
 // The Web Share API is also implemented by some desktop browsers now, which
@@ -57,6 +57,37 @@ export const PINK = "#E0298C"; // still used as a default post accent color, not
 export const PINK_PALE = "#F6C9E0";
 export const BLACK = "#111111";
 export const WHITE = "#FFFFFF";
+
+// The brand mark: a keyring holding a house key and three app-icon charms
+// (photo, play, post). Self-contained art — draw it directly instead of a
+// dark square + icon glyph, since the mark carries its own color and reads
+// fine on any light background it's actually placed on.
+export function Logo({ size = 28 }) {
+  return (
+    <svg width={size} height={size * (195 / 190)} viewBox="0 0 190 195" style={{ flexShrink: 0 }}>
+      <circle cx="80" cy="64" r="32" fill="none" stroke={UI.ink} strokeWidth="8" />
+      <circle cx="58" cy="110" r="15" fill={UI.ink} />
+      <circle cx="58" cy="110" r="6" fill="#FBFAF6" />
+      <polygon points="54,121 62,121 62,138 72,138 72,146 62,146 62,152 70,152 70,160 54,160" fill={UI.ink} />
+      <circle cx="94" cy="84" r="6" fill="none" stroke={UI.ink} strokeWidth="3.4" />
+      <g transform="rotate(-10 114 116)">
+        <rect x="94" y="96" width="40" height="40" rx="10" fill="#E0298C" />
+        <circle cx="114" cy="116" r="9" fill="none" stroke="#FBFAF6" strokeWidth="3" />
+        <circle cx="114" cy="116" r="2.6" fill="#FBFAF6" />
+      </g>
+      <g transform="rotate(9 130 138)">
+        <rect x="110" y="118" width="40" height="40" rx="10" fill="#F3743A" />
+        <polygon points="124,127 124,149 142,138" fill="#FBFAF6" />
+      </g>
+      <g transform="rotate(-5 116 164)">
+        <rect x="92" y="140" width="48" height="48" rx="12" fill="#0043FF" />
+        <rect x="105" y="155" width="22" height="4.5" rx="2.25" fill="#FBFAF6" />
+        <rect x="105" y="164" width="22" height="4.5" rx="2.25" fill="#FBFAF6" />
+        <rect x="105" y="173" width="14" height="4.5" rx="2.25" fill="#FBFAF6" />
+      </g>
+    </svg>
+  );
+}
 
 // shortLabel is a one-word fallback for the tight aspect-ratio pickers —
 // the full label wraps to two lines in a narrow grid cell on mobile and
@@ -519,16 +550,12 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-5 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         {onLogoClick ? (
           <button type="button" onClick={onLogoClick} className="flex items-center gap-2">
-            <div className="flex items-center justify-center rounded-lg flex-shrink-0" style={{ width: 28, height: 28, background: UI.ink }}>
-              <Key size={14} color="#FFFFFF" style={{ transform: "rotate(-45deg)" }} />
-            </div>
+            <Logo size={26} />
             <span className="font-display font-bold text-lg" style={{ color: UI.ink }}>PostKey</span>
           </button>
         ) : (
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center rounded-lg flex-shrink-0" style={{ width: 28, height: 28, background: UI.ink }}>
-              <Key size={14} color="#FFFFFF" style={{ transform: "rotate(-45deg)" }} />
-            </div>
+            <Logo size={26} />
             <span className="font-display font-bold text-lg" style={{ color: UI.ink }}>PostKey</span>
           </div>
         )}
