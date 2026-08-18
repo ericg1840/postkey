@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Download, Facebook, Image as ImageIcon, User, Building2, ChevronDown,
-  Heart, Home, DoorOpen, Tag, Handshake, Calendar, Lightbulb, Sparkles, Check,
+  Heart, Home, DoorOpen, Tag, Handshake, Calendar, Lightbulb, Check,
 } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
@@ -802,14 +802,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     goToStep(2);
   };
 
-  // "Surprise me" — for anyone not sure what to post, pick a different
-  // occasion than the one already selected and jump straight to Step 2.
-  const surpriseMe = () => {
-    const keys = Object.keys(TEMPLATES).filter((k) => k !== form.template);
-    const key = keys[Math.floor(Math.random() * keys.length)] || form.template;
-    chooseTemplate(key);
-  };
-
   const currentStep = downloadError || downloading || downloadingAll ? 3 : mobileStep;
 
   return (
@@ -892,20 +884,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                     </button>
                   );
                 })}
-              </div>
-
-              <div className="flex items-center justify-between gap-4 mt-4 p-4 rounded-xl flex-wrap" style={{ background: mixWithWhite(ACCENT, 0.94) }}>
-                <div>
-                  <div className="font-body text-sm font-semibold flex items-center gap-1.5" style={{ color: UI.ink }}>
-                    <Sparkles size={15} color={ACCENT} /> Not sure what to post?
-                  </div>
-                  <div className="font-body text-xs mt-0.5" style={{ color: UI.inkSoft }}>We'll suggest a post for you.</div>
-                </div>
-                <button type="button" onClick={surpriseMe}
-                  className="flex items-center gap-1.5 py-2 px-4 rounded-lg font-body text-xs font-semibold transition"
-                  style={{ background: ACCENT, color: WHITE }}>
-                  <Sparkles size={14} /> Surprise me
-                </button>
               </div>
             </section>
 
@@ -1248,19 +1226,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               {downloadError && (
                 <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
               )}
-            </div>
-
-            <div className="rounded-2xl p-5 mt-6 flex items-start gap-3" style={{ background: mixWithWhite(ACCENT, 0.94) }}>
-              <Lightbulb size={20} color={ACCENT} className="flex-shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <div className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Need ideas?</div>
-                <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>Not sure what to post? Let us suggest one for you.</p>
-                <button type="button" onClick={surpriseMe}
-                  className="font-body text-xs font-semibold underline mt-2"
-                  style={{ color: ACCENT }}>
-                  Surprise me
-                </button>
-              </div>
             </div>
           </div>
         </div>
