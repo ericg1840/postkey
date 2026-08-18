@@ -772,7 +772,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     setDownloadingAll(false);
   };
 
-  const currentStep = !photo.img ? 2 : downloadError || downloading || downloadingAll ? 4 : 3;
+  const currentStep = !photo.img ? 1 : downloadError || downloading || downloadingAll ? 4 : 3;
 
   // On phones, only one step's content is visible at a time (see the
   // `mobileStep === N ? … : "hidden"` panels below) so getting from "Add
@@ -811,9 +811,9 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           className={`flex items-center mb-5 sm:mb-8 lg:mb-8 ${mobileStep === 1 ? "" : "pt-8 lg:pt-0"}`}
           style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}
         >
-          {[{ n: 1, label: "What to Post" }, { n: 2, label: "Choose Your Look" }, { n: 3, label: "Add Listing Details" }, { n: 4, label: "Download" }].map((s, i, arr) => (
+          {[{ n: 1, label: "Add Photo" }, { n: 2, label: "Pick Your Design" }, { n: 3, label: "Listing Details" }, { n: 4, label: "Download" }].map((s, i, arr) => (
             <div key={s.n} className={`flex items-center min-w-0 ${i < arr.length - 1 ? "flex-1" : "flex-shrink-0"}`}>
-              <button type="button" onClick={() => goToStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-0">
+              <button type="button" onClick={() => goToStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                 <span
                   className="flex items-center justify-center rounded-full font-body text-xs font-semibold flex-shrink-0"
                   style={{
@@ -843,7 +843,27 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           <div className={mobileStep === 4 ? "hidden lg:grid lg:gap-6" : "grid gap-6"}>
           <div className={`${mobileStep === 1 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section ref={(el) => { sectionRefs.current[1] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
-              <StepHeading n={1} title="What are you posting?" />
+              <StepHeading n={1} title="Add your photo" subtitle="Start with the listing photo — you'll see it in every style next." />
+              <UploadBox label="PROPERTY PHOTO" icon={ImageIcon} state={photo} hint="Choose listing photo, or drag and drop here" />
+              <PhotoReposition state={photo} aspect={form.aspect} />
+              <p className="font-body text-xs mt-2.5" style={{ color: UI.inkSoft }}>Tip: use a bright, high-quality photo for best results.</p>
+            </section>
+
+            <button
+              type="button"
+              onClick={() => setMobileStep(2)}
+              className="lg:hidden w-full py-2.5 rounded-lg font-body font-semibold text-sm transition"
+              style={{ background: ACCENT, color: WHITE }}
+            >
+              Continue to Design
+            </button>
+          </div>
+
+            <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
+            <section ref={(el) => { sectionRefs.current[2] = el; }} className="lg:pt-8 lg:border-t" style={{ scrollMarginTop: "1.5rem", borderColor: UI.line }}>
+              <StepHeading n={2} title="Pick your design" />
+
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OCCASION</span>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {Object.entries(TEMPLATES).map(([key, t]) => (
                   <button key={key} onClick={() => applyTemplate(key)}
@@ -853,21 +873,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   </button>
                 ))}
               </div>
-            </section>
 
-            <button
-              type="button"
-              onClick={() => setMobileStep(2)}
-              className="lg:hidden w-full py-2.5 rounded-lg font-body font-semibold text-sm transition"
-              style={{ background: ACCENT, color: WHITE }}
-            >
-              Continue to Style
-            </button>
-          </div>
-
-            <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
-            <section ref={(el) => { sectionRefs.current[2] = el; }} className="lg:pt-8 lg:border-t" style={{ scrollMarginTop: "1.5rem", borderColor: UI.line }}>
-              <StepHeading n={2} title="Choose your look" />
+              <span className="font-mono text-xs block mb-1.5 mt-5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>STYLE</span>
               <div className="grid grid-cols-2 gap-3">
                 {STYLE_OPTIONS.map(({ key, label, description }) => (
                   <button key={key} type="button" onClick={() => setForm((f) => ({ ...f, layout: key }))}
@@ -1072,12 +1079,10 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
             <div className={`${mobileStep === 3 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section ref={(el) => { sectionRefs.current[3] = el; }} className="lg:pt-8 lg:border-t" style={{ scrollMarginTop: "1.5rem", borderColor: UI.line }}>
-              <StepHeading n={3} title="Add listing details" subtitle="Upload a listing photo and we'll create your branded post." />
-              <UploadBox label="PROPERTY PHOTO" icon={ImageIcon} state={photo} hint="Choose listing photo, or drag and drop here" />
-              <PhotoReposition state={photo} aspect={form.aspect} />
+              <StepHeading n={3} title="Add listing details" subtitle="The rest of what makes this post yours." />
 
               {form.layout !== "modern" && (
-                <label className="block mt-3">
+                <label className="block">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
                   <input className="input" value={form.address} onChange={update("address")} />
                 </label>
@@ -1127,8 +1132,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   </label>
                 </div>
               )}
-
-              <p className="font-body text-xs mt-2.5" style={{ color: UI.inkSoft }}>Tip: use a bright, high-quality photo for best results.</p>
             </section>
 
             <div className="lg:hidden flex items-center gap-2">
