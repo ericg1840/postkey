@@ -772,11 +772,9 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     setDownloadingAll(false);
   };
 
-  const currentStep = !photo.img ? 1 : downloadError || downloading || downloadingAll ? 4 : 3;
-
   // On phones, only one step's content is visible at a time (see the
-  // `mobileStep === N ? … : "hidden"` panels below) so getting from "Add
-  // Photo" to "Download" doesn't mean scrolling through every section.
+  // `mobileStep === N ? … : "hidden"` panels below) so getting from "Post
+  // Type" to "Review & Download" doesn't mean scrolling through every section.
   // At the `lg` breakpoint the classes always resolve to visible, so
   // desktop keeps the original everything-at-once layout untouched.
   const [mobileStep, setMobileStep] = useState(1);
@@ -793,6 +791,13 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     }
   };
 
+  const chooseTemplate = (key) => {
+    applyTemplate(key);
+    goToStep(2);
+  };
+
+  const currentStep = downloadError || downloading || downloadingAll ? 3 : mobileStep;
+
   return (
     <div className="min-h-screen" style={{ background: UI.page, color: UI.ink }}>
       <TopNav active="listings" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} onLogoClick={onGoHome} />
@@ -804,14 +809,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           <p className="font-body text-sm mt-1 hidden sm:block" style={{ color: UI.inkSoft }}>One photo. Your brand. Done.</p>
         </div>
 
-        {/* STEP INDICATOR — connecting lines are flex-1 so the four steps
+        {/* STEP INDICATOR — connecting lines are flex-1 so the steps
             spread evenly across the full width instead of bunching together
             at the left edge on wide screens. */}
         <div
           className={`flex items-center mb-5 sm:mb-8 lg:mb-8 ${mobileStep === 1 ? "" : "pt-8 lg:pt-0"}`}
           style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}
         >
-          {[{ n: 1, label: "Add Photo" }, { n: 2, label: "Pick Your Design" }, { n: 3, label: "Listing Details" }, { n: 4, label: "Download" }].map((s, i, arr) => (
+          {[{ n: 1, label: "Post Type" }, { n: 2, label: "Details & Design" }, { n: 3, label: "Review & Download" }].map((s, i, arr) => (
             <div key={s.n} className={`flex items-center min-w-0 ${i < arr.length - 1 ? "flex-1" : "flex-shrink-0"}`}>
               <button type="button" onClick={() => goToStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                 <span
@@ -840,41 +845,36 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         {/* MAIN GRID: controls + preview */}
         <div className="grid lg:grid-cols-[55fr_45fr] gap-8 items-start">
           {/* LEFT: CONTROLS */}
-          <div className={mobileStep === 4 ? "hidden lg:grid lg:gap-6" : "grid gap-6"}>
+          <div className={mobileStep === 3 ? "hidden lg:grid lg:gap-6" : "grid gap-6"}>
           <div className={`${mobileStep === 1 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section ref={(el) => { sectionRefs.current[1] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
-              <StepHeading n={1} title="Add your photo" subtitle="Start with the listing photo — you'll see it in every style next." />
-              <UploadBox label="PROPERTY PHOTO" icon={ImageIcon} state={photo} hint="Choose listing photo, or drag and drop here" />
-              <PhotoReposition state={photo} aspect={form.aspect} />
-              <p className="font-body text-xs mt-2.5" style={{ color: UI.inkSoft }}>Tip: use a bright, high-quality photo for best results.</p>
-            </section>
-
-            <button
-              type="button"
-              onClick={() => setMobileStep(2)}
-              className="lg:hidden w-full py-2.5 rounded-lg font-body font-semibold text-sm transition"
-              style={{ background: ACCENT, color: WHITE }}
-            >
-              Continue to Design
-            </button>
-          </div>
-
-            <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
-            <section ref={(el) => { sectionRefs.current[2] = el; }} className="lg:pt-8 lg:border-t" style={{ scrollMarginTop: "1.5rem", borderColor: UI.line }}>
-              <StepHeading n={2} title="Pick your design" />
-
-              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OCCASION</span>
+              <StepHeading n={1} title="What are you creating?" subtitle="Choose the type of post — this decides which fields you'll fill in next." />
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {Object.entries(TEMPLATES).map(([key, t]) => (
-                  <button key={key} onClick={() => applyTemplate(key)}
+                  <button key={key} onClick={() => chooseTemplate(key)}
                     className="text-left p-3 rounded-lg border transition font-body text-xs font-semibold"
                     style={{ borderColor: form.template === key ? ACCENT : UI.line, background: form.template === key ? UI.card : "transparent" }}>
                     {t.label}
                   </button>
                 ))}
               </div>
+            </section>
 
-              <span className="font-mono text-xs block mb-1.5 mt-5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>STYLE</span>
+            <button
+              type="button"
+              onClick={() => goToStep(2)}
+              className="lg:hidden w-full py-2.5 rounded-lg font-body font-semibold text-sm transition"
+              style={{ background: ACCENT, color: WHITE }}
+            >
+              Continue to Details &amp; Design
+            </button>
+          </div>
+
+            <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
+            <section ref={(el) => { sectionRefs.current[2] = el; }} className="lg:pt-8 lg:border-t" style={{ scrollMarginTop: "1.5rem", borderColor: UI.line }}>
+              <StepHeading n={2} title="Add your listing & choose a design" subtitle="Pick a look first — it decides how many photos you'll need — then fill in the rest." />
+
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>DESIGN</span>
               <div className="grid grid-cols-2 gap-3">
                 {STYLE_OPTIONS.map(({ key, label, description }) => (
                   <button key={key} type="button" onClick={() => setForm((f) => ({ ...f, layout: key }))}
@@ -891,6 +891,65 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   </button>
                 ))}
               </div>
+
+              <span className="font-mono text-xs block mb-1.5 mt-5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PHOTOS</span>
+              <UploadBox label="PROPERTY PHOTO" icon={ImageIcon} state={photo} hint="Choose listing photo, or drag and drop here" />
+              <PhotoReposition state={photo} aspect={form.aspect} />
+              {form.layout !== "bold" && (
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <UploadBox label={form.layout === "collage" ? "PHOTO 2 (top right)" : "PHOTO 2 (strip)"} icon={ImageIcon} state={photo2} hint="Second photo" />
+                  <UploadBox label={form.layout === "collage" ? "PHOTO 3 (bottom right)" : "PHOTO 3 (strip)"} icon={ImageIcon} state={photo3} hint="Third photo" />
+                </div>
+              )}
+              <p className="font-body text-xs mt-2.5" style={{ color: UI.inkSoft }}>
+                {form.layout === "bold" ? "This design uses 1 property photo." : "This design uses 3 property photos."}
+              </p>
+
+              <span className="font-mono text-xs block mb-1.5 mt-5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LISTING DETAILS</span>
+              {form.layout !== "modern" && (
+                <label className="block">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
+                  <input className="input" value={form.address} onChange={update("address")} />
+                </label>
+              )}
+
+              {form.layout === "editorial" && (
+                <div className="grid grid-cols-4 gap-2 mt-3">
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
+                    <input className="input" value={form.beds} onChange={update("beds")} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
+                    <input className="input" value={form.baths} onChange={update("baths")} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
+                    <input className="input" value={form.sqft} onChange={update("sqft")} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PRICE</span>
+                    <input className="input" value={form.price} onChange={update("price")} />
+                  </label>
+                </div>
+              )}
+
+              {form.layout === "modern" && (
+                <div className="grid grid-cols-3 gap-2 mt-3">
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
+                    <input className="input" value={form.beds} onChange={update("beds")} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
+                    <input className="input" value={form.baths} onChange={update("baths")} />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
+                    <input className="input" value={form.sqft} onChange={update("sqft")} />
+                  </label>
+                </div>
+              )}
             </section>
 
             <Accordion title="Personalize your design" subtitle="Colors, fonts & wording">
@@ -1064,98 +1123,27 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
             </Accordion>
 
             <div className="lg:hidden flex items-center gap-2">
-              <button type="button" onClick={() => setMobileStep(1)}
+              <button type="button" onClick={() => goToStep(1)}
                 className="py-2.5 px-4 rounded-lg border font-body font-semibold text-sm transition"
                 style={{ borderColor: UI.line, color: UI.ink }}>
                 Back
               </button>
-              <button type="button" onClick={() => setMobileStep(3)}
+              <button type="button" onClick={() => goToStep(3)}
                 className="flex-1 py-2.5 rounded-lg font-body font-semibold text-sm transition"
                 style={{ background: ACCENT, color: WHITE }}>
-                Continue to Add Listing Details
-              </button>
-            </div>
-            </div>
-
-            <div className={`${mobileStep === 3 ? "grid gap-6" : "hidden"} lg:contents`}>
-            <section ref={(el) => { sectionRefs.current[3] = el; }} className="lg:pt-8 lg:border-t" style={{ scrollMarginTop: "1.5rem", borderColor: UI.line }}>
-              <StepHeading n={3} title="Add listing details" subtitle="The rest of what makes this post yours." />
-
-              {form.layout !== "modern" && (
-                <label className="block">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
-                  <input className="input" value={form.address} onChange={update("address")} />
-                </label>
-              )}
-
-              {form.layout !== "bold" && (
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <UploadBox label={form.layout === "collage" ? "PHOTO 2 (top right)" : "PHOTO 2 (strip)"} icon={ImageIcon} state={photo2} hint="Second photo" />
-                  <UploadBox label={form.layout === "collage" ? "PHOTO 3 (bottom right)" : "PHOTO 3 (strip)"} icon={ImageIcon} state={photo3} hint="Third photo" />
-                </div>
-              )}
-
-              {form.layout === "editorial" && (
-                <div className="grid grid-cols-4 gap-2 mt-3">
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
-                    <input className="input" value={form.beds} onChange={update("beds")} />
-                  </label>
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
-                    <input className="input" value={form.baths} onChange={update("baths")} />
-                  </label>
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
-                    <input className="input" value={form.sqft} onChange={update("sqft")} />
-                  </label>
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PRICE</span>
-                    <input className="input" value={form.price} onChange={update("price")} />
-                  </label>
-                </div>
-              )}
-
-              {form.layout === "modern" && (
-                <div className="grid grid-cols-3 gap-2 mt-3">
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
-                    <input className="input" value={form.beds} onChange={update("beds")} />
-                  </label>
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
-                    <input className="input" value={form.baths} onChange={update("baths")} />
-                  </label>
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
-                    <input className="input" value={form.sqft} onChange={update("sqft")} />
-                  </label>
-                </div>
-              )}
-            </section>
-
-            <div className="lg:hidden flex items-center gap-2">
-              <button type="button" onClick={() => setMobileStep(2)}
-                className="py-2.5 px-4 rounded-lg border font-body font-semibold text-sm transition"
-                style={{ borderColor: UI.line, color: UI.ink }}>
-                Back
-              </button>
-              <button type="button" onClick={() => setMobileStep(4)}
-                className="flex-1 py-2.5 rounded-lg font-body font-semibold text-sm transition"
-                style={{ background: ACCENT, color: WHITE }}>
-                Continue to Preview &amp; Download
+                Continue to Review &amp; Download
               </button>
             </div>
             </div>
           </div>
 
           {/* RIGHT: PREVIEW */}
-          <div ref={(el) => { sectionRefs.current[4] = el; }} className={mobileStep === 4 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "1.5rem", scrollMarginTop: "1.5rem" }}>
-            {mobileStep === 4 && (
-              <button type="button" onClick={() => setMobileStep(3)}
+          <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "1.5rem", scrollMarginTop: "1.5rem" }}>
+            {mobileStep === 3 && (
+              <button type="button" onClick={() => goToStep(2)}
                 className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2"
                 style={{ color: UI.inkSoft }}>
-                ← Back to Listing Details
+                ← Back to Details &amp; Design
               </button>
             )}
             <div className="rounded-2xl border p-2.5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
