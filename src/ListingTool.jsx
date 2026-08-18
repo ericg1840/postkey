@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Download, Image as ImageIcon, User, Building2, ChevronDown } from "lucide-react";
+import { Download, Facebook, Image as ImageIcon, User, Building2, ChevronDown } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
   mixWithWhite, drawCover, wrapText, roundRect, archedRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, PhotoReposition, TopNav, isMobileDevice,
   Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord, firstNameOf,
-  peekPostHandoff, clearPostHandoff,
+  peekPostHandoff, clearPostHandoff, shareImageToFacebook,
 } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 
@@ -694,6 +694,34 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     setDownloading(false);
   };
 
+  const [sharingFacebook, setSharingFacebook] = useState(false);
+
+  const shareToFacebook = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setSharingFacebook(true);
+    setDownloadError("");
+    const safeName = (form.address || "social-post").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    const filename = `${safeName}-${form.template}.png`;
+
+    try {
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
+      });
+      const result = await shareImageToFacebook(blob, filename);
+      if (!result.shared) {
+        setDownloadError("Image downloaded — attach it to the new Facebook post that just opened.");
+      }
+    } catch (e) {
+      if (!e || e.name !== "AbortError") {
+        setDownloadError(
+          "The image was blocked because the headshot or logo comes from a site that doesn't allow this. Save that image to your device and re-upload it in the Headshot/Logo box above, then try again."
+        );
+      }
+    }
+    setSharingFacebook(false);
+  };
+
   const [downloadingAll, setDownloadingAll] = useState(false);
 
   // Generates every size back-to-back onto an offscreen canvas instead of
@@ -1139,14 +1167,24 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 />
               </div>
 
-              <button
-                onClick={downloadImage}
-                disabled={downloading}
-                className="w-full mt-2.5 sm:mt-4 py-3 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
-                style={{ background: ACCENT, color: WHITE }}
-              >
-                <Download size={16} /> {downloading ? "Preparing…" : "Download Image"}
-              </button>
+              <div className="grid grid-cols-2 gap-2 mt-2.5 sm:mt-4">
+                <button
+                  onClick={downloadImage}
+                  disabled={downloading}
+                  className="py-3 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                  style={{ background: ACCENT, color: WHITE }}
+                >
+                  <Download size={16} /> {downloading ? "Preparing…" : "Download"}
+                </button>
+                <button
+                  onClick={shareToFacebook}
+                  disabled={sharingFacebook}
+                  className="py-3 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                  style={{ background: "#1877F2", color: WHITE }}
+                >
+                  <Facebook size={16} /> {sharingFacebook ? "Preparing…" : "Share to Facebook"}
+                </button>
+              </div>
               {downloadError && (
                 <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
               )}

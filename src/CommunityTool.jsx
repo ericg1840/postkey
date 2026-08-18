@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Download, Image as ImageIcon, User, Building2, Sparkles, SlidersHorizontal, Check, Copy, ChevronDown, CalendarPlus } from "lucide-react";
+import { Download, Facebook, Image as ImageIcon, User, Building2, Sparkles, SlidersHorizontal, Check, Copy, ChevronDown, CalendarPlus } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
   mixWithWhite, drawCover, wrapText, roundRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, PhotoReposition, TopNav, isMobileDevice,
   Accordion, PrivacyBadge, splitHeadlineLastWord, drawHouseBackdrop, useDefaultImage, firstNameOf,
-  peekPostHandoff, clearPostHandoff,
+  peekPostHandoff, clearPostHandoff, shareImageToFacebook,
   loadCalendarEntries, saveCalendarEntries, genCalendarEntryId,
 } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
@@ -1055,6 +1055,34 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     setDownloading(false);
   };
 
+  const [sharingFacebook, setSharingFacebook] = useState(false);
+
+  const shareToFacebook = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setSharingFacebook(true);
+    setDownloadError("");
+    const safeName = (form.subject || "community-post").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    const filename = `${safeName}-${form.template}.png`;
+
+    try {
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
+      });
+      const result = await shareImageToFacebook(blob, filename);
+      if (!result.shared) {
+        setDownloadError("Image downloaded — attach it to the new Facebook post that just opened.");
+      }
+    } catch (e) {
+      if (!e || e.name !== "AbortError") {
+        setDownloadError(
+          "The image was blocked because the headshot or logo comes from a site that doesn't allow this. Save that image to your device and re-upload it in the Headshot/Logo box above, then try again."
+        );
+      }
+    }
+    setSharingFacebook(false);
+  };
+
   const [downloadingAll, setDownloadingAll] = useState(false);
 
   const downloadAllSizes = async () => {
@@ -1662,6 +1690,14 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                   style={{ background: ACCENT, color: WHITE }}
                 >
                   <Download size={16} /> {downloading ? "Preparing…" : `Download current design (${ASPECTS[form.aspect].label})`}
+                </button>
+                <button
+                  onClick={shareToFacebook}
+                  disabled={sharingFacebook}
+                  className="w-full py-3 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                  style={{ background: "#1877F2", color: WHITE }}
+                >
+                  <Facebook size={16} /> {sharingFacebook ? "Preparing…" : "Share to Facebook"}
                 </button>
                 {wantSocialSet && (
                   <button

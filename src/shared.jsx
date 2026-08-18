@@ -10,6 +10,34 @@ export function isMobileDevice() {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
+// Facebook's share dialog only takes a URL (it scrapes that page's own
+// og:image) — it can't accept a locally-generated image directly, so a
+// real "post this exact graphic to Facebook" button isn't possible without
+// hosting the image somewhere public first. On phones the native share
+// sheet (which already lists the Facebook app as a target when installed)
+// is the closest thing to that, so we use it when files can be shared;
+// otherwise we download the image and send the agent to Facebook to
+// attach it themselves.
+export async function shareImageToFacebook(blob, filename) {
+  if (isMobileDevice() && navigator.canShare) {
+    const file = new File([blob], filename, { type: "image/png" });
+    if (navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file] });
+      return { shared: true };
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.download = filename;
+  link.href = url;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  window.open("https://www.facebook.com/", "_blank", "noopener,noreferrer");
+  return { shared: false, downloaded: true };
+}
+
 // App-chrome palette — matches the warm cream/ink palette used on the
 // marketing site (HomePage/AuthShell), kept separate from the per-post
 // ACCENT_PRESETS below so a shared multi-agent app doesn't read as
