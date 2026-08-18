@@ -787,7 +787,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
             spread evenly across the full width instead of bunching together
             at the left edge on wide screens. */}
         <div
-          className={`flex items-center mb-5 sm:mb-8 lg:mb-8 ${mobileStep === 1 ? "" : "pt-4 lg:pt-0"}`}
+          className={`flex items-center mb-5 sm:mb-8 lg:mb-8 ${mobileStep === 1 ? "" : "pt-8 lg:pt-0"}`}
           style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}
         >
           {[{ n: 1, label: "What to Post" }, { n: 2, label: "Choose Your Look" }, { n: 3, label: "Add Listing Details" }, { n: 4, label: "Download" }].map((s, i, arr) => (
