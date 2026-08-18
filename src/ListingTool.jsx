@@ -858,47 +858,48 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           ))}
         </div>
 
+        {/* STEP 1 — full page width, no preview alongside it */}
+        <div className={`${mobileStep === 1 ? "" : "hidden"} lg:block mb-8 lg:mb-10`}>
+          <section ref={(el) => { sectionRefs.current[1] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
+            <StepHeading n={1} title="What are you creating?" subtitle="Choose the type of post — this decides which fields you'll fill in next." />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {Object.entries(TEMPLATES).map(([key, t]) => {
+                const selected = form.template === key;
+                const Icon = t.icon;
+                return (
+                  <button key={key} onClick={() => chooseTemplate(key)}
+                    className="relative text-left p-4 rounded-xl border-2 transition"
+                    style={{ borderColor: selected ? ACCENT : UI.line, background: selected ? mixWithWhite(ACCENT, 0.92) : UI.card }}>
+                    {selected && (
+                      <span className="absolute top-2.5 right-2.5 flex items-center justify-center rounded-full" style={{ width: 20, height: 20, background: ACCENT }}>
+                        <Check size={13} color={WHITE} strokeWidth={3} />
+                      </span>
+                    )}
+                    <Icon size={26} color={t.color} strokeWidth={1.75} />
+                    <div className="font-body text-sm font-bold mt-2.5" style={{ color: UI.ink }}>{t.label}</div>
+                    <div className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>{t.description}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <button
+            type="button"
+            onClick={() => goToStep(2)}
+            className="lg:hidden w-full mt-6 py-2.5 rounded-lg font-body font-semibold text-sm transition"
+            style={{ background: ACCENT, color: WHITE }}
+          >
+            Continue to Details &amp; Design
+          </button>
+        </div>
+
         {/* MAIN GRID: controls + preview */}
         <div className="grid lg:grid-cols-[55fr_45fr] gap-8 items-start">
           {/* LEFT: CONTROLS */}
-          <div className={mobileStep === 3 ? "hidden lg:grid lg:gap-6" : "grid gap-6"}>
-          <div className={`${mobileStep === 1 ? "grid gap-6" : "hidden"} lg:contents`}>
-            <section ref={(el) => { sectionRefs.current[1] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
-              <StepHeading n={1} title="What are you creating?" subtitle="Choose the type of post — this decides which fields you'll fill in next." />
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {Object.entries(TEMPLATES).map(([key, t]) => {
-                  const selected = form.template === key;
-                  const Icon = t.icon;
-                  return (
-                    <button key={key} onClick={() => chooseTemplate(key)}
-                      className="relative text-left p-4 rounded-xl border-2 transition"
-                      style={{ borderColor: selected ? ACCENT : UI.line, background: selected ? mixWithWhite(ACCENT, 0.92) : UI.card }}>
-                      {selected && (
-                        <span className="absolute top-2.5 right-2.5 flex items-center justify-center rounded-full" style={{ width: 20, height: 20, background: ACCENT }}>
-                          <Check size={13} color={WHITE} strokeWidth={3} />
-                        </span>
-                      )}
-                      <Icon size={26} color={t.color} strokeWidth={1.75} />
-                      <div className="font-body text-sm font-bold mt-2.5" style={{ color: UI.ink }}>{t.label}</div>
-                      <div className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>{t.description}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            <button
-              type="button"
-              onClick={() => goToStep(2)}
-              className="lg:hidden w-full py-2.5 rounded-lg font-body font-semibold text-sm transition"
-              style={{ background: ACCENT, color: WHITE }}
-            >
-              Continue to Details &amp; Design
-            </button>
-          </div>
-
+          <div className={mobileStep === 1 || mobileStep === 3 ? "hidden lg:grid lg:gap-6" : "grid gap-6"}>
             <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
-            <section ref={(el) => { sectionRefs.current[2] = el; }} className="lg:pt-8 lg:border-t" style={{ scrollMarginTop: "1.5rem", borderColor: UI.line }}>
+            <section ref={(el) => { sectionRefs.current[2] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
               <StepHeading n={2} title="Add your listing & choose a design" subtitle="Pick a look first — it decides how many photos you'll need — then fill in the rest." />
 
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>DESIGN</span>
