@@ -1,6 +1,6 @@
 import { Key, Smartphone, Laptop, Palette, Lock, Clock, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { AUTH } from "../auth/AuthShell.jsx";
-import { ACCENT_PRESETS } from "../shared.jsx";
+import { ACCENT_PRESETS, Logo } from "../shared.jsx";
 import { PostCard, FloatingDot, FloatingSparkle, BrandKitPreview } from "./HomePage.jsx";
 
 const PRIMARY = ACCENT_PRESETS[1];
@@ -17,9 +17,7 @@ export function AboutPage({ onBack, onGetStarted, onLogIn }) {
       <header style={{ paddingTop: "env(safe-area-inset-top)" }}>
         <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-1">
           <button onClick={onBack} className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-0">
-            <div className="flex items-center justify-center rounded-lg flex-shrink-0" style={{ width: 28, height: 28, background: AUTH.ink }}>
-              <Key size={14} color="#FFFFFF" style={{ transform: "rotate(-45deg)" }} />
-            </div>
+            <Logo size={26} />
             <span className="font-display font-bold text-base sm:text-lg whitespace-nowrap" style={{ color: AUTH.ink }}>PostKey</span>
           </button>
           <button onClick={onBack} className="hidden sm:flex items-center gap-1.5 font-body text-sm font-semibold" style={{ color: AUTH.muted }}>
@@ -214,9 +212,7 @@ export function AboutPage({ onBack, onGetStarted, onLogIn }) {
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-8">
           <div>
             <button onClick={onBack} className="flex items-center gap-2">
-              <div className="flex items-center justify-center rounded-lg" style={{ width: 26, height: 26, background: AUTH.ink }}>
-                <Key size={13} color="#FFFFFF" style={{ transform: "rotate(-45deg)" }} />
-              </div>
+              <Logo size={24} />
               <span className="font-display font-bold text-base" style={{ color: AUTH.ink }}>PostKey</span>
             </button>
             <p className="font-body text-xs mt-3" style={{ color: AUTH.muted, maxWidth: 240 }}>
