@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Download, Facebook, Image as ImageIcon, User, Building2, ChevronDown } from "lucide-react";
+import {
+  Download, Facebook, Image as ImageIcon, User, Building2, ChevronDown,
+  Heart, Home, DoorOpen, Tag, Handshake, Calendar, Lightbulb, Check,
+} from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
@@ -22,13 +25,16 @@ const STYLE_OPTIONS = [
 // "What are you posting?" — the event, independent of which visual Style
 // draws it. Applying one fills in every layout's headline representation
 // at once, so switching Style afterward never loses the chosen wording.
+// Each also carries its own icon + color for the Step 1 cards — a distinct
+// per-occasion accent, kept separate from ACCENT (the app's own blue
+// highlight) so the cards read as a varied set rather than a form.
 const TEMPLATES = {
-  sold: { label: "Just Sold", word1: "Just", script: "SOLD!", badge: "Another Home\nSold by\n{agent}" },
-  just_listed: { label: "Just Listed", word1: "Just", script: "Listed!", badge: "New on the\nMarket with\n{agent}" },
-  open_house: { label: "Open House", word1: "Open", script: "House!", badge: "See You\nThere with\n{agent}" },
-  price_improvement: { label: "New Price", word1: "New", script: "Price!", badge: "Priced to\nMove with\n{agent}" },
-  under_contract: { label: "Under Contract", word1: "Under", script: "Contract!", badge: "Another One\nUnder Contract" },
-  coming_soon: { label: "Coming Soon", word1: "Coming", script: "Soon!", badge: "Coming Soon\nwith\n{agent}" },
+  sold: { label: "Just Sold", description: "Celebrate a successful closing.", icon: Heart, color: "#E0298C", word1: "Just", script: "SOLD!", badge: "Another Home\nSold by\n{agent}" },
+  just_listed: { label: "Just Listed", description: "Show off a beautiful new listing.", icon: Home, color: "#0043FF", word1: "Just", script: "Listed!", badge: "New on the\nMarket with\n{agent}" },
+  open_house: { label: "Open House", description: "Invite buyers to an upcoming open.", icon: DoorOpen, color: "#0F9D58", word1: "Open", script: "House!", badge: "See You\nThere with\n{agent}" },
+  price_improvement: { label: "New Price", description: "Announce a price improvement.", icon: Tag, color: "#E8792E", word1: "New", script: "Price!", badge: "Priced to\nMove with\n{agent}" },
+  under_contract: { label: "Under Contract", description: "Let everyone know it's under contract.", icon: Handshake, color: "#7B3FE4", word1: "Under", script: "Contract!", badge: "Another One\nUnder Contract" },
+  coming_soon: { label: "Coming Soon", description: "Generate excitement for what's next.", icon: Calendar, color: "#0043FF", word1: "Coming", script: "Soon!", badge: "Coming Soon\nwith\n{agent}" },
 };
 
 const DEFAULTS = {
@@ -811,18 +817,23 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
         {/* STEP INDICATOR — connecting lines are flex-1 so the steps
             spread evenly across the full width instead of bunching together
-            at the left edge on wide screens. */}
+            at the left edge on wide screens. Generous padding top/bottom
+            and a two-line label (title + short subtitle) keep this row
+            from reading as cramped next to the page header above it. */}
         <div
-          className={`flex items-center mb-5 sm:mb-8 lg:mb-8 ${mobileStep === 1 ? "" : "pt-8 lg:pt-0"}`}
-          style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}
+          className={`flex items-start mb-6 sm:mb-10 lg:mb-10 py-1 sm:py-2 ${mobileStep === 1 ? "" : "pt-8 lg:pt-2"}`}
         >
-          {[{ n: 1, label: "Post Type" }, { n: 2, label: "Details & Design" }, { n: 3, label: "Review & Download" }].map((s, i, arr) => (
-            <div key={s.n} className={`flex items-center min-w-0 ${i < arr.length - 1 ? "flex-1" : "flex-shrink-0"}`}>
-              <button type="button" onClick={() => goToStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+          {[
+            { n: 1, label: "Post Type", subtitle: "Choose what you're creating" },
+            { n: 2, label: "Details & Design", subtitle: "Add photos, info & look" },
+            { n: 3, label: "Review & Download", subtitle: "Finalize and download" },
+          ].map((s, i, arr) => (
+            <div key={s.n} className={`flex items-start min-w-0 ${i < arr.length - 1 ? "flex-1" : "flex-shrink-0"}`}>
+              <button type="button" onClick={() => goToStep(s.n)} className="flex items-start gap-2.5 sm:gap-3 min-w-0 text-left">
                 <span
-                  className="flex items-center justify-center rounded-full font-body text-xs font-semibold flex-shrink-0"
+                  className="flex items-center justify-center rounded-full font-body text-xs sm:text-sm font-semibold flex-shrink-0"
                   style={{
-                    width: 24, height: 24,
+                    width: 28, height: 28,
                     background: currentStep >= s.n ? ACCENT : "transparent",
                     color: currentStep >= s.n ? WHITE : UI.inkSoft,
                     border: currentStep >= s.n ? "none" : `1.5px solid ${UI.line}`,
@@ -830,14 +841,19 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 >
                   {s.n}
                 </span>
-                <span
-                  className={`font-body text-xs sm:text-sm font-semibold truncate ${mobileStep === s.n ? "" : "hidden sm:inline"}`}
-                  style={{ color: currentStep >= s.n ? UI.ink : UI.inkSoft }}
-                >
-                  {s.label}
+                <span className={`min-w-0 ${mobileStep === s.n ? "" : "hidden sm:block"}`}>
+                  <span
+                    className="font-body text-sm sm:text-base font-bold block truncate"
+                    style={{ color: currentStep >= s.n ? UI.ink : UI.inkSoft }}
+                  >
+                    {s.label}
+                  </span>
+                  <span className="font-body text-xs mt-0.5 hidden sm:block truncate" style={{ color: UI.inkSoft }}>
+                    {s.subtitle}
+                  </span>
                 </span>
               </button>
-              {i < arr.length - 1 && <div className="flex-1 mx-2 sm:mx-3" style={{ height: 1.5, background: UI.line }} />}
+              {i < arr.length - 1 && <div className="flex-1 mx-3 sm:mx-5 mt-3.5" style={{ height: 1.5, background: UI.line }} />}
             </div>
           ))}
         </div>
@@ -849,14 +865,25 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           <div className={`${mobileStep === 1 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section ref={(el) => { sectionRefs.current[1] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
               <StepHeading n={1} title="What are you creating?" subtitle="Choose the type of post — this decides which fields you'll fill in next." />
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {Object.entries(TEMPLATES).map(([key, t]) => (
-                  <button key={key} onClick={() => chooseTemplate(key)}
-                    className="text-left p-3 rounded-lg border transition font-body text-xs font-semibold"
-                    style={{ borderColor: form.template === key ? ACCENT : UI.line, background: form.template === key ? UI.card : "transparent" }}>
-                    {t.label}
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {Object.entries(TEMPLATES).map(([key, t]) => {
+                  const selected = form.template === key;
+                  const Icon = t.icon;
+                  return (
+                    <button key={key} onClick={() => chooseTemplate(key)}
+                      className="relative text-left p-4 rounded-xl border-2 transition"
+                      style={{ borderColor: selected ? ACCENT : UI.line, background: selected ? mixWithWhite(ACCENT, 0.92) : UI.card }}>
+                      {selected && (
+                        <span className="absolute top-2.5 right-2.5 flex items-center justify-center rounded-full" style={{ width: 20, height: 20, background: ACCENT }}>
+                          <Check size={13} color={WHITE} strokeWidth={3} />
+                        </span>
+                      )}
+                      <Icon size={26} color={t.color} strokeWidth={1.75} />
+                      <div className="font-body text-sm font-bold mt-2.5" style={{ color: UI.ink }}>{t.label}</div>
+                      <div className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>{t.description}</div>
+                    </button>
+                  );
+                })}
               </div>
             </section>
 
@@ -1200,6 +1227,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
               )}
             </div>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 mt-6 p-4 rounded-xl" style={{ background: UI.stone }}>
+          <Lightbulb size={18} color={UI.inkSoft} className="flex-shrink-0 mt-0.5" />
+          <div>
+            <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Tip: Great photos get great results. </span>
+            <span className="font-body text-sm" style={{ color: UI.inkSoft }}>Use bright, high-quality photos of your listing for best engagement.</span>
           </div>
         </div>
 
