@@ -812,7 +812,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         {/* PAGE HEADER */}
         <div className={mobileStep === 1 ? "mb-3 sm:mb-6" : "hidden lg:block lg:mb-6"}>
           <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Create a Post</h1>
-          <p className="font-body text-sm mt-1 hidden sm:block" style={{ color: UI.inkSoft }}>One photo. Your brand. Done.</p>
+          <p className="font-body text-sm mt-1 hidden sm:block" style={{ color: UI.inkSoft }}>Your photos. Your brand. Done.</p>
         </div>
 
         {/* STEP INDICATOR — connecting lines are flex-1 so the steps
