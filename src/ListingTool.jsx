@@ -60,6 +60,27 @@ const DEFAULTS = {
   scriptFont: "Dancing Script",
 };
 
+// Numbered badge + title used above each step's content so the stacked
+// sections on desktop read as a sequence at a glance, matching the badges
+// in the step indicator at the top of the page instead of relying on a
+// small "N." prefix in the heading text alone.
+function StepHeading({ n, title, subtitle }) {
+  return (
+    <div className="flex items-start gap-2.5 mb-2.5">
+      <span
+        className="flex items-center justify-center rounded-full font-body text-xs font-semibold flex-shrink-0"
+        style={{ width: 22, height: 22, background: ACCENT, color: WHITE, marginTop: 1 }}
+      >
+        {n}
+      </span>
+      <div className="min-w-0">
+        <h3 className="font-body text-sm font-semibold" style={{ color: UI.ink }}>{title}</h3>
+        {subtitle && <p className="font-body text-xs mt-0.5" style={{ color: UI.inkSoft }}>{subtitle}</p>}
+      </div>
+    </div>
+  );
+}
+
 export function ListingTool({ onSwitchTool, onGoHome }) {
   const { user, brandKit, logout, saveBrandKit } = useAuth();
   const [form, setForm] = useState(() => {
@@ -822,7 +843,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           <div className={mobileStep === 4 ? "hidden lg:grid lg:gap-6" : "grid gap-6"}>
           <div className={`${mobileStep === 1 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section ref={(el) => { sectionRefs.current[1] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
-              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>1. What are you posting?</h3>
+              <StepHeading n={1} title="What are you posting?" />
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {Object.entries(TEMPLATES).map(([key, t]) => (
                   <button key={key} onClick={() => applyTemplate(key)}
@@ -845,8 +866,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           </div>
 
             <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
-            <section ref={(el) => { sectionRefs.current[2] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
-              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>2. Choose your look</h3>
+            <section ref={(el) => { sectionRefs.current[2] = el; }} className="lg:pt-8 lg:border-t" style={{ scrollMarginTop: "1.5rem", borderColor: UI.line }}>
+              <StepHeading n={2} title="Choose your look" />
               <div className="grid grid-cols-2 gap-3">
                 {STYLE_OPTIONS.map(({ key, label, description }) => (
                   <button key={key} type="button" onClick={() => setForm((f) => ({ ...f, layout: key }))}
@@ -1050,9 +1071,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
             </div>
 
             <div className={`${mobileStep === 3 ? "grid gap-6" : "hidden"} lg:contents`}>
-            <section ref={(el) => { sectionRefs.current[3] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
-              <h3 className="font-body text-sm font-semibold mb-1" style={{ color: UI.ink }}>3. Add listing details</h3>
-              <p className="font-body text-xs mb-2.5" style={{ color: UI.inkSoft }}>Upload a listing photo and we'll create your branded post.</p>
+            <section ref={(el) => { sectionRefs.current[3] = el; }} className="lg:pt-8 lg:border-t" style={{ scrollMarginTop: "1.5rem", borderColor: UI.line }}>
+              <StepHeading n={3} title="Add listing details" subtitle="Upload a listing photo and we'll create your branded post." />
               <UploadBox label="PROPERTY PHOTO" icon={ImageIcon} state={photo} hint="Choose listing photo, or drag and drop here" />
               <PhotoReposition state={photo} aspect={form.aspect} />
 
