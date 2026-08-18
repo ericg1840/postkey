@@ -802,8 +802,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     goToStep(2);
   };
 
-  const currentStep = downloadError || downloading || downloadingAll ? 3 : mobileStep;
-
   return (
     <div className="min-h-screen" style={{ background: UI.page, color: UI.ink }}>
       <TopNav active="listings" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} onLogoClick={onGoHome} />
@@ -815,48 +813,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           <p className="font-body text-sm mt-1 hidden sm:block" style={{ color: UI.inkSoft }}>Your photos. Your brand. Done.</p>
         </div>
 
-        {/* STEP INDICATOR — connecting lines are flex-1 so the steps
-            spread evenly across the full width instead of bunching together
-            at the left edge on wide screens. Generous padding top/bottom
-            and a two-line label (title + short subtitle) keep this row
-            from reading as cramped next to the page header above it. */}
-        <div
-          className={`flex items-start mb-6 sm:mb-10 lg:mb-10 py-1 sm:py-2 ${mobileStep === 1 ? "" : "pt-8 lg:pt-2"}`}
-        >
-          {[
-            { n: 1, label: "Post Type", subtitle: "Choose what you're creating" },
-            { n: 2, label: "Details & Design", subtitle: "Add photos, info & look" },
-            { n: 3, label: "Review & Download", subtitle: "Finalize and download" },
-          ].map((s, i, arr) => (
-            <div key={s.n} className={`flex items-start min-w-0 ${i < arr.length - 1 ? "flex-1" : "flex-shrink-0"}`}>
-              <button type="button" onClick={() => goToStep(s.n)} className="flex items-start gap-2.5 sm:gap-3 min-w-0 text-left">
-                <span
-                  className="flex items-center justify-center rounded-full font-body text-xs sm:text-sm font-semibold flex-shrink-0"
-                  style={{
-                    width: 28, height: 28,
-                    background: currentStep >= s.n ? ACCENT : "transparent",
-                    color: currentStep >= s.n ? WHITE : UI.inkSoft,
-                    border: currentStep >= s.n ? "none" : `1.5px solid ${UI.line}`,
-                  }}
-                >
-                  {s.n}
-                </span>
-                <span className={`min-w-0 ${mobileStep === s.n ? "" : "hidden sm:block"}`}>
-                  <span
-                    className="font-body text-sm sm:text-base font-bold block truncate"
-                    style={{ color: currentStep >= s.n ? UI.ink : UI.inkSoft }}
-                  >
-                    {s.label}
-                  </span>
-                  <span className="font-body text-xs mt-0.5 hidden sm:block truncate" style={{ color: UI.inkSoft }}>
-                    {s.subtitle}
-                  </span>
-                </span>
-              </button>
-              {i < arr.length - 1 && <div className="flex-1 mx-3 sm:mx-5 mt-3.5" style={{ height: 1.5, background: UI.line }} />}
-            </div>
-          ))}
-        </div>
 
         {/* STEP 1 — full page width, no preview alongside it */}
         <div className={`${mobileStep === 1 ? "" : "hidden"} lg:block mb-8 lg:mb-10`}>
