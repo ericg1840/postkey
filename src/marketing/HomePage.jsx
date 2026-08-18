@@ -1,4 +1,4 @@
-import { Key, Sparkles, Palette, Lock, Lightbulb, Zap, Repeat, Star, ArrowRight, Heart, MessageCircle, Send, Bookmark, Check } from "lucide-react";
+import { Key, Sparkles, Lock, Lightbulb, Zap, Repeat, Star, ArrowRight, Heart, MessageCircle, Send, Bookmark, Check } from "lucide-react";
 import { AUTH } from "../auth/AuthShell.jsx";
 import { ACCENT_PRESETS, Logo } from "../shared.jsx";
 
@@ -8,7 +8,6 @@ const PRIMARY = ACCENT_PRESETS[1];
 const FEATURES = [
   { icon: Lightbulb, title: "Never run out of ideas", text: "Fresh real estate, local, educational, and engagement content to post between listings.", color: ACCENT_PRESETS[3] },
   { icon: Zap, title: "Create in seconds", text: "Turn an idea, listing, or photo into a ready-to-post graphic — no design tool required.", color: PRIMARY },
-  { icon: Palette, title: "Always on-brand", text: "Your logo, headshot, colors, and contact info are set up once and applied automatically.", color: ACCENT_PRESETS[4] },
   { icon: Repeat, title: "Stay consistent", text: "Know exactly what to post next, so a busy week never means a quiet feed.", color: ACCENT_PRESETS[2] },
 ];
 
@@ -307,7 +306,7 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
         <h2 className="font-display font-bold text-center" style={{ color: AUTH.ink, fontSize: "1.75rem" }}>
           Everything you need to stay consistent
         </h2>
-        <div className="grid sm:grid-cols-2 gap-5 mt-10">
+        <div className="grid sm:grid-cols-3 gap-5 mt-10">
           {FEATURES.map(({ icon: Icon, title, text, color }, i) => (
             <div key={i} className="rounded-2xl p-6" style={{ background: "#FFFFFF", boxShadow: "0 4px 20px rgba(27,36,48,0.06)" }}>
               <div className="flex items-center justify-center rounded-xl mb-4" style={{ width: 42, height: 42, background: `${color}1A` }}>
