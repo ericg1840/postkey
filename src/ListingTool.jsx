@@ -539,11 +539,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillRect(0, 0, w, h);
 
     // Fixed-height bands from the bottom up; the hero photo takes whatever's left.
+    // "Just Sold" has nothing left to invite more details about, so it skips
+    // the message bar entirely and gives that space to the photo instead.
+    const showMessageBar = form.template !== "sold";
     const headlineH = h * 0.145;
     const stripGap = h * 0.045;
     const stripH = h * 0.22;
     const contactH = Math.min(w, h) * 0.145;
-    const barH = h * 0.09;
+    const barH = showMessageBar ? h * 0.09 : 0;
     const heroH = h - headlineH - stripGap - stripH - contactH - barH;
 
     if (photo.img) drawCover(ctx, photo.img, 0, 0, w, heroH, photo.focus.x, photo.focus.y, photo.zoom);
@@ -630,22 +633,24 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     drawContactBand(ctx, w, contactY0, contactH, form, headshot, logo, false);
 
     // ---- Bottom message bar (single line, letter-spaced, shrinks to fit) ----
-    const barY0 = h - barH;
-    ctx.fillStyle = BLACK;
-    ctx.fillRect(0, barY0, w, barH);
-    let msgSize = barH * 0.32;
-    const spacedMsg = form.bottomMessage.toUpperCase().split("").join("\u2009");
-    ctx.font = `600 ${msgSize}px "Montserrat", sans-serif`;
-    let msgW = ctx.measureText(spacedMsg).width;
-    const msgMaxW = w * 0.88;
-    if (msgW > msgMaxW) {
-      msgSize *= msgMaxW / msgW;
+    if (showMessageBar) {
+      const barY0 = h - barH;
+      ctx.fillStyle = BLACK;
+      ctx.fillRect(0, barY0, w, barH);
+      let msgSize = barH * 0.32;
+      const spacedMsg = form.bottomMessage.toUpperCase().split("").join("\u2009");
       ctx.font = `600 ${msgSize}px "Montserrat", sans-serif`;
+      let msgW = ctx.measureText(spacedMsg).width;
+      const msgMaxW = w * 0.88;
+      if (msgW > msgMaxW) {
+        msgSize *= msgMaxW / msgW;
+        ctx.font = `600 ${msgSize}px "Montserrat", sans-serif`;
+      }
+      ctx.fillStyle = WHITE;
+      ctx.textAlign = "center";
+      ctx.fillText(spacedMsg, w / 2, barY0 + barH / 2 + msgSize * 0.34);
+      ctx.textAlign = "left";
     }
-    ctx.fillStyle = WHITE;
-    ctx.textAlign = "center";
-    ctx.fillText(spacedMsg, w / 2, barY0 + barH / 2 + msgSize * 0.34);
-    ctx.textAlign = "left";
   };
 
   const drawToCanvas = (canvas, aspectKey) => {
@@ -1044,7 +1049,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 </label>
               )}
 
-              {form.layout === "modern" && (
+              {form.layout === "modern" && form.template !== "sold" && (
                 <label className="block md:col-span-2">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BOTTOM BAR MESSAGE</span>
                   <input className="input" value={form.bottomMessage} onChange={update("bottomMessage")} placeholder="Message for more details" />
