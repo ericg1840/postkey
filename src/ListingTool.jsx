@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Download, Facebook, Image as ImageIcon, User, Building2, ChevronDown,
-  Heart, Home, DoorOpen, Tag, Handshake, Calendar, Lightbulb, Check,
+  HandCoins, Home, DoorOpen, Tag, Handshake, Calendar, Lightbulb, Check,
 } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
@@ -29,7 +29,7 @@ const STYLE_OPTIONS = [
 // per-occasion accent, kept separate from ACCENT (the app's own blue
 // highlight) so the cards read as a varied set rather than a form.
 const TEMPLATES = {
-  sold: { label: "Just Sold", description: "Celebrate a successful closing.", icon: Heart, color: "#E0298C", word1: "Just", script: "SOLD!", badge: "Another Home\nSold by\n{agent}" },
+  sold: { label: "Just Sold", description: "Celebrate a successful closing.", icon: HandCoins, color: "#E0298C", word1: "Just", script: "SOLD!", badge: "Another Home\nSold by\n{agent}" },
   just_listed: { label: "Just Listed", description: "Show off a beautiful new listing.", icon: Home, color: "#0043FF", word1: "Just", script: "Listed!", badge: "New on the\nMarket with\n{agent}" },
   open_house: { label: "Open House", description: "Invite buyers to an upcoming open.", icon: DoorOpen, color: "#0F9D58", word1: "Open", script: "House!", badge: "See You\nThere with\n{agent}" },
   price_improvement: { label: "New Price", description: "Announce a price improvement.", icon: Tag, color: "#E8792E", word1: "New", script: "Price!", badge: "Priced to\nMove with\n{agent}" },
