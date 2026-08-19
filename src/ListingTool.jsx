@@ -68,7 +68,6 @@ const DEFAULTS = {
   modernScript: "just",
   modernHeadline: "Listed",
   bottomMessage: "Message for more details",
-  agentTitle: "Real Estate Agent",
   agentName: "Your Name, Realtor",
   agentPhone: "(555) 123-4567",
   agentEmail: "you@example.com",
@@ -469,8 +468,15 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillText(spacedHeadline, w / 2, topH * 0.72);
 
     const contactH = Math.min(w, h) * 0.145;
+    // Price/beds/baths, if present, gets a slim band of its own between the
+    // collage and the contact band; the agent's name used to sign this
+    // layout too, but the contact band already carries it, so that space
+    // goes to the photos instead.
+    const statParts = [form.price, form.beds && `${form.beds} bd`, form.baths && `${form.baths} ba`].filter(Boolean);
+    const hasStats = statParts.length > 0;
+    const statBandH = hasStats ? h * 0.09 : 0;
     const collageY0 = topH;
-    const collageH = h * 0.5;
+    const collageH = h - topH - contactH - statBandH;
     const pad = w * 0.06;
     const mainW = w * 0.56 - pad;
     const sideW = w - pad * 2 - mainW - w * 0.02;
@@ -507,48 +513,22 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     if (photo3.img) drawCover(ctx, photo3.img, sideX, tile2Y, sideW, sideTileH);
     else { ctx.fillStyle = "#DED4CC"; ctx.fillRect(sideX, tile2Y, sideW, sideTileH); }
 
-    const sigY0 = collageY0 + collageH;
-    const sigH = h - sigY0 - contactH;
-
-    // Price / beds / baths, in the gap between the collage and the
-    // signature — shifts the divider/signature down slightly to make room.
-    const statParts = [form.price, form.beds && `${form.beds} bd`, form.baths && `${form.baths} ba`].filter(Boolean);
-    const hasStats = statParts.length > 0;
     if (hasStats) {
-      ctx.font = `700 ${sigH * 0.13}px "Montserrat", sans-serif`;
+      const statY0 = collageY0 + collageH;
+      const dividerY = statY0 + statBandH * 0.34;
+      ctx.strokeStyle = form.accentColor;
+      ctx.lineWidth = Math.max(2, w * 0.003);
+      ctx.beginPath();
+      ctx.moveTo(w / 2 - w * 0.06, dividerY);
+      ctx.lineTo(w / 2 + w * 0.06, dividerY);
+      ctx.stroke();
+
+      ctx.font = `700 ${statBandH * 0.32}px "Montserrat", sans-serif`;
       ctx.fillStyle = UI.ink;
       ctx.textAlign = "center";
-      ctx.fillText(statParts.join("   ·   "), w / 2, sigY0 + sigH * 0.12);
+      ctx.fillText(statParts.join("   ·   "), w / 2, statY0 + statBandH * 0.76);
       ctx.textAlign = "left";
     }
-
-    const dividerY = sigY0 + sigH * (hasStats ? 0.24 : 0.18);
-    ctx.strokeStyle = form.accentColor;
-    ctx.lineWidth = Math.max(2, w * 0.003);
-    ctx.beginPath();
-    ctx.moveTo(w / 2 - w * 0.06, dividerY);
-    ctx.lineTo(w / 2 + w * 0.06, dividerY);
-    ctx.stroke();
-
-    const sigName = form.agentName.replace(/, Realtor$/i, "");
-    let sigSize = sigH * (hasStats ? 0.44 : 0.5);
-    ctx.font = scriptFontCss(form.scriptFont, sigSize);
-    const sigMaxW = w * 0.86;
-    const sigWidth = ctx.measureText(sigName).width;
-    if (sigWidth > sigMaxW) {
-      sigSize *= sigMaxW / sigWidth;
-      ctx.font = scriptFontCss(form.scriptFont, sigSize);
-    }
-    ctx.fillStyle = form.accentColor;
-    ctx.textAlign = "center";
-    const sigY = sigY0 + sigH * (hasStats ? 0.68 : 0.62);
-    ctx.fillText(sigName, w / 2, sigY);
-    if (form.agentTitle) {
-      ctx.font = `600 ${sigH * 0.16}px "Montserrat", sans-serif`;
-      ctx.fillStyle = UI.ink;
-      ctx.fillText(form.agentTitle.toUpperCase(), w / 2, sigY0 + sigH * (hasStats ? 0.9 : 0.86));
-    }
-    ctx.textAlign = "left";
 
     drawContactBand(ctx, w, h - contactH, contactH, form, headshot, logo);
   };
@@ -1049,14 +1029,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 <label className="block md:col-span-2">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
                   <input className="input" value={form.bigHeadline} onChange={update("bigHeadline")} placeholder={form.layout === "editorial" ? "JUST LISTED" : "FOR SALE"} />
-                </label>
-              )}
-
-              {form.layout === "collage" && (
-                <label className="block md:col-span-2">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>TITLE UNDER YOUR NAME (optional)</span>
-                  <input className="input" value={form.agentTitle} onChange={update("agentTitle")} placeholder="Real Estate Agent" />
-                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Leave blank to remove it.</span>
                 </label>
               )}
 
