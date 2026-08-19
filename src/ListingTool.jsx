@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Download, Facebook, Image as ImageIcon, User, Building2, ChevronDown,
-  HandCoins, Home, DoorOpen, Tag, Handshake, Calendar, Lightbulb, Check,
+  HandCoins, Home, DoorOpen, Tag, Handshake, Calendar, Lightbulb, Check, Sparkles,
 } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
@@ -893,8 +893,24 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 ))}
               </div>
 
-              <span className="font-mono text-xs block mb-1.5 mt-5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PHOTOS</span>
-              <UploadBox label="PROPERTY PHOTO" icon={ImageIcon} state={photo} hint="Choose listing photo, or drag and drop here" />
+              <div className="flex items-center justify-between mb-1.5 mt-5">
+                <span className="font-mono text-xs" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PHOTOS</span>
+                <span
+                  className="font-mono font-semibold rounded-full px-2.5 py-1 whitespace-nowrap"
+                  style={{ fontSize: "0.65rem", letterSpacing: "0.02em", background: BLACK, color: WHITE }}
+                >
+                  {form.layout === "bold" ? "1 photo" : "3 photos"} required for {STYLE_OPTIONS.find((s) => s.key === form.layout)?.label}
+                </span>
+              </div>
+              <UploadBox
+                label="PROPERTY PHOTO"
+                icon={ImageIcon}
+                state={photo}
+                hint="Drop hero photo or click to upload"
+                sublabel="JPG or PNG. Square works best for feed. Private by design — photos stay on your device."
+                large
+                required
+              />
               <PhotoReposition state={photo} aspect={form.aspect} />
               {form.layout !== "bold" && (
                 <div className="grid grid-cols-2 gap-3 mt-3">
@@ -902,41 +918,21 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   <UploadBox label={form.layout === "collage" ? "PHOTO 3 (bottom right)" : "PHOTO 3 (strip)"} icon={ImageIcon} state={photo3} hint="Third photo" />
                 </div>
               )}
-              <p className="font-body text-xs mt-2.5" style={{ color: UI.inkSoft }}>
-                {form.layout === "bold" ? "This design uses 1 property photo." : "This design uses 3 property photos."}
-              </p>
 
-              <span className="font-mono text-xs block mb-1.5 mt-5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LISTING DETAILS</span>
-              {form.layout !== "modern" && (
-                <label className="block">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
-                  <input className="input" value={form.address} onChange={update("address")} />
-                </label>
-              )}
+              <div className="rounded-2xl border p-4 sm:p-5 mt-5" style={{ background: UI.card, borderColor: UI.line }}>
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LISTING DETAILS</span>
+                {form.layout !== "modern" && (
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
+                    <input className="input" value={form.address} onChange={update("address")} />
+                  </label>
+                )}
 
-              {form.layout === "editorial" && (
-                <div className="grid grid-cols-4 gap-2 mt-3">
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
-                    <input className="input" value={form.beds} onChange={update("beds")} />
-                  </label>
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
-                    <input className="input" value={form.baths} onChange={update("baths")} />
-                  </label>
-                  <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
-                    <input className="input" value={form.sqft} onChange={update("sqft")} />
-                  </label>
+                <div className="grid grid-cols-3 gap-2 mt-3">
                   <label className="block">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PRICE</span>
                     <input className="input" value={form.price} onChange={update("price")} />
                   </label>
-                </div>
-              )}
-
-              {form.layout === "modern" && (
-                <div className="grid grid-cols-3 gap-2 mt-3">
                   <label className="block">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
                     <input className="input" value={form.beds} onChange={update("beds")} />
@@ -945,15 +941,18 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
                     <input className="input" value={form.baths} onChange={update("baths")} />
                   </label>
-                  <label className="block">
+                </div>
+
+                {(form.layout === "editorial" || form.layout === "modern") && (
+                  <label className="block mt-3">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
                     <input className="input" value={form.sqft} onChange={update("sqft")} />
                   </label>
-                </div>
-              )}
+                )}
+              </div>
             </section>
 
-            <Accordion title="Personalize your design" subtitle="Colors, fonts & wording">
+            <Accordion title="Personalize your design" subtitle="Colors, fonts & wording" icon={Sparkles}>
               <div className="md:col-span-2">
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BRAND COLOR</span>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -1075,7 +1074,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
             {/* Kept outside "Personalize your design" — this is the info
                 every post needs, so it shouldn't be a second click deep. */}
-            <Accordion title="Brand settings" subtitle="Set this up once — it carries to every post">
+            <Accordion title="Brand settings" subtitle="Logo, disclaimer for every post" icon={Tag}>
               <div className="grid grid-cols-2 gap-3 md:col-span-2">
                 <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
                 <UploadBox label="LOGO" icon={Building2} state={logo} hint="Brokerage logo" />
