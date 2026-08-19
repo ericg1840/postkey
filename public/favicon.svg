@@ -1,9 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#1B2430"/>
-  <g transform="translate(32,32) rotate(-45) translate(-32,-32)">
-    <circle cx="24" cy="32" r="9" fill="none" stroke="#FFFFFF" stroke-width="5"/>
-    <rect x="33" y="29" width="21" height="6" fill="#FFFFFF"/>
-    <rect x="42" y="35" width="5" height="8" fill="#FFFFFF"/>
-    <rect x="49" y="35" width="5" height="6" fill="#FFFFFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -15 220 225">
+  <rect x="-15" y="-15" width="220" height="225" rx="34" fill="#FDFBF7"/>
+  <circle cx="80" cy="64" r="32" fill="none" stroke="#1B2430" stroke-width="8"/>
+  <circle cx="58" cy="110" r="15" fill="#1B2430"/>
+  <circle cx="58" cy="110" r="6" fill="#FBFAF6"/>
+  <polygon points="54,121 62,121 62,138 72,138 72,146 62,146 62,152 70,152 70,160 54,160" fill="#1B2430"/>
+  <circle cx="94" cy="84" r="6" fill="none" stroke="#1B2430" stroke-width="3.4"/>
+  <g transform="rotate(-10 114 116)">
+    <rect x="94" y="96" width="40" height="40" rx="10" fill="#E0298C"/>
+    <circle cx="114" cy="116" r="9" fill="none" stroke="#FBFAF6" stroke-width="3"/>
+    <circle cx="114" cy="116" r="2.6" fill="#FBFAF6"/>
+  </g>
+  <g transform="rotate(9 130 138)">
+    <rect x="110" y="118" width="40" height="40" rx="10" fill="#F3743A"/>
+    <polygon points="124,127 124,149 142,138" fill="#FBFAF6"/>
+  </g>
+  <g transform="rotate(-5 116 164)">
+    <rect x="92" y="140" width="48" height="48" rx="12" fill="#0043FF"/>
+    <rect x="105" y="155" width="22" height="4.5" rx="2.25" fill="#FBFAF6"/>
+    <rect x="105" y="164" width="22" height="4.5" rx="2.25" fill="#FBFAF6"/>
+    <rect x="105" y="173" width="14" height="4.5" rx="2.25" fill="#FBFAF6"/>
   </g>
 </svg>
