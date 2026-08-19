@@ -69,7 +69,6 @@ export function Logo({ size = 28 }) {
       <circle cx="58" cy="110" r="15" fill={UI.ink} />
       <circle cx="58" cy="110" r="6" fill="#FBFAF6" />
       <polygon points="54,121 62,121 62,138 72,138 72,146 62,146 62,152 70,152 70,160 54,160" fill={UI.ink} />
-      <circle cx="94" cy="84" r="6" fill="none" stroke={UI.ink} strokeWidth="3.4" />
       <g transform="rotate(-10 114 116)">
         <rect x="94" y="96" width="40" height="40" rx="10" fill="#E0298C" />
         <circle cx="114" cy="116" r="9" fill="none" stroke="#FBFAF6" strokeWidth="3" />
