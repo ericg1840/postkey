@@ -393,7 +393,7 @@ export function useDefaultImage(url) {
   return img;
 }
 
-export function UploadBox({ label, icon: Icon, state, hint, large = false, required = false }) {
+export function UploadBox({ label, icon: Icon, state, hint, large = false, required = false, sublabel }) {
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
   const isDefault = state.source === "default";
@@ -436,7 +436,7 @@ export function UploadBox({ label, icon: Icon, state, hint, large = false, requi
         ) : large ? (
           <span>
             <span className="font-body text-sm font-semibold block" style={{ color: UI.ink }}>{hint}</span>
-            <span className="font-body text-xs block mt-0.5" style={{ color: UI.inkSoft }}>PNG or JPG, drag &amp; drop or click to browse</span>
+            <span className="font-body text-xs block mt-0.5" style={{ color: UI.inkSoft }}>{sublabel || "PNG or JPG, drag & drop or click to browse"}</span>
           </span>
         ) : (
           <span className="font-body text-xs" style={{ color: UI.inkSoft }}>{hint}</span>
@@ -650,7 +650,7 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
 // Collapsible section for secondary controls (advanced design tweaks, brand
 // info) that most posts don't need touched every time — keeps the primary
 // flow short without deleting the option to fine-tune anything.
-export function Accordion({ title, subtitle, children, defaultOpen = false }) {
+export function Accordion({ title, subtitle, children, defaultOpen = false, icon: Icon }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="md:col-span-2 rounded border" style={{ borderColor: UI.line, background: UI.card }}>
@@ -659,9 +659,16 @@ export function Accordion({ title, subtitle, children, defaultOpen = false }) {
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
       >
-        <span>
-          <span className="font-body text-sm font-semibold block" style={{ color: UI.ink }}>{title}</span>
-          {subtitle && <span className="font-body text-xs block mt-0.5" style={{ color: UI.inkSoft }}>{subtitle}</span>}
+        <span className="flex items-center gap-3">
+          {Icon && (
+            <span className="flex items-center justify-center rounded-full flex-shrink-0" style={{ width: 32, height: 32, background: UI.stone }}>
+              <Icon size={15} style={{ color: UI.ink }} />
+            </span>
+          )}
+          <span>
+            <span className="font-body text-sm font-semibold block" style={{ color: UI.ink }}>{title}</span>
+            {subtitle && <span className="font-body text-xs block mt-0.5" style={{ color: UI.inkSoft }}>{subtitle}</span>}
+          </span>
         </span>
         <ChevronDown size={18} style={{ color: UI.inkSoft, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s", flexShrink: 0 }} />
       </button>
