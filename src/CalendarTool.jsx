@@ -12,7 +12,7 @@ import { useAuth } from "./auth/AuthContext.jsx";
 
 const POST_TYPES = [
   { key: "listing", label: "Listing", color: "#0043FF", emoji: "🏡" },
-  { key: "community", label: "Community", color: "#E0298C", emoji: "📍" },
+  { key: "community", label: "Community", color: "#0F9D58", emoji: "📍" },
   { key: "other", label: "Other", color: "#697386", emoji: "💬" },
 ];
 const typeInfo = (key) => POST_TYPES.find((t) => t.key === key) || POST_TYPES[2];
