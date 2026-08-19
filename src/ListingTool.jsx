@@ -37,6 +37,19 @@ const TEMPLATES = {
   coming_soon: { label: "Coming Soon", description: "Generate excitement for what's next.", icon: Calendar, color: "#0043FF", word1: "Coming", script: "Soon!", badge: "Coming Soon\nwith\n{agent}" },
 };
 
+// A rotating pool for the footer tip strip — one is picked at random per
+// visit so returning users see something new instead of the same line
+// every time.
+const TIPS = [
+  { lead: "Great photos get great results.", text: "Use bright, high-quality photos of your listing for best engagement." },
+  { lead: "Post consistently.", text: "Agents who post 2–3 times a week stay top of mind when someone's ready to buy or sell." },
+  { lead: "Faces get more engagement.", text: "Include a headshot or agent photo — people connect with people, not just houses." },
+  { lead: "Keep captions short and specific.", text: "A clear headline and one strong detail beat a long paragraph every time." },
+  { lead: "Match your format to the platform.", text: "Use Story or Portrait for Instagram/Facebook Stories, Square for the main feed." },
+  { lead: "Tag the neighborhood, not just the address.", text: "Local hashtags help your post reach people searching that area." },
+  { lead: "Set up your brand kit once.", text: "Save your headshot, logo, and contact info so every future post is one click away." },
+];
+
 const DEFAULTS = {
   layout: "bold",
   template: "sold",
@@ -110,6 +123,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
   });
   const [fontsReady, setFontsReady] = useState(false);
   const [brandStatus, setBrandStatus] = useState("idle"); // idle | saving | saved | error
+  const [tip] = useState(() => TIPS[Math.floor(Math.random() * TIPS.length)]);
   const canvasRef = useRef(null);
   const photo = useUploadedImage();
   const photo2 = useUploadedImage();
@@ -1190,8 +1204,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         <div className="flex items-start gap-3 mt-6 p-4 rounded-xl" style={{ background: UI.stone }}>
           <Lightbulb size={18} color={UI.inkSoft} className="flex-shrink-0 mt-0.5" />
           <div>
-            <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Tip: Great photos get great results. </span>
-            <span className="font-body text-sm" style={{ color: UI.inkSoft }}>Use bright, high-quality photos of your listing for best engagement.</span>
+            <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Tip: {tip.lead} </span>
+            <span className="font-body text-sm" style={{ color: UI.inkSoft }}>{tip.text}</span>
           </div>
         </div>
 
