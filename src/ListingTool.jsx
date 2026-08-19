@@ -68,6 +68,7 @@ const DEFAULTS = {
   modernScript: "just",
   modernHeadline: "Listed",
   bottomMessage: "Message for more details",
+  agentTitle: "Real Estate Agent",
   agentName: "Your Name, Realtor",
   agentPhone: "(555) 123-4567",
   agentEmail: "you@example.com",
@@ -503,9 +504,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillStyle = form.accentColor;
     ctx.textAlign = "center";
     ctx.fillText(sigName, w / 2, sigY0 + sigH * 0.62);
-    ctx.font = `600 ${sigH * 0.16}px "Montserrat", sans-serif`;
-    ctx.fillStyle = UI.ink;
-    ctx.fillText("REAL ESTATE AGENT", w / 2, sigY0 + sigH * 0.86);
+    if (form.agentTitle) {
+      ctx.font = `600 ${sigH * 0.16}px "Montserrat", sans-serif`;
+      ctx.fillStyle = UI.ink;
+      ctx.fillText(form.agentTitle.toUpperCase(), w / 2, sigY0 + sigH * 0.86);
+    }
     ctx.textAlign = "left";
 
     drawContactBand(ctx, w, h - contactH, contactH, form, headshot, logo);
@@ -1002,6 +1005,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 <label className="block md:col-span-2">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
                   <input className="input" value={form.bigHeadline} onChange={update("bigHeadline")} placeholder={form.layout === "editorial" ? "JUST LISTED" : "FOR SALE"} />
+                </label>
+              )}
+
+              {form.layout === "collage" && (
+                <label className="block md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>TITLE UNDER YOUR NAME (optional)</span>
+                  <input className="input" value={form.agentTitle} onChange={update("agentTitle")} placeholder="Real Estate Agent" />
+                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Leave blank to remove it.</span>
                 </label>
               )}
 
