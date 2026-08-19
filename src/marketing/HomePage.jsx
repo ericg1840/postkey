@@ -396,41 +396,30 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
         >
           <FloatingSparkle top={20} left={40} size={20} color={ACCENT_PRESETS[3]} rotate={-8} />
           <FloatingSparkle bottom={24} left={"46%"} size={16} color={ACCENT_PRESETS[1]} rotate={14} />
-          <div className="relative grid lg:grid-cols-2 gap-10 items-center">
-            <div className="text-center lg:text-left">
-              <h2 className="font-display font-bold text-2xl sm:text-3xl" style={{ color: "#FFFFFF" }}>
-                Your next post is already waiting.
-              </h2>
-              <p className="font-body text-sm mt-3 mx-auto lg:mx-0" style={{ color: "rgba(255,255,255,0.65)", maxWidth: 400 }}>
-                Choose an idea, personalize it, and share it in minutes.
-              </p>
-              <button
-                onClick={onGetStarted}
-                className="font-body font-semibold rounded-full px-6 py-3.5 mt-7 transition hover:opacity-88"
-                style={{ background: PRIMARY, color: "#FFFFFF", fontSize: "0.95rem" }}
-              >
-                Create Your First Post Free
-              </button>
-              <div className="flex items-center justify-center lg:justify-start gap-x-5 gap-y-1.5 mt-4 flex-wrap">
-                <span className="font-body text-xs flex items-center gap-1.5" style={{ color: "rgba(255,255,255,0.55)" }}>
-                  <Check size={13} /> Free to start
-                </span>
-                <span className="font-body text-xs flex items-center gap-1.5" style={{ color: "rgba(255,255,255,0.55)" }}>
-                  <Check size={13} /> No credit card required
-                </span>
-              </div>
+          <div className="relative text-center max-w-lg mx-auto">
+            <div className="relative mx-auto" style={{ width: 132, height: 156 }}>
+              <PostCard category="SOLD" headline="Just Sold!" color={PRIMARY} rotate={-4} top={0} left={0} scale={0.78} />
             </div>
-
-            <div className="relative hidden lg:block" style={{ height: 220 }}>
-              <div className="absolute" style={{ top: 10, left: 10 }}>
-                <PostCard category="MARKET UPDATE" headline="Inventory Up!" color={ACCENT_PRESETS[4]} rotate={-9} top={0} left={0} scale={0.78} />
-              </div>
-              <div className="absolute" style={{ top: -20, left: 110 }}>
-                <PostCard category="SOLD" headline="Just Sold!" color={PRIMARY} rotate={5} top={0} left={0} scale={0.9} />
-              </div>
-              <div className="absolute" style={{ top: 20, left: 220 }}>
-                <PostCard category="LOCAL" headline="Local Favorite!" color={ACCENT_PRESETS[2]} rotate={-4} top={0} left={0} scale={0.78} />
-              </div>
+            <h2 className="font-display font-bold text-2xl sm:text-3xl mt-6" style={{ color: "#FFFFFF" }}>
+              Your next post is already waiting.
+            </h2>
+            <p className="font-body text-sm mt-3 mx-auto" style={{ color: "rgba(255,255,255,0.65)", maxWidth: 400 }}>
+              Choose an idea, personalize it, and share it in minutes.
+            </p>
+            <button
+              onClick={onGetStarted}
+              className="font-body font-semibold rounded-full px-6 py-3.5 mt-7 transition hover:opacity-88"
+              style={{ background: PRIMARY, color: "#FFFFFF", fontSize: "0.95rem" }}
+            >
+              Create Your First Post Free
+            </button>
+            <div className="flex items-center justify-center gap-x-5 gap-y-1.5 mt-4 flex-wrap">
+              <span className="font-body text-xs flex items-center gap-1.5" style={{ color: "rgba(255,255,255,0.55)" }}>
+                <Check size={13} /> Free to start
+              </span>
+              <span className="font-body text-xs flex items-center gap-1.5" style={{ color: "rgba(255,255,255,0.55)" }}>
+                <Check size={13} /> No credit card required
+              </span>
             </div>
           </div>
         </div>
