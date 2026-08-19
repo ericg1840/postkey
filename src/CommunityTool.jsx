@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Download, Facebook, Image as ImageIcon, User, Building2, Sparkles, SlidersHorizontal, Check, Copy, ChevronDown, CalendarPlus } from "lucide-react";
+import { Download, Facebook, Image as ImageIcon, User, Building2, Sparkles, SlidersHorizontal, Check, Copy, ChevronDown, CalendarPlus, ArrowRight, Shuffle } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
@@ -147,37 +147,37 @@ const STYLES = {
 const CATEGORIES = {
   local: {
     icon: "📍", label: "Local & Trending",
-    description: "Restaurant, new business, event or local favorite",
+    description: "Restaurants & local favorites",
     options: ["spotlight"],
   },
   client_love: {
     icon: "💬", label: "Client Love",
-    description: "Testimonial, closing story or client milestone",
+    description: "Testimonials & client stories",
     isTestimonial: true,
   },
   design: {
     icon: "🏡", label: "Home & Design",
-    description: "Design trend, décor tip, or before & after",
+    description: "Design trends & décor tips",
     options: ["design_trend", "paint"],
   },
   tips: {
     icon: "💡", label: "Buyer & Seller Tips",
-    description: "Buying tips, selling tips & market education",
+    description: "Buying & selling tips",
     options: ["home_value"],
   },
   home_prep: {
     icon: "🧹", label: "Home Prep",
-    description: "Maintenance, seasonal checklist & curb appeal",
+    description: "Maintenance & curb appeal",
     options: ["reno_tip"],
   },
   neighborhood: {
     icon: "🌎", label: "Neighborhood Life",
-    description: "Community features & neighborhood guides",
+    description: "Local guides & features",
     options: ["neighborhood"],
   },
   fun: {
     icon: "✨", label: "Just for Fun",
-    description: "Holidays, recipes & lifestyle",
+    description: "Recipes, holidays & fun",
     options: ["recipe"],
   },
 };
@@ -803,10 +803,27 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     } else {
       ctx.fillStyle = "#D8CFC9";
       ctx.fillRect(0, 0, w, photoH);
+
+      // Empty state: a simple camera glyph above the label, drawn with
+      // primitives so it matches the icon used in the upload box on the
+      // left without pulling an image asset into the canvas render.
+      const camSize = w * 0.09;
+      const camCX = w / 2, camCY = photoH / 2 - camSize * 0.75;
+      ctx.strokeStyle = UI.inkSoft;
+      ctx.lineWidth = Math.max(2, camSize * 0.07);
+      ctx.lineJoin = "round";
+      roundRect(ctx, camCX - camSize / 2, camCY - camSize * 0.32, camSize, camSize * 0.64, camSize * 0.08);
+      ctx.stroke();
+      ctx.fillStyle = UI.inkSoft;
+      ctx.fillRect(camCX - camSize * 0.22, camCY - camSize * 0.32 - camSize * 0.14, camSize * 0.44, camSize * 0.14);
+      ctx.beginPath();
+      ctx.arc(camCX, camCY, camSize * 0.18, 0, Math.PI * 2);
+      ctx.stroke();
+
       ctx.fillStyle = UI.inkSoft;
       ctx.font = `600 ${w * 0.03}px "Public Sans", sans-serif`;
       ctx.textAlign = "center";
-      ctx.fillText("Upload a photo", w / 2, photoH / 2);
+      ctx.fillText("Upload a photo", w / 2, photoH / 2 + camSize * 0.8);
       ctx.textAlign = "left";
     }
 
@@ -1084,6 +1101,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
   };
 
   const [downloadingAll, setDownloadingAll] = useState(false);
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
 
   const downloadAllSizes = async () => {
     setDownloadingAll(true);
@@ -1109,10 +1127,19 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     setDownloadingAll(false);
   };
 
+  // A few different opening hooks for the same underlying content — lets
+  // "Try another version" give agents a genuinely different caption to
+  // choose from without inventing any claim the post itself doesn't make.
+  const CAPTION_OPENERS = [
+    (s) => s,
+    (s) => `👋 ${s}`,
+    (s) => `${s} 💬 Let us know what you think!`,
+  ];
+
   // A ready-to-post caption built from whatever's already on the graphic —
   // not AI-written, just assembled, so it never says something the post
   // itself doesn't.
-  const buildCaption = () => {
+  const buildCaption = (variant = 0) => {
     const tags = (CATEGORY_HASHTAGS[category] || []).join(" ");
     let lines;
     if (form.style === "testimonial") {
@@ -1127,13 +1154,19 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     } else {
       lines = [`${form.word1} ${form.script}`.trim(), form.subject, form.body].filter(Boolean);
     }
-    return [...lines.filter(Boolean), tags].filter(Boolean).join("\n\n");
+    const opener = CAPTION_OPENERS[variant % CAPTION_OPENERS.length];
+    const body = lines.filter(Boolean);
+    if (body.length) body[0] = opener(body[0]);
+    return [...body, tags].filter(Boolean).join("\n\n");
   };
+
+  const [captionVariant, setCaptionVariant] = useState(0);
+  const tryAnotherCaption = () => setCaptionVariant((v) => v + 1);
 
   const [captionCopied, setCaptionCopied] = useState(false);
   const copyCaption = async () => {
     try {
-      await navigator.clipboard.writeText(buildCaption());
+      await navigator.clipboard.writeText(buildCaption(captionVariant));
       setCaptionCopied(true);
       setTimeout(() => setCaptionCopied(false), 2000);
     } catch {
@@ -1184,8 +1217,11 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
         </div>
 
         {/* NEED INSPIRATION */}
-        <div className={`${mobileStep === 1 ? "flex" : "hidden lg:flex"} rounded-2xl p-4 sm:p-6 mb-4 sm:mb-8 flex-col sm:flex-row sm:items-center gap-4`} style={{ background: mixWithWhite(ACCENT, 0.9), border: `1px solid ${mixWithWhite(ACCENT, 0.7)}` }}>
-          <div className="flex items-center justify-center rounded-full flex-shrink-0" style={{ width: 48, height: 48, background: WHITE, boxShadow: "0 4px 12px rgba(27,36,48,0.08)" }}>
+        <div
+          className={`${mobileStep === 1 ? "flex" : "hidden lg:flex"} rounded-2xl p-4 sm:p-6 mb-4 sm:mb-8 flex-col sm:flex-row sm:items-center gap-4`}
+          style={{ background: UI.card, border: `1px solid ${UI.line}`, borderLeft: `4px solid ${ACCENT}`, boxShadow: "0 1px 3px rgba(27,36,48,0.04)" }}
+        >
+          <div className="flex items-center justify-center rounded-full flex-shrink-0" style={{ width: 48, height: 48, background: mixWithWhite(ACCENT, 0.9) }}>
             <Sparkles size={22} color={ACCENT} />
           </div>
           <div className="flex-1">
@@ -1193,7 +1229,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               {idea ? "RECOMMENDED FOR YOU" : "NEED INSPIRATION?"}
             </p>
             <p className="font-body text-base font-semibold mt-1" style={{ color: UI.ink, lineHeight: 1.35 }}>
-              {idea ? idea.text : "Not sure what to post? We'll suggest something — a coffee shop, a neighborhood tip, a weekend event."}
+              {idea ? idea.text : "Not sure what to post? We'll suggest a coffee shop, a neighborhood tip, or a weekend event."}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap flex-shrink-0 justify-end">
@@ -1219,10 +1255,11 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
             )}
             <button
               onClick={giveIdea}
-              className="py-2.5 px-5 rounded-lg border font-body text-sm font-semibold transition whitespace-nowrap"
-              style={{ borderColor: UI.line, color: UI.ink, background: UI.card }}
+              className="flex items-center gap-1.5 py-2.5 px-5 rounded-lg font-body text-sm font-semibold transition whitespace-nowrap"
+              style={idea ? { borderColor: UI.line, color: UI.ink, background: UI.card, border: `1px solid ${UI.line}` } : { background: ACCENT, color: WHITE }}
             >
-              {idea ? "Another idea" : "Give me an idea"}
+              {idea ? "Another idea" : "Surprise Me"}
+              {!idea && <ArrowRight size={15} />}
             </button>
           </div>
         </div>
@@ -1237,20 +1274,22 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               <div className="grid grid-cols-2 gap-3">
                 {Object.entries(CATEGORIES).map(([key, c]) => (
                   <button key={key} onClick={() => selectCategory(key)}
-                    className="relative text-left p-4 rounded-2xl border-2 transition font-body"
+                    className="relative text-left p-4 rounded-2xl border-2 transition font-body flex flex-col"
                     style={{
+                      minHeight: 118,
                       borderColor: category === key ? ACCENT : UI.line,
-                      background: category === key ? UI.card : UI.card,
-                      boxShadow: category === key ? `0 0 0 2px ${ACCENT}22, 0 4px 14px rgba(27,36,48,0.06)` : "0 1px 3px rgba(27,36,48,0.04)",
+                      borderWidth: category === key ? 2.5 : 1.5,
+                      background: category === key ? mixWithWhite(ACCENT, 0.94) : UI.card,
+                      boxShadow: category === key ? `0 0 0 3px ${ACCENT}22, 0 4px 14px rgba(27,36,48,0.06)` : "0 1px 3px rgba(27,36,48,0.04)",
                     }}>
                     {category === key && (
-                      <span className="absolute flex items-center justify-center rounded-full" style={{ top: 10, right: 10, width: 18, height: 18, background: ACCENT }}>
-                        <Check size={11} color={WHITE} strokeWidth={3} />
+                      <span className="absolute flex items-center justify-center rounded-full" style={{ top: 10, right: 10, width: 20, height: 20, background: ACCENT, boxShadow: "0 1px 3px rgba(27,36,48,0.25)" }}>
+                        <Check size={12} color={WHITE} strokeWidth={3.5} />
                       </span>
                     )}
                     <span style={{ fontSize: "1.6rem", lineHeight: 1 }}>{c.icon}</span>
-                    <span className="font-semibold text-sm block mt-2" style={{ color: UI.ink }}>{c.label}</span>
-                    <span className="block mt-0.5 text-xs" style={{ color: UI.inkSoft }}>{c.description}</span>
+                    <span className="font-semibold text-sm block mt-2 leading-snug" style={{ color: UI.ink }}>{c.label}</span>
+                    <span className="block mt-0.5 text-xs leading-snug" style={{ color: UI.inkSoft }}>{c.description}</span>
                   </button>
                 ))}
               </div>
@@ -1284,9 +1323,27 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               <div className="grid gap-3">
                 {form.style !== "testimonial" && form.style !== "poll" && (
                   <>
-                    <UploadBox label="PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add a photo" />
+                    <UploadBox label="PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add a photo" large required />
                     <PhotoReposition state={photo} aspect={form.aspect} />
                   </>
+                )}
+
+                {form.style === "card" && (
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
+                    <input className="input" value={`${form.word1} ${form.script}`.trim()}
+                      onChange={(e) => {
+                        const { lead, emphasis } = splitHeadlineLastWord(e.target.value);
+                        setForm((f) => ({ ...f, word1: lead, script: emphasis }));
+                      }} placeholder="Local Favorite!" />
+                    <div className="flex items-center justify-between gap-2 mt-1.5">
+                      <span className="font-body text-xs" style={{ color: UI.inkSoft }}>The last word gets your accent color &amp; font:</span>
+                      <span className="font-body text-sm font-bold flex-shrink-0" style={{ color: UI.ink }}>
+                        {form.word1}{" "}
+                        <span style={{ color: form.accentColor, fontFamily: `"${form.scriptFont}", cursive` }}>{form.script}</span>
+                      </span>
+                    </div>
+                  </label>
                 )}
 
                 {form.style === "card" && (
@@ -1298,20 +1355,11 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
 
                 {form.style === "card" && (
                   <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
-                    <input className="input" value={`${form.word1} ${form.script}`.trim()}
-                      onChange={(e) => {
-                        const { lead, emphasis } = splitHeadlineLastWord(e.target.value);
-                        setForm((f) => ({ ...f, word1: lead, script: emphasis }));
-                      }} placeholder="Local Favorite!" />
-                    <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The last word gets your accent color and accent font.</span>
-                  </label>
-                )}
-
-                {form.style === "card" && (
-                  <label className="block">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>{activeTemplate.bodyLabel}</span>
-                    <textarea className="input" rows={3} value={form.body} onChange={update("body")} placeholder={activeTemplate.bodyPlaceholder} />
+                    <textarea className="input" rows={3} maxLength={200} value={form.body} onChange={update("body")} placeholder={activeTemplate.bodyPlaceholder} />
+                    <span className="font-body text-xs block mt-1" style={{ color: form.body.length > 120 ? ERROR : UI.inkSoft }}>
+                      {form.body.length}/120 — keep it under 120 characters for best results
+                    </span>
                   </label>
                 )}
 
@@ -1645,7 +1693,9 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
             <div className="rounded-2xl border p-2.5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
               <div className="flex items-center justify-between mb-2.5 sm:mb-4 flex-wrap gap-2">
                 <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Preview</span>
-                <div className="grid grid-cols-2 sm:flex sm:items-center gap-1 p-1 rounded-xl" style={{ background: UI.stone }}>
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  <span className="font-mono text-xs font-semibold" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PREVIEW AS:</span>
+                  <div className="grid grid-cols-2 sm:flex sm:items-center gap-1 p-1 rounded-xl" style={{ background: UI.stone }}>
                   {Object.entries(ASPECTS).map(([key, a]) => (
                     <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
                       className="px-3 py-1 rounded-lg font-body text-xs font-semibold transition text-center whitespace-nowrap"
@@ -1657,6 +1707,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                       {a.shortLabel}
                     </button>
                   ))}
+                  </div>
                 </div>
               </div>
 
@@ -1677,55 +1728,82 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
 
             {/* CONSOLIDATED DOWNLOAD CARD — everything needed to finish and post lives here, next to the preview it belongs with */}
             <div className="rounded-2xl border p-3.5 sm:p-6 mt-3 sm:mt-4" style={{ background: UI.card, borderColor: UI.line }}>
-              <h3 className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Your social set is ready</h3>
-              <p className="font-body text-xs mt-1 mb-3 sm:mb-4" style={{ color: UI.inkSoft }}>
-                {wantSocialSet ? "Download this size, or every platform size at once." : "Turn on “Create My Social Set” to get every platform size at once."}
-              </p>
-
-              <div className="grid gap-2">
+              {/* Caption first — the most-used feature, so it shouldn't be
+                  buried under three buttons an agent has to scroll past. */}
+              <div className="rounded-xl p-3.5" style={{ background: mixWithWhite(ACCENT, 0.94), border: `1px solid ${mixWithWhite(ACCENT, 0.75)}` }}>
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="font-mono text-xs font-bold" style={{ color: ACCENT, letterSpacing: "0.04em" }}>SUGGESTED CAPTION</span>
+                  <button
+                    onClick={tryAnotherCaption}
+                    className="flex items-center gap-1 font-body text-xs font-semibold flex-shrink-0"
+                    style={{ color: ACCENT }}
+                  >
+                    <Shuffle size={12} /> Try another version
+                  </button>
+                </div>
+                <p className="font-body text-sm whitespace-pre-line" style={{ color: UI.ink, lineHeight: 1.6 }}>{buildCaption(captionVariant)}</p>
                 <button
-                  onClick={downloadImage}
-                  disabled={downloading}
-                  className="w-full py-3 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
-                  style={{ background: ACCENT, color: WHITE }}
+                  onClick={copyCaption}
+                  className="w-full mt-3 py-2 rounded-lg font-body font-semibold text-xs flex items-center justify-center gap-2 transition"
+                  style={{ background: captionCopied ? UI.card : ACCENT, color: captionCopied ? UI.ink : WHITE, border: captionCopied ? `1px solid ${UI.line}` : "none" }}
                 >
-                  <Download size={16} /> {downloading ? "Preparing…" : `Download current design (${ASPECTS[form.aspect].label})`}
+                  {captionCopied ? <Check size={14} /> : <Copy size={14} />} {captionCopied ? "Caption copied!" : "Copy caption"}
                 </button>
+              </div>
+
+              <div className="grid gap-2 mt-4">
                 <button
                   onClick={shareToFacebook}
                   disabled={sharingFacebook}
-                  className="w-full py-3 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                  className="w-full py-3.5 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
                   style={{ background: "#1877F2", color: WHITE }}
                 >
                   <Facebook size={16} /> {sharingFacebook ? "Preparing…" : "Share to Facebook"}
                 </button>
-                {wantSocialSet && (
+
+                <div className="flex items-center gap-3 justify-center">
                   <button
-                    onClick={downloadAllSizes}
-                    disabled={downloadingAll}
-                    className="w-full py-3 rounded-lg border font-body font-semibold text-sm flex items-center justify-center gap-2 transition disabled:opacity-60"
-                    style={{ borderColor: UI.line, color: UI.ink }}
+                    onClick={downloadImage}
+                    disabled={downloading}
+                    className="font-body text-xs font-semibold underline underline-offset-2 flex items-center gap-1.5 transition disabled:opacity-60"
+                    style={{ color: UI.inkSoft }}
                   >
-                    <Download size={16} /> {downloadingAll ? "Preparing…" : "Download all sizes"}
+                    <Download size={13} /> {downloading ? "Preparing…" : `Download image (${ASPECTS[form.aspect].label})`}
                   </button>
-                )}
-                <button
-                  onClick={copyCaption}
-                  className="w-full py-3 rounded-lg border font-body font-semibold text-sm flex items-center justify-center gap-2 transition"
-                  style={{ borderColor: UI.line, color: UI.ink }}
-                >
-                  {captionCopied ? <Check size={16} /> : <Copy size={16} />} {captionCopied ? "Caption copied!" : "Copy caption"}
-                </button>
+
+                  {wantSocialSet && (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowDownloadMenu((s) => !s)}
+                        className="font-body text-xs font-semibold flex items-center gap-1 transition"
+                        style={{ color: UI.inkSoft }}
+                      >
+                        More sizes <ChevronDown size={13} style={{ transform: showDownloadMenu ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+                      </button>
+                      {showDownloadMenu && (
+                        <div
+                          className="absolute right-0 mt-2 rounded-lg border overflow-hidden z-10"
+                          style={{ background: UI.card, borderColor: UI.line, boxShadow: "0 8px 24px rgba(27,36,48,0.18)", minWidth: 190 }}
+                        >
+                          <button
+                            onClick={() => { setShowDownloadMenu(false); downloadAllSizes(); }}
+                            disabled={downloadingAll}
+                            className="w-full text-left px-3.5 py-2.5 font-body text-xs font-semibold flex items-center gap-2 transition disabled:opacity-60"
+                            style={{ color: UI.ink }}
+                          >
+                            <Download size={13} /> {downloadingAll ? "Preparing…" : "Download all sizes"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {downloadError && (
                 <p className="font-body text-xs mt-3" style={{ color: ERROR }}>{downloadError}</p>
               )}
-
-              <div className="rounded-lg p-3 mt-4" style={{ background: UI.stone }}>
-                <span className="font-mono text-xs font-semibold block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SUGGESTED CAPTION</span>
-                <p className="font-body text-xs whitespace-pre-line" style={{ color: UI.ink, lineHeight: 1.6 }}>{buildCaption()}</p>
-              </div>
 
               <div className="mt-4">
                 <PrivacyBadge />

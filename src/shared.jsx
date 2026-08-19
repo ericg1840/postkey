@@ -393,24 +393,39 @@ export function useDefaultImage(url) {
   return img;
 }
 
-export function UploadBox({ label, icon: Icon, state, hint }) {
+export function UploadBox({ label, icon: Icon, state, hint, large = false, required = false }) {
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
   const isDefault = state.source === "default";
   return (
     <div>
-      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>{label}</span>
+      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
+        {label}{required && <span style={{ color: ACCENT }}> *</span>}
+      </span>
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); state.load(e.dataTransfer.files[0]); }}
         onClick={() => inputRef.current?.click()}
-        className="rounded border-2 border-dashed flex items-center gap-2 cursor-pointer transition"
-        style={{ borderColor: dragOver ? ACCENT : UI.line, background: UI.card, padding: "0.7rem 0.9rem" }}
+        className={`rounded-xl border-2 border-dashed cursor-pointer transition ${large ? "flex flex-col items-center justify-center text-center gap-2" : "flex items-center gap-2"}`}
+        style={{
+          borderColor: dragOver ? ACCENT : UI.line,
+          background: dragOver ? mixWithWhite(ACCENT, 0.93) : UI.card,
+          padding: large ? "1.75rem 1rem" : "0.7rem 0.9rem",
+        }}
       >
-        <Icon size={16} style={{ color: ACCENT, flexShrink: 0 }} />
+        {large ? (
+          <span
+            className="flex items-center justify-center rounded-full"
+            style={{ width: 40, height: 40, background: mixWithWhite(ACCENT, 0.9) }}
+          >
+            <Icon size={20} style={{ color: ACCENT }} />
+          </span>
+        ) : (
+          <Icon size={16} style={{ color: ACCENT, flexShrink: 0 }} />
+        )}
         {state.name ? (
-          <div className="flex items-center gap-2 font-body text-sm flex-1 min-w-0">
+          <div className={`flex items-center gap-2 font-body text-sm min-w-0 ${large ? "" : "flex-1"}`}>
             <span className="truncate">{isDefault ? `${state.name} (default)` : state.name}</span>
             {!isDefault && state.source !== "loading" && (
               <button onClick={(e) => { e.stopPropagation(); state.clear(); }} style={{ color: UI.inkSoft, flexShrink: 0 }} title="Reset to default">
@@ -418,6 +433,11 @@ export function UploadBox({ label, icon: Icon, state, hint }) {
               </button>
             )}
           </div>
+        ) : large ? (
+          <span>
+            <span className="font-body text-sm font-semibold block" style={{ color: UI.ink }}>{hint}</span>
+            <span className="font-body text-xs block mt-0.5" style={{ color: UI.inkSoft }}>PNG or JPG, drag &amp; drop or click to browse</span>
+          </span>
         ) : (
           <span className="font-body text-xs" style={{ color: UI.inkSoft }}>{hint}</span>
         )}
