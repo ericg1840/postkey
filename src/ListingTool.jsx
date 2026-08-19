@@ -258,6 +258,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillText(form.script, w1x + w1Width + headlineGap, bandY + bandH * 0.78);
 
     // ---- Highlight line (optional, directly above the headline band, still on photo) ----
+    let highlightY = bandY - photoH * 0.025;
     if (form.highlight) {
       ctx.save();
       ctx.shadowColor = "rgba(0,0,0,0.55)";
@@ -265,8 +266,32 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.font = `italic 700 ${photoH * 0.036}px "Montserrat", sans-serif`;
       ctx.fillStyle = WHITE;
       const lines = wrapText(ctx, form.highlight, w * 0.9);
-      ctx.fillText(lines[0] || "", w * 0.06, bandY - photoH * 0.025);
+      ctx.fillText(lines[0] || "", w * 0.06, highlightY);
       ctx.restore();
+    }
+
+    // ---- Price / beds / baths pill (optional, floats on the photo above
+    // the highlight line so it never collides with it) ----
+    const statParts = [form.price, form.beds && `${form.beds} bd`, form.baths && `${form.baths} ba`].filter(Boolean);
+    if (statParts.length) {
+      const statText = statParts.join("   ·   ");
+      const statSize = photoH * 0.034;
+      ctx.font = `700 ${statSize}px "Montserrat", sans-serif`;
+      const statPadX = statSize * 0.7, statPadY = statSize * 0.55;
+      const statW = ctx.measureText(statText).width + statPadX * 2;
+      const statH = statSize + statPadY * 2;
+      const statY = highlightY - (form.highlight ? photoH * 0.065 : 0) - statH;
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.25)";
+      ctx.shadowBlur = w * 0.01;
+      ctx.fillStyle = form.accentColor;
+      roundRect(ctx, w * 0.06, statY, statW, statH, statH * 0.18);
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = WHITE;
+      ctx.textBaseline = "middle";
+      ctx.fillText(statText, w * 0.06 + statPadX, statY + statH / 2 + statSize * 0.03);
+      ctx.textBaseline = "alphabetic";
     }
 
     // ---- Address band (white) ----
@@ -485,15 +510,28 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const sigY0 = collageY0 + collageH;
     const sigH = h - sigY0 - contactH;
 
+    // Price / beds / baths, in the gap between the collage and the
+    // signature — shifts the divider/signature down slightly to make room.
+    const statParts = [form.price, form.beds && `${form.beds} bd`, form.baths && `${form.baths} ba`].filter(Boolean);
+    const hasStats = statParts.length > 0;
+    if (hasStats) {
+      ctx.font = `700 ${sigH * 0.13}px "Montserrat", sans-serif`;
+      ctx.fillStyle = UI.ink;
+      ctx.textAlign = "center";
+      ctx.fillText(statParts.join("   ·   "), w / 2, sigY0 + sigH * 0.12);
+      ctx.textAlign = "left";
+    }
+
+    const dividerY = sigY0 + sigH * (hasStats ? 0.24 : 0.18);
     ctx.strokeStyle = form.accentColor;
     ctx.lineWidth = Math.max(2, w * 0.003);
     ctx.beginPath();
-    ctx.moveTo(w / 2 - w * 0.06, sigY0 + sigH * 0.18);
-    ctx.lineTo(w / 2 + w * 0.06, sigY0 + sigH * 0.18);
+    ctx.moveTo(w / 2 - w * 0.06, dividerY);
+    ctx.lineTo(w / 2 + w * 0.06, dividerY);
     ctx.stroke();
 
     const sigName = form.agentName.replace(/, Realtor$/i, "");
-    let sigSize = sigH * 0.5;
+    let sigSize = sigH * (hasStats ? 0.44 : 0.5);
     ctx.font = scriptFontCss(form.scriptFont, sigSize);
     const sigMaxW = w * 0.86;
     const sigWidth = ctx.measureText(sigName).width;
@@ -503,11 +541,12 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     }
     ctx.fillStyle = form.accentColor;
     ctx.textAlign = "center";
-    ctx.fillText(sigName, w / 2, sigY0 + sigH * 0.62);
+    const sigY = sigY0 + sigH * (hasStats ? 0.68 : 0.62);
+    ctx.fillText(sigName, w / 2, sigY);
     if (form.agentTitle) {
       ctx.font = `600 ${sigH * 0.16}px "Montserrat", sans-serif`;
       ctx.fillStyle = UI.ink;
-      ctx.fillText(form.agentTitle.toUpperCase(), w / 2, sigY0 + sigH * 0.86);
+      ctx.fillText(form.agentTitle.toUpperCase(), w / 2, sigY0 + sigH * (hasStats ? 0.9 : 0.86));
     }
     ctx.textAlign = "left";
 
@@ -566,15 +605,21 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillStyle = UI.ink;
     ctx.fillText(spacedCaps(), hx, hy);
 
-    // ---- Stat line ----
+    // ---- Stat line (beds/baths/sqft, plus price in the accent color) ----
     const statsY = headlineY0 + headlineH * 0.92;
     const statsSize = h * 0.021;
     const statsText = [`${form.beds} BED`, `${form.baths} BATH`, `${form.sqft} SQFT`].filter(Boolean).join("   |   ");
+    const priceText = form.price ? form.price.toUpperCase() : "";
+    const gapText = statsText && priceText ? "   |   " : "";
     ctx.font = `600 ${statsSize}px "Montserrat", sans-serif`;
-    ctx.fillStyle = UI.inkSoft;
-    ctx.textAlign = "center";
-    ctx.fillText(statsText, w / 2, statsY);
+    const totalStatsW = ctx.measureText(statsText + gapText + priceText).width;
     ctx.textAlign = "left";
+    let statsCursorX = w / 2 - totalStatsW / 2;
+    ctx.fillStyle = UI.inkSoft;
+    ctx.fillText(statsText, statsCursorX, statsY);
+    statsCursorX += ctx.measureText(statsText + gapText).width;
+    ctx.fillStyle = form.accentColor;
+    ctx.fillText(priceText, statsCursorX, statsY);
 
     // ---- Thin accent divider ----
     const dividerY = statsY + h * 0.025;
