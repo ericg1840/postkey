@@ -238,7 +238,7 @@ const DEFAULTS = {
   brokerageCity: "Your City",
   officePhone: "(555) 987-6543",
   contactBg: "white",
-  accentColor: "#E0298C",
+  accentColor: "#0F9D58",
   scriptFont: "Dancing Script",
 };
 
