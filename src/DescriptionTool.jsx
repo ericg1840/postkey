@@ -32,7 +32,10 @@ const DEFAULTS = {
   yearBuilt: "",
   price: "$2,295,000",
   highlight: "Chef's kitchen with a huge center island",
-  features: "Hardwood floors throughout\nFinished walk-out basement\nFenced backyard with patio\nUpdated primary suite",
+  features: "Hardwood floors throughout the main level\nOpen-concept living and dining area\nCozy family room with a gas fireplace\nFinished walk-out basement\nGenerous cabinet space and a dedicated pantry",
+  primarySuite: "a walk-in closet, soaking tub, and double vanity",
+  exteriorFeatures: "Low-maintenance vinyl siding\nDeck overlooking the backyard\nFenced yard with a paver patio\nProfessionally landscaped walkways",
+  parking: "an attached one-car garage with inside access and driveway parking",
   amenities: "",
   updates: "",
   nearby: "downtown shops and top-rated schools",
@@ -101,6 +104,27 @@ const UPDATES_LEADS = {
   straightforward: (u) => `Recent updates include ${u}.`,
 };
 
+const PRIMARY_SUITE_LEADS = {
+  warm: (s) => `Retreat to the primary suite, complete with ${lowerFirst(s)}.`,
+  luxury: (s) => `The primary suite is a true retreat, featuring ${lowerFirst(s)}.`,
+  modern: (s) => `The primary suite includes ${lowerFirst(s)}.`,
+  straightforward: (s) => `The primary suite offers ${lowerFirst(s)}.`,
+};
+
+const EXTERIOR_LEADS = {
+  warm: ["Outside, you'll find", "The exterior offers", "You'll also enjoy", "Additional outdoor features include"],
+  luxury: ["The grounds feature", "Outside, the property showcases", "Further exterior details include", "The exterior also boasts"],
+  modern: ["Outside, the property offers", "The exterior includes", "You'll also find outside", "Additional exterior details include"],
+  straightforward: ["Exterior features include", "Outside, the property offers", "Additional exterior features:", "Also outside:"],
+};
+
+const PARKING_LEADS = {
+  warm: (p) => `Parking is a breeze with ${lowerFirst(p)}.`,
+  luxury: (p) => `Parking is provided via ${lowerFirst(p)}.`,
+  modern: (p) => `Parking: ${lowerFirst(p)}.`,
+  straightforward: (p) => `Parking includes ${lowerFirst(p)}.`,
+};
+
 const NEARBY_LEADS = {
   warm: (n) => `You're just minutes from ${n} — everything you need is close by.`,
   luxury: (n) => `Ideally situated near ${n}, offering both privacy and convenience.`,
@@ -153,6 +177,19 @@ function joinList(items) {
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
+// Splits a long feature list into a few sentences of up to 3 items each,
+// cycling through the tone's lead phrases — mirrors how real listings walk
+// through several items per sentence rather than dumping them all in one.
+function listSentences(items, leadPool, variant) {
+  const chunks = [];
+  for (let i = 0; i < items.length; i += 3) chunks.push(items.slice(i, i + 3));
+  return chunks.map((chunk, i) => `${leadPool[(variant + i) % leadPool.length]} ${joinList(chunk.map(lowerFirst))}.`);
+}
+
+function parseLines(text) {
+  return (text || "").split("\n").map((s) => s.trim()).filter(Boolean);
+}
+
 function buildStatsPhrase(f) {
   const parts = [];
   if (f.beds) parts.push(`${f.beds}-bedroom`);
@@ -172,36 +209,35 @@ function buildDescription(form, variant) {
   const openerPool = OPENERS[tone];
   const opener = openerPool[variant % openerPool.length](form, stats, noun);
 
-  const sentences = [opener];
+  // Paragraph 1 — the hook, the standout, and a room-by-room walk through
+  // the interior, the same shape most of the sample listings open with.
+  const introSentences = [opener];
+  if (form.highlight) introSentences.push(HIGHLIGHT_LEADS[tone](form.highlight));
+  introSentences.push(...listSentences(parseLines(form.features), FEATURE_LEADS[tone], variant));
+  if (form.primarySuite) introSentences.push(PRIMARY_SUITE_LEADS[tone](form.primarySuite));
 
-  if (form.highlight) sentences.push(HIGHLIGHT_LEADS[tone](form.highlight));
-
-  const featureLines = (form.features || "").split("\n").map((s) => s.trim()).filter(Boolean);
-  if (featureLines.length) {
-    const lead = FEATURE_LEADS[tone][variant % FEATURE_LEADS[tone].length];
-    sentences.push(`${lead} ${joinList(featureLines.map(lowerFirst))}.`);
-  }
+  // Paragraph 2 — everything outside the front door: exterior, lot/parking,
+  // community perks, recent updates, then schools/location, price, and CTA.
+  const outroSentences = [];
+  outroSentences.push(...listSentences(parseLines(form.exteriorFeatures), EXTERIOR_LEADS[tone], variant));
+  if (form.parking) outroSentences.push(PARKING_LEADS[tone](form.parking));
 
   const extraStats = [];
   if (form.lotSize) extraStats.push(`a ${form.lotSize} lot`);
   if (form.yearBuilt) extraStats.push(`built in ${form.yearBuilt}`);
-  if (extraStats.length) sentences.push(`The property sits on ${joinList(extraStats)}.`);
+  if (extraStats.length) outroSentences.push(`The property sits on ${joinList(extraStats)}.`);
 
-  if (form.amenities) sentences.push(AMENITIES_LEADS[tone](lowerFirst(form.amenities)));
-
-  if (form.updates) sentences.push(UPDATES_LEADS[tone](lowerFirst(form.updates)));
-
-  if (form.schoolDistrict) sentences.push(SCHOOL_LEADS[tone](form.schoolDistrict));
-
-  if (form.nearby) sentences.push(NEARBY_LEADS[tone](form.nearby));
-
-  if (form.price) sentences.push(`Offered at ${form.price}.`);
+  if (form.amenities) outroSentences.push(AMENITIES_LEADS[tone](lowerFirst(form.amenities)));
+  if (form.updates) outroSentences.push(UPDATES_LEADS[tone](lowerFirst(form.updates)));
+  if (form.schoolDistrict) outroSentences.push(SCHOOL_LEADS[tone](form.schoolDistrict));
+  if (form.nearby) outroSentences.push(NEARBY_LEADS[tone](form.nearby));
+  if (form.price) outroSentences.push(`Offered at ${form.price}.`);
 
   const closingPool = CLOSINGS[tone];
-  const closing = form.cta || closingPool[variant % closingPool.length];
-  sentences.push(closing);
+  outroSentences.push(form.cta || closingPool[variant % closingPool.length]);
 
-  return sentences.filter(Boolean).join(" ");
+  const paragraphs = [introSentences.join(" "), outroSentences.filter(Boolean).join(" ")].filter(Boolean);
+  return paragraphs.join("\n\n");
 }
 
 function StepHeading({ n, title, subtitle }) {
@@ -337,9 +373,25 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
               </label>
 
               <label className="block mt-3">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OTHER FEATURES (one per line)</span>
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>INTERIOR FEATURES (one per line)</span>
                 <textarea className="input" rows={4} value={form.features} onChange={update("features")}
-                  placeholder={"Hardwood floors throughout\nFinished walk-out basement\nFenced backyard with patio"} />
+                  placeholder={"Hardwood floors throughout\nOpen-concept living and dining area\nFinished walk-out basement"} />
+              </label>
+
+              <label className="block mt-3">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PRIMARY SUITE (optional)</span>
+                <input className="input" value={form.primarySuite} onChange={update("primarySuite")} placeholder="a walk-in closet, soaking tub, and double vanity" />
+              </label>
+
+              <label className="block mt-3">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>EXTERIOR FEATURES (one per line)</span>
+                <textarea className="input" rows={3} value={form.exteriorFeatures} onChange={update("exteriorFeatures")}
+                  placeholder={"Deck overlooking the backyard\nFenced yard with a paver patio\nProfessionally landscaped walkways"} />
+              </label>
+
+              <label className="block mt-3">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PARKING (optional)</span>
+                <input className="input" value={form.parking} onChange={update("parking")} placeholder="an attached one-car garage with inside access and driveway parking" />
               </label>
 
               <label className="block mt-3">
