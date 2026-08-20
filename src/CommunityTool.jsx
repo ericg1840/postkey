@@ -798,8 +798,22 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     const photoH = h - addressH - contactH - bodyH;
 
     // ---- Photo ----
+    // Before a real photo is added, show the real house example (already
+    // loaded for the full-bleed styles below) instead of a flat beige box —
+    // an empty gray rectangle with placeholder text was the single biggest
+    // thing making the preview look unfinished.
     if (photo.img) {
       drawCover(ctx, photo.img, 0, 0, w, photoH, photo.focus.x, photo.focus.y, photo.zoom);
+    } else if (houseDefault) {
+      drawCover(ctx, houseDefault, 0, 0, w, photoH);
+      const labelH = photoH * 0.09;
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.fillRect(0, photoH - labelH, w, labelH);
+      ctx.fillStyle = UI.inkSoft;
+      ctx.font = `600 ${labelH * 0.42}px "Public Sans", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillText("Example photo — tap to add yours", w / 2, photoH - labelH / 2 + labelH * 0.15);
+      ctx.textAlign = "left";
     } else {
       ctx.fillStyle = "#D8CFC9";
       ctx.fillRect(0, 0, w, photoH);
@@ -902,8 +916,12 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     }
 
     // ---- Subject band (white) — business name / tip title / color name / recipe name ----
+    // Overlaps 1px into the photo above and the body band below so a
+    // sub-pixel rounding gap between adjacent fillRect calls can't leave a
+    // hairline of the photo (or the accent-tinted band underneath) peeking
+    // through the white band, which read as a stray line under the text.
     ctx.fillStyle = WHITE;
-    ctx.fillRect(0, photoH, w, addressH);
+    ctx.fillRect(0, photoH - 1, w, addressH + 2);
     ctx.fillStyle = BLACK;
     let subjSize = addressH * 0.44;
     const subjText = (form.subject || "").toUpperCase();
@@ -919,7 +937,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     // ---- Body copy (the tip / recipe / description) — every wrapped line rendered, not just the first ----
     const bodyY0 = photoH + addressH;
     ctx.fillStyle = mixWithWhite(form.accentColor, 0.9);
-    ctx.fillRect(0, bodyY0, w, bodyH);
+    ctx.fillRect(0, bodyY0 - 1, w, bodyH + 2);
     if (form.body) {
       const bodySize = bodyH * 0.135;
       ctx.font = `500 ${bodySize}px "Montserrat", sans-serif`;
@@ -1218,7 +1236,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
 
         {/* NEED INSPIRATION */}
         <div
-          className={`${mobileStep === 1 ? "flex" : "hidden lg:flex"} rounded-2xl p-4 sm:p-6 mb-4 sm:mb-8 flex-col sm:flex-row sm:items-center gap-4`}
+          className={`${mobileStep === 1 ? "flex" : "hidden lg:flex"} rounded-2xl p-4 sm:p-6 mb-2 sm:mb-3 flex-col sm:flex-row sm:items-center gap-4`}
           style={{ background: UI.card, border: `1px solid ${UI.line}`, borderLeft: `4px solid ${ACCENT}`, boxShadow: "0 1px 3px rgba(27,36,48,0.04)" }}
         >
           <div className="flex items-center justify-center rounded-full flex-shrink-0" style={{ width: 48, height: 48, background: mixWithWhite(ACCENT, 0.9) }}>
@@ -1258,8 +1276,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               className="flex items-center gap-1.5 py-2.5 px-5 rounded-lg font-body text-sm font-semibold transition whitespace-nowrap"
               style={idea ? { borderColor: UI.line, color: UI.ink, background: UI.card, border: `1px solid ${UI.line}` } : { background: ACCENT, color: WHITE }}
             >
-              {idea ? "Another idea" : "Surprise Me"}
-              {!idea && <ArrowRight size={15} />}
+              {idea ? "Surprise me again →" : "Surprise me →"}
             </button>
           </div>
         </div>
@@ -1289,7 +1306,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                     )}
                     <span style={{ fontSize: "1.6rem", lineHeight: 1 }}>{c.icon}</span>
                     <span className="font-semibold text-sm block mt-2 leading-snug" style={{ color: UI.ink }}>{c.label}</span>
-                    <span className="block mt-0.5 text-xs leading-snug" style={{ color: UI.inkSoft }}>{c.description}</span>
+                    <span className="block mt-0.5 text-xs leading-snug" style={{ color: "#586171" }}>{c.description}</span>
                   </button>
                 ))}
               </div>
@@ -1318,8 +1335,12 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
           </div>
 
             <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
-            <section ref={(el) => { sectionRefs.current[2] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
-              <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>2. Add the details</h3>
+            <section
+              ref={(el) => { sectionRefs.current[2] = el; }}
+              className="rounded-2xl p-4 sm:p-5"
+              style={{ scrollMarginTop: "1.5rem", background: mixWithWhite(ACCENT, 0.96), border: `1.5px solid ${mixWithWhite(ACCENT, 0.8)}` }}
+            >
+              <h3 className="font-body text-base font-bold mb-3" style={{ color: UI.ink }}>2. Add the details</h3>
               <div className="grid gap-3">
                 {form.style !== "testimonial" && form.style !== "poll" && (
                   <>
@@ -1357,8 +1378,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                   <label className="block">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>{activeTemplate.bodyLabel}</span>
                     <textarea className="input" rows={3} maxLength={200} value={form.body} onChange={update("body")} placeholder={activeTemplate.bodyPlaceholder} />
-                    <span className="font-body text-xs block mt-1" style={{ color: form.body.length > 120 ? ERROR : UI.inkSoft }}>
-                      {form.body.length}/120 — keep it under 120 characters for best results
+                    <span className="font-body text-sm font-semibold block mt-1" style={{ color: form.body.length > 120 ? ERROR : "#586171" }}>
+                      {form.body.length}/120 characters
                     </span>
                   </label>
                 )}
@@ -1397,6 +1418,9 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                     <label className="block">
                       <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>YOUR MESSAGE</span>
                       <textarea className="input" rows={4} value={form.quoteText} onChange={update("quoteText")} placeholder="A fresh coat of paint is still the highest-ROI update you can make before listing." />
+                      <span className="font-body text-sm font-semibold block mt-1" style={{ color: form.quoteText.length > 140 ? "#C0392B" : "#586171" }}>
+                        {form.quoteText.length}/140 characters
+                      </span>
                     </label>
                   </>
                 )}
@@ -1425,6 +1449,9 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                     <label className="block">
                       <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PASTE YOUR CLIENT'S REVIEW</span>
                       <textarea className="input" rows={4} value={form.quote} onChange={update("quote")} placeholder="Mariella was a joy to work with..." />
+                      <span className="font-body text-sm font-semibold block mt-1" style={{ color: form.quote.length > 200 ? "#C0392B" : "#586171" }}>
+                        {form.quote.length}/200 characters
+                      </span>
                     </label>
                     <div className="grid grid-cols-2 gap-3">
                       <label className="block">
@@ -1609,8 +1636,11 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
             )}
 
             {/* Kept outside "Customize More" — this is the info every post
-                needs, so it shouldn't be a second click deep. */}
-            <Accordion title="Brand settings" subtitle="Set this up once — it carries to every post">
+                needs, so it shouldn't be a second click deep. Opens itself
+                for a fresh/unconfigured account so a first-time user sees
+                it right away instead of a collapsed row easy to miss;
+                collapses once brand info actually exists. */}
+            <Accordion title="Brand settings" subtitle="Set this up once — it carries to every post" defaultOpen={!brandKit?.agentName}>
               <div className="grid grid-cols-2 gap-3 md:col-span-2">
                 <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
                 <UploadBox label="LOGO" icon={Building2} state={logo} hint="Brokerage logo" />
@@ -1700,9 +1730,9 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                     <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
                       className="px-3 py-1 rounded-lg font-body text-xs font-semibold transition text-center whitespace-nowrap"
                       style={{
-                        background: form.aspect === key ? UI.card : "transparent",
-                        color: form.aspect === key ? UI.ink : UI.inkSoft,
-                        boxShadow: form.aspect === key ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+                        background: form.aspect === key ? ACCENT : "transparent",
+                        color: form.aspect === key ? WHITE : UI.inkSoft,
+                        boxShadow: form.aspect === key ? "0 1px 3px rgba(27,36,48,0.25)" : "none",
                       }}>
                       {a.shortLabel}
                     </button>

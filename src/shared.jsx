@@ -249,19 +249,53 @@ export function drawContactBand(ctx, w, bandY, bandH, form, headshot, logo, show
 
   ctx.textAlign = "left";
 
-  const nameSize = fitFont(form.agentName, 800, bandH * 0.175);
-  const nameY = bandY + bandH * 0.32;
+  // A long name (e.g. "Billy Jo Salkowski") shrunk to fit one line reads as
+  // cramped, tiny text. Wrap onto a second line instead once it would have
+  // to shrink past a legible floor, nudging the rest of the band down to
+  // make room.
+  const nameBaseSize = bandH * 0.175;
+  ctx.font = `800 ${nameBaseSize}px "Montserrat", sans-serif`;
+  let nameLines = [form.agentName];
+  let nameSize = nameBaseSize;
+  if (ctx.measureText(form.agentName).width > textMaxW) {
+    nameSize = nameBaseSize * 0.78;
+    ctx.font = `800 ${nameSize}px "Montserrat", sans-serif`;
+    let wrapped = wrapText(ctx, form.agentName, textMaxW);
+    // Keep shrinking until the whole name fits on two lines — slicing to
+    // the first 2 lines without this would silently drop trailing words
+    // (e.g. a title like "Broker Realtor") for a genuinely long name.
+    let attempts = 0;
+    while (wrapped.length > 2 && attempts < 8) {
+      nameSize *= 0.92;
+      ctx.font = `800 ${nameSize}px "Montserrat", sans-serif`;
+      wrapped = wrapText(ctx, form.agentName, textMaxW);
+      attempts += 1;
+    }
+    const widest = Math.max(...wrapped.slice(0, 2).map((l) => ctx.measureText(l).width));
+    if (widest > textMaxW) {
+      nameSize *= textMaxW / widest;
+      ctx.font = `800 ${nameSize}px "Montserrat", sans-serif`;
+    }
+    nameLines = wrapped.slice(0, 2);
+  }
+  const wrappedName = nameLines.length > 1;
+  const nameLineH = nameSize * 1.05;
+  const nameY = bandY + bandH * 0.32 - (wrappedName ? nameLineH * 0.4 : 0);
   ctx.fillStyle = contactTextColor;
-  ctx.fillText(form.agentName, textStartX, nameY);
+  nameLines.forEach((line, i) => ctx.fillText(line, textStartX, nameY + i * nameLineH));
+  const nameBottomY = nameY + (nameLines.length - 1) * nameLineH;
+  // How far to push the contact/broker/office lines down to make room for
+  // the wrapped second line, without shoving the last line past the band.
+  const extraOffset = wrappedName ? nameLineH * 0.45 : 0;
 
   ctx.strokeStyle = form.accentColor;
   ctx.lineWidth = Math.max(2, w * 0.0035);
   ctx.beginPath();
-  ctx.moveTo(textStartX, nameY + bandH * 0.075);
-  ctx.lineTo(textStartX + w * 0.055, nameY + bandH * 0.075);
+  ctx.moveTo(textStartX, nameBottomY + bandH * 0.075);
+  ctx.lineTo(textStartX + w * 0.055, nameBottomY + bandH * 0.075);
   ctx.stroke();
 
-  const contactY = bandY + bandH * 0.55;
+  const contactY = bandY + bandH * 0.55 + extraOffset;
   const contactSize = bandH * 0.11;
   const sep = "   •   ";
   if (form.agentPhone && form.agentEmail) {
@@ -291,7 +325,7 @@ export function drawContactBand(ctx, w, bandY, bandH, form, headshot, logo, show
   if (brokerLine) {
     fitFont(brokerLine, 700, bandH * 0.115);
     ctx.fillStyle = contactTextColor;
-    ctx.fillText(brokerLine, textStartX, bandY + bandH * 0.76);
+    ctx.fillText(brokerLine, textStartX, bandY + bandH * 0.76 + extraOffset);
   }
 
   const officeParts = [];
@@ -301,7 +335,7 @@ export function drawContactBand(ctx, w, bandY, bandH, form, headshot, logo, show
   if (officeLine) {
     fitFont(officeLine, 500, bandH * 0.09);
     ctx.fillStyle = mutedColor;
-    ctx.fillText(officeLine, textStartX, bandY + bandH * 0.9);
+    ctx.fillText(officeLine, textStartX, bandY + bandH * 0.9 + extraOffset);
   }
 }
 
@@ -407,11 +441,11 @@ export function UploadBox({ label, icon: Icon, state, hint, large = false, requi
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); state.load(e.dataTransfer.files[0]); }}
         onClick={() => inputRef.current?.click()}
-        className={`rounded-xl border-2 border-dashed cursor-pointer transition ${large ? "flex flex-col items-center justify-center text-center gap-2" : "flex items-center gap-2"}`}
+        className={`rounded-xl border-2 border-dashed cursor-pointer transition ${large ? "flex flex-col items-center justify-center text-center gap-2" : "flex items-center gap-2.5"}`}
         style={{
-          borderColor: dragOver ? ACCENT : UI.line,
+          borderColor: dragOver ? ACCENT : "#B9C1CC",
           background: dragOver ? mixWithWhite(ACCENT, 0.93) : UI.card,
-          padding: large ? "1.75rem 1rem" : "0.7rem 0.9rem",
+          padding: large ? "1.75rem 1rem" : "0.9rem 1rem",
         }}
       >
         {large ? (
@@ -422,7 +456,7 @@ export function UploadBox({ label, icon: Icon, state, hint, large = false, requi
             <Icon size={20} style={{ color: ACCENT }} />
           </span>
         ) : (
-          <Icon size={16} style={{ color: ACCENT, flexShrink: 0 }} />
+          <Icon size={22} style={{ color: ACCENT, flexShrink: 0 }} />
         )}
         {state.name ? (
           <div className={`flex items-center gap-2 font-body text-sm min-w-0 ${large ? "" : "flex-1"}`}>
