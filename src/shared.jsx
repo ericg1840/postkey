@@ -646,10 +646,21 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
           >
             Planner
           </button>
+          <button
+            onClick={() => onSwitch("description")}
+            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
+            style={{
+              background: active === "description" ? UI.card : "transparent",
+              color: active === "description" ? UI.ink : UI.inkSoft,
+              boxShadow: active === "description" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+            }}
+          >
+            Description
+          </button>
         </nav>
         <div className="flex items-center gap-4">
           <span className="font-mono text-xs hidden sm:inline" style={{ color: UI.inkSoft }}>
-            {active === "listings" ? "PHOTO IN, POST OUT" : active === "community" ? "LOCAL LOVE, POSTED" : "PLAN AHEAD, POST ON TIME"}
+            {active === "listings" ? "PHOTO IN, POST OUT" : active === "community" ? "LOCAL LOVE, POSTED" : active === "calendar" ? "PLAN AHEAD, POST ON TIME" : "WRITE IT ONCE, POST IT EVERYWHERE"}
           </span>
           {onLogout && (
             <div className="flex items-center gap-2">
