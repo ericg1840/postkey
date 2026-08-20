@@ -4,6 +4,7 @@ import { GlobalStyles } from "./shared.jsx";
 import { ListingTool } from "./ListingTool.jsx";
 import { CommunityTool } from "./CommunityTool.jsx";
 import { CalendarTool } from "./CalendarTool.jsx";
+import { DescriptionTool } from "./DescriptionTool.jsx";
 import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
 import { AuthScreen } from "./auth/AuthScreen.jsx";
 import { ResetPasswordScreen } from "./auth/ResetPasswordScreen.jsx";
@@ -88,6 +89,7 @@ function AppShell() {
 
   if (activeTool === "listings") return <ListingTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
   if (activeTool === "calendar") return <CalendarTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
+  if (activeTool === "description") return <DescriptionTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
   return <CommunityTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
 }
 
