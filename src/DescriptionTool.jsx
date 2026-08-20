@@ -24,6 +24,7 @@ const DEFAULTS = {
   tone: "warm",
   address: "419 Tall Oaks Dr, Warminster",
   neighborhood: "Warminster",
+  schoolDistrict: "",
   beds: "4",
   baths: "4",
   sqft: "3,028",
@@ -32,6 +33,8 @@ const DEFAULTS = {
   price: "$2,295,000",
   highlight: "Chef's kitchen with a huge center island",
   features: "Hardwood floors throughout\nFinished walk-out basement\nFenced backyard with patio\nUpdated primary suite",
+  amenities: "",
+  updates: "",
   nearby: "downtown shops and top-rated schools",
   cta: "",
 };
@@ -44,29 +47,37 @@ const OPENERS = {
     (f, stats, noun) => `Welcome home to ${f.address}, a ${stats}${noun} tucked into ${f.neighborhood || "a wonderful neighborhood"}.`,
     (f, stats, noun) => `Step inside ${f.address} and feel right at home in this ${stats}${noun}.`,
     (f, stats, noun) => `This ${stats}${noun} at ${f.address} is ready to welcome its next family.`,
+    (f, stats, noun) => `Located in the highly desirable ${f.neighborhood || "area"}, this beautifully maintained ${stats}${noun} offers an exceptional blend of comfort and character.`,
+    (f, stats, noun) => `Welcome to ${f.address}, a ${stats}${noun} in the sought-after ${f.neighborhood || "neighborhood"}.`,
   ],
   luxury: [
     (f, stats, noun) => `Discover refined living at ${f.address}, an exceptional ${stats}${noun} offering timeless elegance.`,
     (f, stats, noun) => `Presenting ${f.address} — a distinguished ${stats}${noun} crafted for discerning buyers.`,
     (f, stats, noun) => `An extraordinary opportunity awaits at ${f.address}, a masterfully appointed ${stats}${noun}.`,
+    (f, stats, noun) => `Nestled in the charming ${f.neighborhood || "community"}, this exquisite ${stats}${noun} offers a perfect blend of modern luxury and timeless elegance.`,
+    (f, stats, noun) => `Every detail has been meticulously crafted at ${f.address}, a ${stats}${noun} where sophistication meets comfort.`,
   ],
   modern: [
     (f, stats, noun) => `${f.address} delivers clean lines and effortless living in this ${stats}${noun}.`,
     (f, stats, noun) => `Sleek, smart, and move-in ready — ${f.address} is a ${stats}${noun} built for modern life.`,
     (f, stats, noun) => `Introducing ${f.address}, a thoughtfully designed ${stats}${noun}.`,
+    (f, stats, noun) => `The contemporary design of ${f.address} offers a spacious ${stats}floor plan that creates a comfortable, modern living space.`,
+    (f, stats, noun) => `Nestled within the intimate ${f.neighborhood || "community"}, ${f.address} is a beautifully designed ${stats}${noun} that balances comfort and style.`,
   ],
   straightforward: [
     (f, stats, noun) => `${f.address} is a ${stats}${noun} now available for sale.`,
     (f, stats, noun) => `Now for sale: ${f.address}, a ${stats}${noun}.`,
     (f, stats, noun) => `This ${stats}${noun} at ${f.address} is on the market and ready for showings.`,
+    (f, stats, noun) => `Welcome to ${f.address}, a ${stats}${noun} in the sought-after ${f.neighborhood || "area"}.`,
+    (f, stats, noun) => `${f.address} offers ${stats}living space in the ${f.neighborhood || "area"}.`,
   ],
 };
 
 const FEATURE_LEADS = {
-  warm: ["Inside, you'll find", "You'll love", "The home also features", "Additional touches include"],
-  luxury: ["Inside, discerning buyers will appreciate", "The residence also showcases", "Further appointments include", "Additional finishes include"],
-  modern: ["Inside, the layout features", "The space also includes", "You'll also find", "Additional details include"],
-  straightforward: ["Interior features include", "The property also includes", "Additional features:", "Also included:"],
+  warm: ["Inside, you'll find", "You'll love", "The home also features", "Additional touches include", "You'll also appreciate"],
+  luxury: ["Inside, discerning buyers will appreciate", "The residence also showcases", "Further appointments include", "Additional finishes include", "Every space has been elevated with"],
+  modern: ["Inside, the layout features", "The space also includes", "You'll also find", "Additional details include", "The design also incorporates"],
+  straightforward: ["Interior features include", "The property also includes", "Additional features:", "Also included:", "The home also offers"],
 };
 
 const HIGHLIGHT_LEADS = {
@@ -76,6 +87,20 @@ const HIGHLIGHT_LEADS = {
   straightforward: (h) => `Notably, the home offers a ${lowerFirst(h)}.`,
 };
 
+const AMENITIES_LEADS = {
+  warm: (a) => `The community offers ${a}, so you can spend more time enjoying life and less on upkeep.`,
+  luxury: (a) => `Residents enjoy access to ${a}.`,
+  modern: (a) => `Community amenities include ${a}.`,
+  straightforward: (a) => `The community provides ${a}.`,
+};
+
+const UPDATES_LEADS = {
+  warm: (u) => `Recent updates give extra peace of mind, including ${u}.`,
+  luxury: (u) => `Thoughtful updates include ${u}.`,
+  modern: (u) => `Recent upgrades: ${u}.`,
+  straightforward: (u) => `Recent updates include ${u}.`,
+};
+
 const NEARBY_LEADS = {
   warm: (n) => `You're just minutes from ${n} — everything you need is close by.`,
   luxury: (n) => `Ideally situated near ${n}, offering both privacy and convenience.`,
@@ -83,26 +108,37 @@ const NEARBY_LEADS = {
   straightforward: (n) => `Located near ${n}.`,
 };
 
+const SCHOOL_LEADS = {
+  warm: (s) => `Families will love being part of the highly regarded ${s}.`,
+  luxury: (s) => `The property falls within the acclaimed ${s}.`,
+  modern: (s) => `Located within the ${s}.`,
+  straightforward: (s) => `Located in the ${s}.`,
+};
+
 const CLOSINGS = {
   warm: [
     "This one won't last — schedule your private showing today.",
     "Come see it for yourself — book a showing today.",
     "Homes like this don't come around often. Reach out to schedule a tour.",
+    "Driving by will only make you want to visit — and once you visit, you'll want to call it home.",
   ],
   luxury: [
     "Private showings are available by appointment — inquire today.",
     "An exceptional offering — schedule your private tour today.",
     "Contact us today to arrange your private viewing.",
+    "Embrace the opportunity to make this exceptional residence your own.",
   ],
   modern: [
     "Book your showing today.",
     "Schedule a tour and see it in person.",
     "Reach out today to set up a showing.",
+    "Come see it for yourself and start imagining life here.",
   ],
   straightforward: [
     "Contact us to schedule a showing.",
     "Showings available by appointment — contact us today.",
     "Reach out to schedule a tour.",
+    "Don't miss this one — schedule your showing today.",
   ],
 };
 
@@ -150,6 +186,12 @@ function buildDescription(form, variant) {
   if (form.lotSize) extraStats.push(`a ${form.lotSize} lot`);
   if (form.yearBuilt) extraStats.push(`built in ${form.yearBuilt}`);
   if (extraStats.length) sentences.push(`The property sits on ${joinList(extraStats)}.`);
+
+  if (form.amenities) sentences.push(AMENITIES_LEADS[tone](lowerFirst(form.amenities)));
+
+  if (form.updates) sentences.push(UPDATES_LEADS[tone](lowerFirst(form.updates)));
+
+  if (form.schoolDistrict) sentences.push(SCHOOL_LEADS[tone](form.schoolDistrict));
 
   if (form.nearby) sentences.push(NEARBY_LEADS[tone](form.nearby));
 
@@ -254,6 +296,10 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>NEIGHBORHOOD / CITY</span>
                 <input className="input" value={form.neighborhood} onChange={update("neighborhood")} />
               </label>
+              <label className="block mt-3">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SCHOOL DISTRICT</span>
+                <input className="input" value={form.schoolDistrict} onChange={update("schoolDistrict")} placeholder="Spring-Ford Area School District" />
+              </label>
 
               <div className="grid grid-cols-3 gap-2 mt-3">
                 <label className="block">
@@ -297,8 +343,18 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
               </label>
 
               <label className="block mt-3">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>COMMUNITY / HOA AMENITIES (optional)</span>
+                <input className="input" value={form.amenities} onChange={update("amenities")} placeholder="pool, tennis courts, clubhouse, lawn care & snow removal" />
+              </label>
+
+              <label className="block mt-3">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>RECENT UPDATES (optional)</span>
+                <input className="input" value={form.updates} onChange={update("updates")} placeholder="new HVAC in 2024, new windows, new hot water heater" />
+              </label>
+
+              <label className="block mt-3">
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>NEARBY (optional)</span>
-                <input className="input" value={form.nearby} onChange={update("nearby")} placeholder="downtown shops and top-rated schools" />
+                <input className="input" value={form.nearby} onChange={update("nearby")} placeholder="downtown shops and the Schuylkill River trail" />
               </label>
 
               <label className="block mt-3">
