@@ -599,7 +599,7 @@ export function GlobalStyles() {
 export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   return (
-    <header className="border-b" style={{ borderColor: UI.line, paddingTop: "env(safe-area-inset-top)" }}>
+    <header className="sticky top-0 z-50 border-b" style={{ borderColor: UI.line, background: UI.page, paddingTop: "env(safe-area-inset-top)" }}>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-5 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         {onLogoClick ? (
           <button type="button" onClick={onLogoClick} className="flex items-center gap-2">
