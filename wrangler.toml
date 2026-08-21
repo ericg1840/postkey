@@ -1,4 +1,9 @@
 name = "postkey"
-pages_build_output_dir = "dist"
+main = "worker/index.mjs"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
