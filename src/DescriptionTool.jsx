@@ -52,6 +52,9 @@ const OPENERS = {
     (f, stats, noun) => `This ${stats}${noun} at ${f.address} is ready to welcome its next family.`,
     (f, stats, noun) => `Located in the highly desirable ${f.neighborhood || "area"}, this beautifully maintained ${stats}${noun} offers an exceptional blend of comfort and character.`,
     (f, stats, noun) => `Welcome to ${f.address}, a ${stats}${noun} in the sought-after ${f.neighborhood || "neighborhood"}.`,
+    (f, stats, noun) => `This is the one you've been waiting for — a ${stats}${noun} at ${f.address} that's ready for its next chapter.`,
+    (f, stats, noun) => `Freshly updated and full of charm, ${f.address} is a ${stats}${noun} that's easy to fall for.`,
+    (f, stats, noun) => `Tucked away on a quiet stretch of ${f.neighborhood || "the area"}, ${f.address} is a ${stats}${noun} that feels like home the moment you walk in.`,
   ],
   luxury: [
     (f, stats, noun) => `Discover refined living at ${f.address}, an exceptional ${stats}${noun} offering timeless elegance.`,
@@ -59,6 +62,8 @@ const OPENERS = {
     (f, stats, noun) => `An extraordinary opportunity awaits at ${f.address}, a masterfully appointed ${stats}${noun}.`,
     (f, stats, noun) => `Nestled in the charming ${f.neighborhood || "community"}, this exquisite ${stats}${noun} offers a perfect blend of modern luxury and timeless elegance.`,
     (f, stats, noun) => `Every detail has been meticulously crafted at ${f.address}, a ${stats}${noun} where sophistication meets comfort.`,
+    (f, stats, noun) => `Set on grounds worthy of the address, ${f.address} is a ${stats}${noun} built for those who expect more.`,
+    (f, stats, noun) => `Rarely does a ${stats}${noun} like ${f.address} come to market in ${f.neighborhood || "this community"} — a residence defined by craftsmanship and scale.`,
   ],
   modern: [
     (f, stats, noun) => `${f.address} delivers clean lines and effortless living in this ${stats}${noun}.`,
@@ -66,6 +71,8 @@ const OPENERS = {
     (f, stats, noun) => `Introducing ${f.address}, a thoughtfully designed ${stats}${noun}.`,
     (f, stats, noun) => `The contemporary design of ${f.address} offers a spacious ${stats}floor plan that creates a comfortable, modern living space.`,
     (f, stats, noun) => `Nestled within the intimate ${f.neighborhood || "community"}, ${f.address} is a beautifully designed ${stats}${noun} that balances comfort and style.`,
+    (f, stats, noun) => `${f.address} pairs a flexible ${stats}layout with an easy, low-maintenance lifestyle.`,
+    (f, stats, noun) => `Bright, efficient, and turnkey — ${f.address} is a ${stats}${noun} designed around how people actually live.`,
   ],
   straightforward: [
     (f, stats, noun) => `${f.address} is a ${stats}${noun} now available for sale.`,
@@ -73,70 +80,160 @@ const OPENERS = {
     (f, stats, noun) => `This ${stats}${noun} at ${f.address} is on the market and ready for showings.`,
     (f, stats, noun) => `Welcome to ${f.address}, a ${stats}${noun} in the sought-after ${f.neighborhood || "area"}.`,
     (f, stats, noun) => `${f.address} offers ${stats}living space in the ${f.neighborhood || "area"}.`,
+    (f, stats, noun) => `${f.address} is a ${stats}${noun} in ${f.neighborhood || "the area"}, available now.`,
+    (f, stats, noun) => `Now available: a ${stats}${noun} at ${f.address}, ready for its next owner.`,
   ],
 };
 
 const FEATURE_LEADS = {
-  warm: ["Inside, you'll find", "You'll love", "The home also features", "Additional touches include", "You'll also appreciate"],
-  luxury: ["Inside, discerning buyers will appreciate", "The residence also showcases", "Further appointments include", "Additional finishes include", "Every space has been elevated with"],
-  modern: ["Inside, the layout features", "The space also includes", "You'll also find", "Additional details include", "The design also incorporates"],
-  straightforward: ["Interior features include", "The property also includes", "Additional features:", "Also included:", "The home also offers"],
+  warm: ["Inside, you'll find", "You'll love", "The home also features", "Additional touches include", "You'll also appreciate", "Cozy details include", "You'll also love"],
+  luxury: ["Inside, discerning buyers will appreciate", "The residence also showcases", "Further appointments include", "Additional finishes include", "Every space has been elevated with", "The interior is further defined by", "Additional custom touches include"],
+  modern: ["Inside, the layout features", "The space also includes", "You'll also find", "Additional details include", "The design also incorporates", "Also on the main level:", "Rounding out the interior:"],
+  straightforward: ["Interior features include", "The property also includes", "Additional features:", "Also included:", "The home also offers", "Other interior features:", "The interior also includes"],
 };
 
 const HIGHLIGHT_LEADS = {
-  warm: (h) => `You'll fall in love with the ${lowerFirst(h)}.`,
-  luxury: (h) => `A true showpiece, the ${lowerFirst(h)} anchors the home.`,
-  modern: (h) => `The standout: a ${lowerFirst(h)}.`,
-  straightforward: (h) => `Notably, the home offers a ${lowerFirst(h)}.`,
+  warm: [
+    (h) => `You'll fall in love with the ${lowerFirst(h)}.`,
+    (h) => `A favorite feature is the ${lowerFirst(h)}.`,
+    (h) => `Everyone who visits mentions the ${lowerFirst(h)}.`,
+  ],
+  luxury: [
+    (h) => `A true showpiece, the ${lowerFirst(h)} anchors the home.`,
+    (h) => `Chief among the home's appointments is the ${lowerFirst(h)}.`,
+    (h) => `The ${lowerFirst(h)} sets this residence apart.`,
+  ],
+  modern: [
+    (h) => `The standout: a ${lowerFirst(h)}.`,
+    (h) => `Highlight feature: a ${lowerFirst(h)}.`,
+    (h) => `Front and center is a ${lowerFirst(h)}.`,
+  ],
+  straightforward: [
+    (h) => `Notably, the home offers a ${lowerFirst(h)}.`,
+    (h) => `A key feature is the ${lowerFirst(h)}.`,
+    (h) => `Worth noting: a ${lowerFirst(h)}.`,
+  ],
 };
 
 const AMENITIES_LEADS = {
-  warm: (a) => `The community offers ${a}, so you can spend more time enjoying life and less on upkeep.`,
-  luxury: (a) => `Residents enjoy access to ${a}.`,
-  modern: (a) => `Community amenities include ${a}.`,
-  straightforward: (a) => `The community provides ${a}.`,
+  warm: [
+    (a) => `The community offers ${a}, so you can spend more time enjoying life and less on upkeep.`,
+    (a) => `You'll also have access to ${a} right in the community.`,
+  ],
+  luxury: [
+    (a) => `Residents enjoy access to ${a}.`,
+    (a) => `The community itself provides ${a}, adding to the appeal.`,
+  ],
+  modern: [
+    (a) => `Community amenities include ${a}.`,
+    (a) => `Also available to residents: ${a}.`,
+  ],
+  straightforward: [
+    (a) => `The community provides ${a}.`,
+    (a) => `Community amenities: ${a}.`,
+  ],
 };
 
 const UPDATES_LEADS = {
-  warm: (u) => `Recent updates give extra peace of mind, including ${u}.`,
-  luxury: (u) => `Thoughtful updates include ${u}.`,
-  modern: (u) => `Recent upgrades: ${u}.`,
-  straightforward: (u) => `Recent updates include ${u}.`,
+  warm: [
+    (u) => `Recent updates give extra peace of mind, including ${u}.`,
+    (u) => `The sellers have taken great care of this one, with ${u}.`,
+  ],
+  luxury: [
+    (u) => `Thoughtful updates include ${u}.`,
+    (u) => `Recent investment in the property includes ${u}.`,
+  ],
+  modern: [
+    (u) => `Recent upgrades: ${u}.`,
+    (u) => `Already handled for you: ${u}.`,
+  ],
+  straightforward: [
+    (u) => `Recent updates include ${u}.`,
+    (u) => `Updates include ${u}.`,
+  ],
 };
 
 const PRIMARY_SUITE_LEADS = {
-  warm: (s) => `Retreat to the primary suite, complete with ${lowerFirst(s)}.`,
-  luxury: (s) => `The primary suite is a true retreat, featuring ${lowerFirst(s)}.`,
-  modern: (s) => `The primary suite includes ${lowerFirst(s)}.`,
-  straightforward: (s) => `The primary suite offers ${lowerFirst(s)}.`,
+  warm: [
+    (s) => `Retreat to the primary suite, complete with ${lowerFirst(s)}.`,
+    (s) => `At the end of the day, unwind in the primary suite with ${lowerFirst(s)}.`,
+  ],
+  luxury: [
+    (s) => `The primary suite is a true retreat, featuring ${lowerFirst(s)}.`,
+    (s) => `A private sanctuary, the primary suite boasts ${lowerFirst(s)}.`,
+  ],
+  modern: [
+    (s) => `The primary suite includes ${lowerFirst(s)}.`,
+    (s) => `Primary suite: ${lowerFirst(s)}.`,
+  ],
+  straightforward: [
+    (s) => `The primary suite offers ${lowerFirst(s)}.`,
+    (s) => `The primary bedroom includes ${lowerFirst(s)}.`,
+  ],
 };
 
 const EXTERIOR_LEADS = {
-  warm: ["Outside, you'll find", "The exterior offers", "You'll also enjoy", "Additional outdoor features include"],
-  luxury: ["The grounds feature", "Outside, the property showcases", "Further exterior details include", "The exterior also boasts"],
-  modern: ["Outside, the property offers", "The exterior includes", "You'll also find outside", "Additional exterior details include"],
-  straightforward: ["Exterior features include", "Outside, the property offers", "Additional exterior features:", "Also outside:"],
+  warm: ["Outside, you'll find", "The exterior offers", "You'll also enjoy", "Additional outdoor features include", "Out back, you'll find", "There's also"],
+  luxury: ["The grounds feature", "Outside, the property showcases", "Further exterior details include", "The exterior also boasts", "The grounds are further complemented by", "Outside amenities include"],
+  modern: ["Outside, the property offers", "The exterior includes", "You'll also find outside", "Additional exterior details include", "Outside:", "Also outside:"],
+  straightforward: ["Exterior features include", "Outside, the property offers", "Additional exterior features:", "Also outside:", "Other exterior features:", "The lot also includes"],
 };
 
 const PARKING_LEADS = {
-  warm: (p) => `Parking is a breeze with ${lowerFirst(p)}.`,
-  luxury: (p) => `Parking is provided via ${lowerFirst(p)}.`,
-  modern: (p) => `Parking: ${lowerFirst(p)}.`,
-  straightforward: (p) => `Parking includes ${lowerFirst(p)}.`,
+  warm: [
+    (p) => `Parking is a breeze with ${lowerFirst(p)}.`,
+    (p) => `You'll never have to worry about parking, thanks to ${lowerFirst(p)}.`,
+  ],
+  luxury: [
+    (p) => `Parking is provided via ${lowerFirst(p)}.`,
+    (p) => `Vehicle storage is handled by ${lowerFirst(p)}.`,
+  ],
+  modern: [
+    (p) => `Parking: ${lowerFirst(p)}.`,
+    (p) => `For parking, there's ${lowerFirst(p)}.`,
+  ],
+  straightforward: [
+    (p) => `Parking includes ${lowerFirst(p)}.`,
+    (p) => `Parking is available via ${lowerFirst(p)}.`,
+  ],
 };
 
 const NEARBY_LEADS = {
-  warm: (n) => `You're just minutes from ${n} — everything you need is close by.`,
-  luxury: (n) => `Ideally situated near ${n}, offering both privacy and convenience.`,
-  modern: (n) => `Conveniently located near ${n}.`,
-  straightforward: (n) => `Located near ${n}.`,
+  warm: [
+    (n) => `You're just minutes from ${n} — everything you need is close by.`,
+    (n) => `It's a short drive to ${n}, so you're never far from what matters.`,
+  ],
+  luxury: [
+    (n) => `Ideally situated near ${n}, offering both privacy and convenience.`,
+    (n) => `The location affords easy access to ${n}, all while feeling tucked away.`,
+  ],
+  modern: [
+    (n) => `Conveniently located near ${n}.`,
+    (n) => `Close to ${n}.`,
+  ],
+  straightforward: [
+    (n) => `Located near ${n}.`,
+    (n) => `Close proximity to ${n}.`,
+  ],
 };
 
 const SCHOOL_LEADS = {
-  warm: (s) => `Families will love being part of the highly regarded ${s}.`,
-  luxury: (s) => `The property falls within the acclaimed ${s}.`,
-  modern: (s) => `Located within the ${s}.`,
-  straightforward: (s) => `Located in the ${s}.`,
+  warm: [
+    (s) => `Families will love being part of the highly regarded ${s}.`,
+    (s) => `Zoned for the well-regarded ${s}.`,
+  ],
+  luxury: [
+    (s) => `The property falls within the acclaimed ${s}.`,
+    (s) => `Situated within the respected ${s}.`,
+  ],
+  modern: [
+    (s) => `Located within the ${s}.`,
+    (s) => `Zoned for the ${s}.`,
+  ],
+  straightforward: [
+    (s) => `Located in the ${s}.`,
+    (s) => `Part of the ${s}.`,
+  ],
 };
 
 const CLOSINGS = {
@@ -145,29 +242,41 @@ const CLOSINGS = {
     "Come see it for yourself — book a showing today.",
     "Homes like this don't come around often. Reach out to schedule a tour.",
     "Driving by will only make you want to visit — and once you visit, you'll want to call it home.",
+    "This one truly has it all — schedule your showing before it's gone.",
+    "Come fall in love in person — schedule a tour today.",
   ],
   luxury: [
     "Private showings are available by appointment — inquire today.",
     "An exceptional offering — schedule your private tour today.",
     "Contact us today to arrange your private viewing.",
     "Embrace the opportunity to make this exceptional residence your own.",
+    "Opportunities like this are rare — arrange your private showing today.",
+    "Discover it for yourself — schedule a private tour today.",
   ],
   modern: [
     "Book your showing today.",
     "Schedule a tour and see it in person.",
     "Reach out today to set up a showing.",
     "Come see it for yourself and start imagining life here.",
+    "Schedule your visit today.",
+    "Book a tour and see the space in person.",
   ],
   straightforward: [
     "Contact us to schedule a showing.",
     "Showings available by appointment — contact us today.",
     "Reach out to schedule a tour.",
     "Don't miss this one — schedule your showing today.",
+    "Contact us today for more information or to schedule a showing.",
+    "Schedule a showing at your convenience.",
   ],
 };
 
 function lowerFirst(s) {
   return s ? s.charAt(0).toLowerCase() + s.slice(1) : s;
+}
+
+function pick(pool, variant) {
+  return pool[variant % pool.length];
 }
 
 function joinList(items) {
@@ -212,25 +321,25 @@ function buildDescription(form, variant) {
   // Paragraph 1 — the hook, the standout, and a room-by-room walk through
   // the interior, the same shape most of the sample listings open with.
   const introSentences = [opener];
-  if (form.highlight) introSentences.push(HIGHLIGHT_LEADS[tone](form.highlight));
+  if (form.highlight) introSentences.push(pick(HIGHLIGHT_LEADS[tone], variant)(form.highlight));
   introSentences.push(...listSentences(parseLines(form.features), FEATURE_LEADS[tone], variant));
-  if (form.primarySuite) introSentences.push(PRIMARY_SUITE_LEADS[tone](form.primarySuite));
+  if (form.primarySuite) introSentences.push(pick(PRIMARY_SUITE_LEADS[tone], variant)(form.primarySuite));
 
   // Paragraph 2 — everything outside the front door: exterior, lot/parking,
   // community perks, recent updates, then schools/location, price, and CTA.
   const outroSentences = [];
   outroSentences.push(...listSentences(parseLines(form.exteriorFeatures), EXTERIOR_LEADS[tone], variant));
-  if (form.parking) outroSentences.push(PARKING_LEADS[tone](form.parking));
+  if (form.parking) outroSentences.push(pick(PARKING_LEADS[tone], variant)(form.parking));
 
   const extraStats = [];
   if (form.lotSize) extraStats.push(`a ${form.lotSize} lot`);
   if (form.yearBuilt) extraStats.push(`built in ${form.yearBuilt}`);
   if (extraStats.length) outroSentences.push(`The property sits on ${joinList(extraStats)}.`);
 
-  if (form.amenities) outroSentences.push(AMENITIES_LEADS[tone](lowerFirst(form.amenities)));
-  if (form.updates) outroSentences.push(UPDATES_LEADS[tone](lowerFirst(form.updates)));
-  if (form.schoolDistrict) outroSentences.push(SCHOOL_LEADS[tone](form.schoolDistrict));
-  if (form.nearby) outroSentences.push(NEARBY_LEADS[tone](form.nearby));
+  if (form.amenities) outroSentences.push(pick(AMENITIES_LEADS[tone], variant)(lowerFirst(form.amenities)));
+  if (form.updates) outroSentences.push(pick(UPDATES_LEADS[tone], variant)(lowerFirst(form.updates)));
+  if (form.schoolDistrict) outroSentences.push(pick(SCHOOL_LEADS[tone], variant)(form.schoolDistrict));
+  if (form.nearby) outroSentences.push(pick(NEARBY_LEADS[tone], variant)(form.nearby));
   if (form.price) outroSentences.push(`Offered at ${form.price}.`);
 
   const closingPool = CLOSINGS[tone];
