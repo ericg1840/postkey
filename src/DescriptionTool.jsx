@@ -38,6 +38,7 @@ const DEFAULTS = {
   parking: "an attached one-car garage with inside access and driveway parking",
   amenities: "",
   updates: "",
+  conditionNote: "",
   nearby: "downtown shops and top-rated schools",
   cta: "",
 };
@@ -55,6 +56,7 @@ const OPENERS = {
     (f, stats, noun) => `This is the one you've been waiting for — a ${stats}${noun} at ${f.address} that's ready for its next chapter.`,
     (f, stats, noun) => `Freshly updated and full of charm, ${f.address} is a ${stats}${noun} that's easy to fall for.`,
     (f, stats, noun) => `Tucked away on a quiet stretch of ${f.neighborhood || "the area"}, ${f.address} is a ${stats}${noun} that feels like home the moment you walk in.`,
+    (f, stats, noun) => `Offered for the first time in years, ${f.address} is a ${stats}${noun} full of warmth and possibility.`,
   ],
   luxury: [
     (f, stats, noun) => `Discover refined living at ${f.address}, an exceptional ${stats}${noun} offering timeless elegance.`,
@@ -64,6 +66,7 @@ const OPENERS = {
     (f, stats, noun) => `Every detail has been meticulously crafted at ${f.address}, a ${stats}${noun} where sophistication meets comfort.`,
     (f, stats, noun) => `Set on grounds worthy of the address, ${f.address} is a ${stats}${noun} built for those who expect more.`,
     (f, stats, noun) => `Rarely does a ${stats}${noun} like ${f.address} come to market in ${f.neighborhood || "this community"} — a residence defined by craftsmanship and scale.`,
+    (f, stats, noun) => `${f.address} is a ${stats}${noun} of uncommon scale and detail in ${f.neighborhood || "this community"}.`,
   ],
   modern: [
     (f, stats, noun) => `${f.address} delivers clean lines and effortless living in this ${stats}${noun}.`,
@@ -73,6 +76,7 @@ const OPENERS = {
     (f, stats, noun) => `Nestled within the intimate ${f.neighborhood || "community"}, ${f.address} is a beautifully designed ${stats}${noun} that balances comfort and style.`,
     (f, stats, noun) => `${f.address} pairs a flexible ${stats}layout with an easy, low-maintenance lifestyle.`,
     (f, stats, noun) => `Bright, efficient, and turnkey — ${f.address} is a ${stats}${noun} designed around how people actually live.`,
+    (f, stats, noun) => `${f.address} is a ${stats}${noun} with a flexible layout that adapts to how you live.`,
   ],
   straightforward: [
     (f, stats, noun) => `${f.address} is a ${stats}${noun} now available for sale.`,
@@ -82,14 +86,15 @@ const OPENERS = {
     (f, stats, noun) => `${f.address} offers ${stats}living space in the ${f.neighborhood || "area"}.`,
     (f, stats, noun) => `${f.address} is a ${stats}${noun} in ${f.neighborhood || "the area"}, available now.`,
     (f, stats, noun) => `Now available: a ${stats}${noun} at ${f.address}, ready for its next owner.`,
+    (f, stats, noun) => `${f.address} is a ${stats}${noun} in ${f.neighborhood || "the area"}.`,
   ],
 };
 
 const FEATURE_LEADS = {
-  warm: ["Inside, you'll find", "You'll love", "The home also features", "Additional touches include", "You'll also appreciate", "Cozy details include", "You'll also love"],
-  luxury: ["Inside, discerning buyers will appreciate", "The residence also showcases", "Further appointments include", "Additional finishes include", "Every space has been elevated with", "The interior is further defined by", "Additional custom touches include"],
-  modern: ["Inside, the layout features", "The space also includes", "You'll also find", "Additional details include", "The design also incorporates", "Also on the main level:", "Rounding out the interior:"],
-  straightforward: ["Interior features include", "The property also includes", "Additional features:", "Also included:", "The home also offers", "Other interior features:", "The interior also includes"],
+  warm: ["Inside, you'll find", "You'll love", "The home also features", "Additional touches include", "You'll also appreciate", "Cozy details include", "You'll also love", "Also inside:"],
+  luxury: ["Inside, discerning buyers will appreciate", "The residence also showcases", "Further appointments include", "Additional finishes include", "Every space has been elevated with", "The interior is further defined by", "Additional custom touches include", "The residence is further appointed with"],
+  modern: ["Inside, the layout features", "The space also includes", "You'll also find", "Additional details include", "The design also incorporates", "Also on the main level:", "Rounding out the interior:", "The layout also includes"],
+  straightforward: ["Interior features include", "The property also includes", "Additional features:", "Also included:", "The home also offers", "Other interior features:", "The interior also includes", "Additional interior details:"],
 };
 
 const HIGHLIGHT_LEADS = {
@@ -153,6 +158,25 @@ const UPDATES_LEADS = {
   ],
 };
 
+const CONDITION_LEADS = {
+  warm: [
+    (c) => `Worth knowing: ${lowerFirst(c)}.`,
+    (c) => `A quick note for buyers: ${lowerFirst(c)}.`,
+  ],
+  luxury: [
+    (c) => `Please note: ${lowerFirst(c)}.`,
+    (c) => `Prospective buyers should note that ${lowerFirst(c)}.`,
+  ],
+  modern: [
+    (c) => `Good to know: ${lowerFirst(c)}.`,
+    (c) => `Note: ${lowerFirst(c)}.`,
+  ],
+  straightforward: [
+    (c) => `Note: ${lowerFirst(c)}.`,
+    (c) => `Buyers should note: ${lowerFirst(c)}.`,
+  ],
+};
+
 const PRIMARY_SUITE_LEADS = {
   warm: [
     (s) => `Retreat to the primary suite, complete with ${lowerFirst(s)}.`,
@@ -173,10 +197,10 @@ const PRIMARY_SUITE_LEADS = {
 };
 
 const EXTERIOR_LEADS = {
-  warm: ["Outside, you'll find", "The exterior offers", "You'll also enjoy", "Additional outdoor features include", "Out back, you'll find", "There's also"],
-  luxury: ["The grounds feature", "Outside, the property showcases", "Further exterior details include", "The exterior also boasts", "The grounds are further complemented by", "Outside amenities include"],
-  modern: ["Outside, the property offers", "The exterior includes", "You'll also find outside", "Additional exterior details include", "Outside:", "Also outside:"],
-  straightforward: ["Exterior features include", "Outside, the property offers", "Additional exterior features:", "Also outside:", "Other exterior features:", "The lot also includes"],
+  warm: ["Outside, you'll find", "The exterior offers", "You'll also enjoy", "Additional outdoor features include", "Out back, you'll find", "There's also", "Outdoors, you'll love"],
+  luxury: ["The grounds feature", "Outside, the property showcases", "Further exterior details include", "The exterior also boasts", "The grounds are further complemented by", "Outside amenities include", "The grounds also include"],
+  modern: ["Outside, the property offers", "The exterior includes", "You'll also find outside", "Additional exterior details include", "Outside:", "Also outside:", "The grounds include"],
+  straightforward: ["Exterior features include", "Outside, the property offers", "Additional exterior features:", "Also outside:", "Other exterior features:", "The lot also includes", "The grounds also include"],
 };
 
 const PARKING_LEADS = {
@@ -338,6 +362,7 @@ function buildDescription(form, variant) {
 
   if (form.amenities) outroSentences.push(pick(AMENITIES_LEADS[tone], variant)(lowerFirst(form.amenities)));
   if (form.updates) outroSentences.push(pick(UPDATES_LEADS[tone], variant)(lowerFirst(form.updates)));
+  if (form.conditionNote) outroSentences.push(pick(CONDITION_LEADS[tone], variant)(form.conditionNote));
   if (form.schoolDistrict) outroSentences.push(pick(SCHOOL_LEADS[tone], variant)(form.schoolDistrict));
   if (form.nearby) outroSentences.push(pick(NEARBY_LEADS[tone], variant)(form.nearby));
   if (form.price) outroSentences.push(`Offered at ${form.price}.`);
@@ -511,6 +536,11 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
               <label className="block mt-3">
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>RECENT UPDATES (optional)</span>
                 <input className="input" value={form.updates} onChange={update("updates")} placeholder="new HVAC in 2024, new windows, new hot water heater" />
+              </label>
+
+              <label className="block mt-3">
+                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CONDITION / OPPORTUNITY NOTE (optional)</span>
+                <input className="input" value={form.conditionNote} onChange={update("conditionNote")} placeholder="sold as-is, a great opportunity for a hands-on buyer" />
               </label>
 
               <label className="block mt-3">
