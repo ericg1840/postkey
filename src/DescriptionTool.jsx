@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check, Shuffle, Home, Building2, Warehouse, Building } from "lucide-react";
+import { Copy, Check, Shuffle, Home, Building2, Warehouse, Building, MapPin } from "lucide-react";
 import { UI, ACCENT, WHITE, mixWithWhite, TopNav } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 
@@ -397,8 +397,37 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
   const [variant, setVariant] = useState(0);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
+  const [lookupStatus, setLookupStatus] = useState("idle"); // idle | loading | done | error
+  const [lookupError, setLookupError] = useState("");
 
   const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const lookupAddress = async () => {
+    if (!form.address.trim()) return;
+    setLookupStatus("loading");
+    setLookupError("");
+    try {
+      const res = await fetch(`/api/property-lookup?address=${encodeURIComponent(form.address)}`);
+      if (!res.headers.get("content-type")?.includes("application/json")) {
+        throw new Error("Address lookup isn't available right now.");
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Address lookup failed.");
+      setForm((f) => ({
+        ...f,
+        neighborhood: f.neighborhood || data.city || f.neighborhood,
+        lotSize: f.lotSize || data.lotSize || f.lotSize,
+        yearBuilt: f.yearBuilt || data.yearBuilt || f.yearBuilt,
+        beds: f.beds || data.beds || f.beds,
+        baths: f.baths || data.baths || f.baths,
+        sqft: f.sqft || data.sqft || f.sqft,
+      }));
+      setLookupStatus("done");
+    } catch (err) {
+      setLookupStatus("error");
+      setLookupError(err.message || "Address lookup failed.");
+    }
+  };
 
   const description = buildDescription(form, variant);
   const tryAnother = () => setVariant((v) => v + 1);
@@ -460,7 +489,24 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
               <StepHeading n={2} title="Listing details" />
               <label className="block">
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
-                <input className="input" value={form.address} onChange={update("address")} />
+                <div className="flex gap-2">
+                  <input className="input" value={form.address} onChange={update("address")} />
+                  <button
+                    type="button"
+                    onClick={lookupAddress}
+                    disabled={lookupStatus === "loading" || !form.address.trim()}
+                    className="flex-shrink-0 px-3 rounded-lg font-body text-xs font-semibold flex items-center gap-1.5"
+                    style={{ background: mixWithWhite(ACCENT, 0.9), color: ACCENT, opacity: lookupStatus === "loading" ? 0.6 : 1 }}
+                  >
+                    <MapPin size={13} /> {lookupStatus === "loading" ? "Looking up…" : "Look up"}
+                  </button>
+                </div>
+                {lookupStatus === "done" && (
+                  <p className="font-body text-xs mt-1.5" style={{ color: UI.inkSoft }}>Filled in city, lot size, year built, beds, baths, and sqft from public records — double-check before publishing.</p>
+                )}
+                {lookupStatus === "error" && (
+                  <p className="font-body text-xs mt-1.5" style={{ color: UI.inkSoft }}>{lookupError}</p>
+                )}
               </label>
               <label className="block mt-3">
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>NEIGHBORHOOD / CITY</span>
