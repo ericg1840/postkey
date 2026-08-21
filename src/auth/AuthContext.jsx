@@ -1,10 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
-// Temporary: the hosted backend (database + auth API) isn't confirmed working
-// yet, so skip real accounts and let anyone use the tool immediately. Brand
-// kit is kept in this browser's localStorage so it survives a refresh but
-// isn't tied to an account. Flip this back to false once signup/login work.
-const STANDALONE = true;
+const STANDALONE = false;
 const STANDALONE_STORAGE_KEY = "postkey_standalone_brandkit";
 
 const AuthContext = createContext(null);
