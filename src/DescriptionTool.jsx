@@ -57,6 +57,8 @@ const OPENERS = {
     (f, stats, noun) => `Freshly updated and full of charm, ${f.address} is a ${stats}${noun} that's easy to fall for.`,
     (f, stats, noun) => `Tucked away on a quiet stretch of ${f.neighborhood || "the area"}, ${f.address} is a ${stats}${noun} that feels like home the moment you walk in.`,
     (f, stats, noun) => `Offered for the first time in years, ${f.address} is a ${stats}${noun} full of warmth and possibility.`,
+    (f, stats, noun) => `Welcome home to ${f.address}, where pride of ownership shows in every corner of this ${stats}${noun}.`,
+    (f, stats, noun) => `Tucked on a quiet street in ${f.neighborhood || "a friendly neighborhood"}, this ${stats}${noun} at ${f.address} blends classic charm with easy, everyday comfort.`,
   ],
   luxury: [
     (f, stats, noun) => `Discover refined living at ${f.address}, an exceptional ${stats}${noun} offering timeless elegance.`,
@@ -67,6 +69,8 @@ const OPENERS = {
     (f, stats, noun) => `Set on grounds worthy of the address, ${f.address} is a ${stats}${noun} built for those who expect more.`,
     (f, stats, noun) => `Rarely does a ${stats}${noun} like ${f.address} come to market in ${f.neighborhood || "this community"} — a residence defined by craftsmanship and scale.`,
     (f, stats, noun) => `${f.address} is a ${stats}${noun} of uncommon scale and detail in ${f.neighborhood || "this community"}.`,
+    (f, stats, noun) => `Welcome to ${f.address}, an exceptional ${stats}${noun} offering a rare combination of scale, privacy, and unmatched quality.`,
+    (f, stats, noun) => `Presenting one of ${f.neighborhood || "the area"}'s most distinguished offerings — a ${stats}${noun} at ${f.address} defined by timeless design.`,
   ],
   modern: [
     (f, stats, noun) => `${f.address} delivers clean lines and effortless living in this ${stats}${noun}.`,
@@ -77,6 +81,7 @@ const OPENERS = {
     (f, stats, noun) => `${f.address} pairs a flexible ${stats}layout with an easy, low-maintenance lifestyle.`,
     (f, stats, noun) => `Bright, efficient, and turnkey — ${f.address} is a ${stats}${noun} designed around how people actually live.`,
     (f, stats, noun) => `${f.address} is a ${stats}${noun} with a flexible layout that adapts to how you live.`,
+    (f, stats, noun) => `${f.address} pairs an open ${stats}floor plan with clean finishes throughout.`,
   ],
   straightforward: [
     (f, stats, noun) => `${f.address} is a ${stats}${noun} now available for sale.`,
@@ -87,6 +92,7 @@ const OPENERS = {
     (f, stats, noun) => `${f.address} is a ${stats}${noun} in ${f.neighborhood || "the area"}, available now.`,
     (f, stats, noun) => `Now available: a ${stats}${noun} at ${f.address}, ready for its next owner.`,
     (f, stats, noun) => `${f.address} is a ${stats}${noun} in ${f.neighborhood || "the area"}.`,
+    (f, stats, noun) => `${stats}${noun} located at ${f.address} in ${f.neighborhood || "the area"}.`,
   ],
 };
 
@@ -162,6 +168,7 @@ const CONDITION_LEADS = {
   warm: [
     (c) => `Worth knowing: ${lowerFirst(c)}.`,
     (c) => `A quick note for buyers: ${lowerFirst(c)}.`,
+    (c) => `A great opportunity to add some sweat equity: ${lowerFirst(c)}.`,
   ],
   luxury: [
     (c) => `Please note: ${lowerFirst(c)}.`,
@@ -174,6 +181,7 @@ const CONDITION_LEADS = {
   straightforward: [
     (c) => `Note: ${lowerFirst(c)}.`,
     (c) => `Buyers should note: ${lowerFirst(c)}.`,
+    (c) => `Sold as-is: ${lowerFirst(c)}.`,
   ],
 };
 
@@ -185,6 +193,7 @@ const PRIMARY_SUITE_LEADS = {
   luxury: [
     (s) => `The primary suite is a true retreat, featuring ${lowerFirst(s)}.`,
     (s) => `A private sanctuary, the primary suite boasts ${lowerFirst(s)}.`,
+    (s) => `The primary suite is a spa-like escape, complete with ${lowerFirst(s)}.`,
   ],
   modern: [
     (s) => `The primary suite includes ${lowerFirst(s)}.`,
@@ -268,6 +277,7 @@ const CLOSINGS = {
     "Driving by will only make you want to visit — and once you visit, you'll want to call it home.",
     "This one truly has it all — schedule your showing before it's gone.",
     "Come fall in love in person — schedule a tour today.",
+    "This just-listed gem won't be on the market long — schedule your showing today.",
   ],
   luxury: [
     "Private showings are available by appointment — inquire today.",
@@ -276,6 +286,7 @@ const CLOSINGS = {
     "Embrace the opportunity to make this exceptional residence your own.",
     "Opportunities like this are rare — arrange your private showing today.",
     "Discover it for yourself — schedule a private tour today.",
+    "A rare offering of this scale and quality — inquire to arrange a private showing.",
   ],
   modern: [
     "Book your showing today.",
