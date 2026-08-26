@@ -130,18 +130,26 @@ const AMENITIES_LEADS = {
   warm: [
     (a) => `The community offers ${a}, so you can spend more time enjoying life and less on upkeep.`,
     (a) => `You'll also have access to ${a} right in the community.`,
+    (a) => `Life here comes with ${a}, just steps from your front door.`,
+    (a) => `As part of the community, you'll enjoy ${a} — the kind of extras that make everyday life easier.`,
   ],
   luxury: [
     (a) => `Residents enjoy access to ${a}.`,
     (a) => `The community itself provides ${a}, adding to the appeal.`,
+    (a) => `Beyond the residence, the community offers ${a} for a truly resort-like lifestyle.`,
+    (a) => `Ownership here also grants access to ${a}.`,
   ],
   modern: [
     (a) => `Community amenities include ${a}.`,
     (a) => `Also available to residents: ${a}.`,
+    (a) => `The community rounds things out with ${a}.`,
+    (a) => `On-site: ${a}.`,
   ],
   straightforward: [
     (a) => `The community provides ${a}.`,
     (a) => `Community amenities: ${a}.`,
+    (a) => `HOA amenities include ${a}.`,
+    (a) => `Residents have access to ${a}.`,
   ],
 };
 
@@ -235,18 +243,26 @@ const NEARBY_LEADS = {
   warm: [
     (n) => `You're just minutes from ${n} — everything you need is close by.`,
     (n) => `It's a short drive to ${n}, so you're never far from what matters.`,
+    (n) => `Everyday life is easy from here, with ${n} just around the corner.`,
+    (n) => `You'll love how close you are to ${n}, no matter the day of the week.`,
   ],
   luxury: [
     (n) => `Ideally situated near ${n}, offering both privacy and convenience.`,
     (n) => `The location affords easy access to ${n}, all while feeling tucked away.`,
+    (n) => `Just a short drive from ${n}, the location offers rare privacy without sacrificing convenience.`,
+    (n) => `Enviably positioned near ${n}, without compromising on seclusion.`,
   ],
   modern: [
     (n) => `Conveniently located near ${n}.`,
     (n) => `Close to ${n}.`,
+    (n) => `Minutes from ${n}.`,
+    (n) => `Easy access to ${n}.`,
   ],
   straightforward: [
     (n) => `Located near ${n}.`,
     (n) => `Close proximity to ${n}.`,
+    (n) => `Minutes from ${n}.`,
+    (n) => `Convenient to ${n}.`,
   ],
 };
 
