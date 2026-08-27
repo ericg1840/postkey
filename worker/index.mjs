@@ -38,7 +38,19 @@ export default {
     if (route) {
       const handler = route[request.method];
       if (!handler) return new Response("Method not allowed", { status: 405 });
-      return handler({ request, env, ctx });
+      try {
+        return await handler({ request, env, ctx });
+      } catch (err) {
+        // An uncaught error here would otherwise surface as Cloudflare's
+        // generic "Worker threw exception" HTML page (error 1101) — useless
+        // to the frontend, which expects JSON. Surface the real message
+        // instead (e.g. a missing DB column) so it's actually debuggable.
+        console.error(`${pathname} threw:`, err);
+        return new Response(JSON.stringify({ error: err?.message || "Something went wrong." }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
     }
     // Not an API route — serve the built static site (index.html fallback
     // for client-side routing is handled by the `not_found_handling` setting
