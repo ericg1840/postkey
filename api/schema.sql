@@ -27,5 +27,27 @@ CREATE TABLE brand_kits (
   onboarded BOOLEAN NOT NULL DEFAULT false,
   headshot_url TEXT,
   logo_url TEXT,
-  updated_at TIMESTAMP DEFAULT NOW()
+  updated_at TIMESTAMP DEFAULT NOW(),
+  -- link-in-bio page settings
+  bio_handle TEXT UNIQUE,
+  bio_tagline TEXT NOT NULL DEFAULT '',
+  bio_bg_color TEXT NOT NULL DEFAULT '#1B2430',
+  bio_box_color TEXT NOT NULL DEFAULT '#2E3B4C'
 );
+
+-- One row per link on an agent's link-in-bio page.
+CREATE TABLE bio_links (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  label TEXT NOT NULL DEFAULT '',
+  url TEXT NOT NULL DEFAULT '',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  -- zillow-specific, unused for other link types
+  address TEXT,
+  price TEXT,
+  beds TEXT,
+  baths TEXT
+);
+
+CREATE INDEX bio_links_user_id_idx ON bio_links(user_id);
