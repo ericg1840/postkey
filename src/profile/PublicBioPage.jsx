@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Globe, Facebook, Instagram, Home, Building2, Briefcase, Link as LinkIcon, Key } from "lucide-react";
-import { UI, ACCENT } from "../shared.jsx";
+import { UI, ACCENT, scriptFontCss } from "../shared.jsx";
 
 const LINK_TYPES = {
   website: { label: "Website", icon: Globe },
@@ -69,7 +69,7 @@ export function PublicBioPage({ handle }) {
     );
   }
 
-  const { name, tagline, bgColor, boxColor, links } = state.data;
+  const { name, tagline, bgColor, boxColor, nameFont, links } = state.data;
   const boxTextColor = textOn(boxColor);
   const boxSubColor = relativeLuminance(boxColor) > 0.5 ? UI.inkSoft : "#B9C0CC";
 
@@ -81,7 +81,12 @@ export function PublicBioPage({ handle }) {
             {(name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
           </div>
         </div>
-        <h1 className="font-display text-xl text-center mb-1" style={{ color: textOn(bgColor) }}>{name || "Agent"}</h1>
+        <h1
+          className={nameFont ? "text-center mb-1" : "font-display text-xl text-center mb-1"}
+          style={nameFont ? { color: textOn(bgColor), font: scriptFontCss(nameFont, 28) } : { color: textOn(bgColor) }}
+        >
+          {name || "Agent"}
+        </h1>
         {tagline && <p className="font-body text-xs text-center mb-8 opacity-70 max-w-[240px]" style={{ color: textOn(bgColor) }}>{tagline}</p>}
 
         <div className="w-full flex flex-col gap-2.5 mt-2">

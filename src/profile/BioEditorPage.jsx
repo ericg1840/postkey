@@ -3,7 +3,7 @@ import {
   Globe, Facebook, Instagram, Home, Building2, Briefcase, Link as LinkIcon,
   Plus, X, Loader2, CheckCircle2, RefreshCw, Copy, Check, ExternalLink,
 } from "lucide-react";
-import { UI, ACCENT, ERROR, WHITE, TopNav } from "../shared.jsx";
+import { UI, ACCENT, ERROR, WHITE, TopNav, SCRIPT_FONTS, scriptFontCss } from "../shared.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 
 const LINK_TYPES = [
@@ -50,6 +50,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
   const [tagline, setTagline] = useState("");
   const [bgColor, setBgColor] = useState(UI.ink);
   const [boxColor, setBoxColor] = useState("#2E3B4C");
+  const [nameFont, setNameFont] = useState("");
   const [links, setLinks] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved | error
@@ -68,6 +69,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
         setTagline(data.profile?.tagline || "");
         setBgColor(data.profile?.bgColor || UI.ink);
         setBoxColor(data.profile?.boxColor || "#2E3B4C");
+        setNameFont(data.profile?.nameFont || "");
         setLinks(data.links || []);
       } catch (err) {
         if (!cancelled) setLoadError(err.message);
@@ -144,7 +146,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ handle, tagline, bgColor, boxColor, links }),
+        body: JSON.stringify({ handle, tagline, bgColor, boxColor, nameFont, links }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Couldn't save.");
@@ -170,10 +172,21 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
     <div className="min-h-screen" style={{ background: UI.page }}>
       <TopNav active="bio" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} onLogoClick={onGoHome} />
       <div className="max-w-6xl mx-auto px-3 sm:px-6 py-6 sm:py-10">
-        <h1 className="font-display font-bold text-2xl mb-1" style={{ color: UI.ink }}>Your link-in-bio page</h1>
-        <p className="font-body text-sm mb-6" style={{ color: UI.inkSoft }}>
-          Pick your colors, then add only the links you actually want people to see. Paste a Zillow
-          listing link and we'll pull the details for you.
+        <p className="font-mono text-xs tracking-[0.14em] uppercase mb-2" style={{ color: ACCENT }}>
+          Simple to build. Easy to share. Made for real estate.
+        </p>
+        <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2" style={{ color: UI.ink }}>
+          Your Links. Your Brand. One Powerful Page.
+        </h1>
+        <p className="font-body text-sm sm:text-base mb-3 max-w-2xl" style={{ color: UI.inkSoft }}>
+          Create a link-in-bio page that looks as good as your real estate brand. Make it yours with
+          custom colors, your branding, and only the links you want your audience to see — social
+          profiles, website, contact info, listings, and more, all in one place.
+        </p>
+        <p className="font-body text-sm mb-8 max-w-2xl" style={{ color: UI.inkSoft }}>
+          <span className="font-semibold" style={{ color: UI.ink }}>Turn listings into posts:</span>{" "}
+          paste a Zillow listing link and we'll automatically pull in the property details, so you can
+          quickly turn your listing into engaging social content.
         </p>
 
         {loading ? (
@@ -183,8 +196,9 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6 items-start">
             {/* ---------------- EDITOR PANEL ---------------- */}
-            <div className="rounded-2xl border p-5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
+            <div>
               <p className="font-mono text-xs tracking-[0.1em] uppercase mb-3" style={{ color: UI.inkSoft }}>Page basics</p>
+              <div className="rounded-2xl border p-5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                 <div>
                   <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Your link</label>
@@ -217,7 +231,15 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                 <ColorField label="Link box" value={boxColor} onChange={setBoxColor} />
               </div>
 
-              <div className="h-px mb-6" style={{ background: UI.line }} />
+              <div>
+                <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Name style</label>
+                <select className="input" value={nameFont} onChange={(e) => setNameFont(e.target.value)}>
+                  <option value="">Default (PostKey Serif)</option>
+                  {SCRIPT_FONTS.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
+                </select>
+              </div>
+
+              <div className="h-px my-6" style={{ background: UI.line }} />
 
               <div className="flex items-center justify-between mb-3">
                 <p className="font-mono text-xs tracking-[0.1em] uppercase" style={{ color: UI.inkSoft }}>
@@ -376,6 +398,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   </div>
                 )}
               </div>
+              </div>
             </div>
 
             {/* ---------------- LIVE PREVIEW ---------------- */}
@@ -391,7 +414,12 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                       {(name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                     </div>
                   </div>
-                  <h2 className="font-display text-xl text-center mb-1" style={{ color: textOn(bgColor) }}>{name || "Your Name"}</h2>
+                  <h2
+                    className={nameFont ? "text-center mb-1" : "font-display text-xl text-center mb-1"}
+                    style={nameFont ? { color: textOn(bgColor), font: scriptFontCss(nameFont, 28) } : { color: textOn(bgColor) }}
+                  >
+                    {name || "Your Name"}
+                  </h2>
                   <p className="font-body text-xs text-center mb-8 opacity-70 max-w-[240px]" style={{ color: textOn(bgColor) }}>{tagline}</p>
 
                   <div className="w-full flex flex-col gap-2.5">

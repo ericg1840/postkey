@@ -10,7 +10,7 @@ export async function onRequestGet({ request, env }) {
   if (!userId) return json({ error: "Not signed in." }, { status: 401 });
 
   const db = getDb(env);
-  const [kit] = await db.sql`SELECT bio_handle, bio_tagline, bio_bg_color, bio_box_color FROM brand_kits WHERE user_id = ${userId}`;
+  const [kit] = await db.sql`SELECT bio_handle, bio_tagline, bio_bg_color, bio_box_color, bio_name_font FROM brand_kits WHERE user_id = ${userId}`;
   const links = await db.sql`SELECT id, type, label, url, address, price, beds, baths FROM bio_links WHERE user_id = ${userId} ORDER BY sort_order ASC, id ASC`;
 
   return json({
@@ -19,6 +19,7 @@ export async function onRequestGet({ request, env }) {
       tagline: kit?.bio_tagline || "",
       bgColor: kit?.bio_bg_color || "#1B2430",
       boxColor: kit?.bio_box_color || "#2E3B4C",
+      nameFont: kit?.bio_name_font || "",
     },
     links: links.map((l) => ({
       id: String(l.id),
@@ -44,6 +45,7 @@ export async function onRequestPut({ request, env }) {
   const tagline = String(body.tagline || "").slice(0, 200);
   const bgColor = String(body.bgColor || "#1B2430");
   const boxColor = String(body.boxColor || "#2E3B4C");
+  const nameFont = String(body.nameFont || "").slice(0, 40);
   const links = Array.isArray(body.links) ? body.links : [];
 
   if (handle && !HANDLE_RE.test(handle)) {
@@ -67,6 +69,7 @@ export async function onRequestPut({ request, env }) {
         bio_tagline = ${tagline},
         bio_bg_color = ${bgColor},
         bio_box_color = ${boxColor},
+        bio_name_font = ${nameFont},
         updated_at = NOW()
       WHERE user_id = ${userId}
     `;
