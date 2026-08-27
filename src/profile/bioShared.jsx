@@ -60,6 +60,49 @@ export function textOn(hex) {
   return relativeLuminance(hex) > 0.5 ? UI.ink : "#FDFBF7";
 }
 
+// When a background photo is set, the page's background color becomes a
+// tint overlaid on the photo (not a separate flat fill) — same idea as the
+// "photo with a color wash" templates agents are used to seeing elsewhere.
+export function bgStyle(bgColor, bgImageUrl, bgTint) {
+  if (!bgImageUrl) return { backgroundColor: bgColor };
+  const { r, g, b } = hexToRgb(bgColor);
+  const alpha = Math.max(0, Math.min(100, bgTint ?? 40)) / 100;
+  return {
+    backgroundImage: `linear-gradient(rgba(${r}, ${g}, ${b}, ${alpha}), rgba(${r}, ${g}, ${b}, ${alpha})), url(${bgImageUrl})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+  };
+}
+
+// Downscales + re-encodes an uploaded photo client-side before it's stored
+// as a data URL, same pattern as the headshot/logo uploads — but a
+// full-bleed background photo from a phone camera can be tens of MB
+// unresized, which is too large to store as inline text and too slow to
+// upload; this keeps it to a sane size without a separate file host.
+export function resizeImageToDataUrl(file, maxDim = 1600, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith("image/")) { reject(new Error("Choose an image file.")); return; }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Couldn't read that file."));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Couldn't read that image."));
+      img.onload = () => {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 // Paired with the "Name style" font picker — same idea, but for size.
 export const NAME_SIZES = [
   { id: "sm", label: "Small", px: 22 },

@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import {
   Plus, X, Loader2, CheckCircle2, RefreshCw, Copy, Check, ExternalLink,
-  ChevronDown, ChevronUp, GripVertical, Smartphone, Monitor, RotateCcw, Eye,
+  ChevronDown, ChevronUp, GripVertical, Smartphone, Monitor, RotateCcw, Eye, ImagePlus,
 } from "lucide-react";
 import { UI, ACCENT, ERROR, WHITE, TopNav, SCRIPT_FONTS, scriptFontCss, DEFAULT_HEADSHOT_URL } from "../shared.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import {
   LINK_TYPES, SOCIAL_TYPES, BioLinksList, textOn, relativeLuminance,
-  NAME_SIZES, nameSizePx, THEME_PRESETS, BUTTON_STYLES,
+  NAME_SIZES, nameSizePx, THEME_PRESETS, BUTTON_STYLES, bgStyle, resizeImageToDataUrl,
 } from "./bioShared.jsx";
 
 const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
@@ -17,7 +17,7 @@ const TAGLINE_MAX = 80;
 
 const DEFAULTS = {
   handle: "", tagline: "", brokerage: "", bgColor: UI.ink, boxColor: "#2E3B4C",
-  nameFont: "", nameSize: "md", buttonStyle: "rounded",
+  nameFont: "", nameSize: "md", buttonStyle: "rounded", bgImageUrl: "", bgTint: 40,
 };
 
 let linkIdSeq = 0;
@@ -59,6 +59,9 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
   const [nameFont, setNameFont] = useState(DEFAULTS.nameFont);
   const [nameSize, setNameSize] = useState(DEFAULTS.nameSize);
   const [buttonStyle, setButtonStyle] = useState(DEFAULTS.buttonStyle);
+  const [bgImageUrl, setBgImageUrl] = useState(DEFAULTS.bgImageUrl);
+  const [bgTint, setBgTint] = useState(DEFAULTS.bgTint);
+  const [bgImageError, setBgImageError] = useState("");
   const [links, setLinks] = useState([]);
   const [contentMenuOpen, setContentMenuOpen] = useState(false);
   const [socialMenuOpen, setSocialMenuOpen] = useState(false);
@@ -84,6 +87,8 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
         setNameFont(data.profile?.nameFont || DEFAULTS.nameFont);
         setNameSize(data.profile?.nameSize || DEFAULTS.nameSize);
         setButtonStyle(data.profile?.buttonStyle || DEFAULTS.buttonStyle);
+        setBgImageUrl(data.profile?.bgImageUrl || DEFAULTS.bgImageUrl);
+        setBgTint(data.profile?.bgTint ?? DEFAULTS.bgTint);
         setLinks(data.links || []);
       } catch (err) {
         if (!cancelled) setLoadError(err.message);
@@ -155,6 +160,17 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
     }
   }
 
+  async function onBgImagePick(file) {
+    if (!file) return;
+    setBgImageError("");
+    try {
+      const dataUrl = await resizeImageToDataUrl(file);
+      setBgImageUrl(dataUrl);
+    } catch (err) {
+      setBgImageError(err.message);
+    }
+  }
+
   function onHandleChange(v) {
     const clean = v.toLowerCase().replace(/[^a-z0-9-]/g, "");
     setHandle(clean);
@@ -173,7 +189,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ handle, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links }),
+        body: JSON.stringify({ handle, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, bgImageUrl, bgTint, links }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Couldn't save.");
@@ -191,6 +207,8 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
     setNameFont(DEFAULTS.nameFont);
     setNameSize(DEFAULTS.nameSize);
     setButtonStyle(DEFAULTS.buttonStyle);
+    setBgImageUrl(DEFAULTS.bgImageUrl);
+    setBgTint(DEFAULTS.bgTint);
     setSaveStatus("idle");
   }
 
@@ -327,6 +345,49 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   <ColorField label="Background" value={bgColor} onChange={setBgColor} />
                   <ColorField label="Buttons" value={boxColor} onChange={setBoxColor} />
                 </div>
+
+                <p className="font-mono text-xs uppercase tracking-wide mb-2" style={{ color: UI.inkSoft }}>Background image (optional)</p>
+                {bgImageUrl ? (
+                  <div className="rounded-xl overflow-hidden mb-2 relative" style={{ height: 100 }}>
+                    <img src={bgImageUrl} alt="" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0" style={{ background: bgColor, opacity: bgTint / 100 }} />
+                    <button
+                      type="button"
+                      onClick={() => setBgImageUrl("")}
+                      className="absolute top-2 right-2 rounded-full p-1"
+                      style={{ background: "rgba(0,0,0,0.5)", color: "#FFFFFF" }}
+                      aria-label="Remove background image"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    className="flex items-center justify-center gap-2 border border-dashed rounded-xl py-4 mb-2 text-sm font-body cursor-pointer transition"
+                    style={{ borderColor: UI.line, color: UI.inkSoft }}
+                  >
+                    <ImagePlus size={16} /> Upload a photo
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => onBgImagePick(e.target.files[0])} />
+                  </label>
+                )}
+                {bgImageError && <p className="font-body text-[11px] mb-2" style={{ color: ERROR }}>{bgImageError}</p>}
+                {bgImageUrl && (
+                  <div className="mb-4">
+                    <label className="font-mono text-xs uppercase tracking-wide flex items-center justify-between mb-1.5" style={{ color: UI.inkSoft }}>
+                      <span>Tint intensity</span>
+                      <span>{bgTint}%</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="90"
+                      value={bgTint}
+                      onChange={(e) => setBgTint(Number(e.target.value))}
+                      className="w-full"
+                      style={{ accentColor: ACCENT }}
+                    />
+                  </div>
+                )}
 
                 <p className="font-mono text-xs uppercase tracking-wide mb-2" style={{ color: UI.inkSoft }}>Button style</p>
                 <div className="flex gap-2 mb-4">
@@ -504,7 +565,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   <div className="w-24 h-5 rounded-full mx-auto mb-1" style={{ background: "#1A1D22" }} />
                   <div
                     className="rounded-[1.9rem] overflow-hidden min-h-[560px] px-6 py-8 flex flex-col items-center transition-colors duration-200"
-                    style={{ backgroundColor: bgColor }}
+                    style={bgStyle(bgColor, bgImageUrl, bgTint)}
                   >
                     <PreviewContent {...{ name, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links }} />
                   </div>
@@ -523,7 +584,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   </div>
                   <div
                     className="rounded-xl overflow-hidden min-h-[560px] px-6 py-10 flex flex-col items-center transition-colors duration-200"
-                    style={{ backgroundColor: bgColor }}
+                    style={bgStyle(bgColor, bgImageUrl, bgTint)}
                   >
                     <div className="w-full max-w-sm">
                       <PreviewContent {...{ name, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links }} />

@@ -10,7 +10,7 @@ export async function onRequestGet({ request, env }) {
 
   const db = getDb(env);
   const [kit] = await db.sql`
-    SELECT user_id, agent_name, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style
+    SELECT user_id, agent_name, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style, bio_bg_image_url, bio_bg_tint
     FROM brand_kits WHERE bio_handle = ${handle}
   `;
   if (!kit) return json({ error: "Page not found." }, { status: 404 });
@@ -29,6 +29,8 @@ export async function onRequestGet({ request, env }) {
     nameFont: kit.bio_name_font || "",
     nameSize: kit.bio_name_size || "md",
     buttonStyle: kit.bio_button_style || "rounded",
+    bgImageUrl: kit.bio_bg_image_url || "",
+    bgTint: kit.bio_bg_tint ?? 40,
     links: links.map((l) => ({
       type: l.type,
       label: l.label,

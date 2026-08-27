@@ -12,7 +12,7 @@ export async function onRequestGet({ request, env }) {
   if (!userId) return json({ error: "Not signed in." }, { status: 401 });
 
   const db = getDb(env);
-  const [kit] = await db.sql`SELECT bio_handle, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style FROM brand_kits WHERE user_id = ${userId}`;
+  const [kit] = await db.sql`SELECT bio_handle, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style, bio_bg_image_url, bio_bg_tint FROM brand_kits WHERE user_id = ${userId}`;
   const links = await db.sql`SELECT id, type, label, url, address, price, beds, baths, photo_url FROM bio_links WHERE user_id = ${userId} ORDER BY sort_order ASC, id ASC`;
 
   return json({
@@ -25,6 +25,8 @@ export async function onRequestGet({ request, env }) {
       nameFont: kit?.bio_name_font || "",
       nameSize: kit?.bio_name_size || "md",
       buttonStyle: kit?.bio_button_style || "rounded",
+      bgImageUrl: kit?.bio_bg_image_url || "",
+      bgTint: kit?.bio_bg_tint ?? 40,
     },
     links: links.map((l) => ({
       id: String(l.id),
@@ -55,6 +57,8 @@ export async function onRequestPut({ request, env }) {
   const nameFont = String(body.nameFont || "").slice(0, 40);
   const nameSize = NAME_SIZES.has(body.nameSize) ? body.nameSize : "md";
   const buttonStyle = BUTTON_STYLES.has(body.buttonStyle) ? body.buttonStyle : "rounded";
+  const bgImageUrl = body.bgImageUrl ? String(body.bgImageUrl).slice(0, 4_000_000) : null;
+  const bgTint = Number.isFinite(body.bgTint) ? Math.max(0, Math.min(100, Math.round(body.bgTint))) : 40;
   const links = Array.isArray(body.links) ? body.links : [];
 
   if (handle && !HANDLE_RE.test(handle)) {
@@ -82,6 +86,8 @@ export async function onRequestPut({ request, env }) {
         bio_name_font = ${nameFont},
         bio_name_size = ${nameSize},
         bio_button_style = ${buttonStyle},
+        bio_bg_image_url = ${bgImageUrl},
+        bio_bg_tint = ${bgTint},
         updated_at = NOW()
       WHERE user_id = ${userId}
     `;
