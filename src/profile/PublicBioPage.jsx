@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Globe, Facebook, Instagram, Home, Building2, Briefcase, Link as LinkIcon, Key } from "lucide-react";
+import { UI, ACCENT } from "../shared.jsx";
 
 const LINK_TYPES = {
   website: { label: "Website", icon: Globe },
@@ -10,10 +11,6 @@ const LINK_TYPES = {
   broker: { label: "Brokerage Site", icon: Briefcase },
   custom: { label: "Custom Link", icon: LinkIcon },
 };
-
-const BRASS = "#C9A24B";
-const BRASS_LIGHT = "#E4C878";
-const CREAM = "#F3EFE6";
 
 function hexToRgb(hex) {
   const m = hex.replace("#", "");
@@ -29,11 +26,10 @@ function relativeLuminance(hex) {
   return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
 }
 function textOn(hex) {
-  return relativeLuminance(hex) > 0.5 ? "#20242C" : CREAM;
+  return relativeLuminance(hex) > 0.5 ? UI.ink : "#FDFBF7";
 }
 
 function linkHref(link) {
-  if (link.type === "zillow" && link.url) return /^https?:\/\//i.test(link.url) ? link.url : `https://${link.url}`;
   if (!link.url) return "#";
   return /^https?:\/\//i.test(link.url) ? link.url : `https://${link.url}`;
 }
@@ -58,35 +54,35 @@ export function PublicBioPage({ handle }) {
 
   if (state.loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#12171F" }}>
-        <p className="text-sm" style={{ color: "#8A93A3" }}>Loading…</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: UI.ink }}>
+        <p className="font-body text-sm" style={{ color: "#8A93A3" }}>Loading…</p>
       </div>
     );
   }
 
   if (state.error || !state.data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-2 text-center px-6" style={{ background: "#12171F" }}>
-        <p className="text-lg" style={{ color: CREAM }}>This page doesn't exist.</p>
-        <p className="text-sm" style={{ color: "#8A93A3" }}>{state.error}</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-2 text-center px-6" style={{ background: UI.ink }}>
+        <p className="font-display text-lg" style={{ color: "#FDFBF7" }}>This page doesn't exist.</p>
+        <p className="font-body text-sm" style={{ color: "#8A93A3" }}>{state.error}</p>
       </div>
     );
   }
 
   const { name, tagline, bgColor, boxColor, links } = state.data;
   const boxTextColor = textOn(boxColor);
-  const boxSubColor = relativeLuminance(boxColor) > 0.5 ? "#5B6472" : "#B9C0CC";
+  const boxSubColor = relativeLuminance(boxColor) > 0.5 ? UI.inkSoft : "#B9C0CC";
 
   return (
     <div className="min-h-screen flex flex-col items-center px-6 py-12" style={{ backgroundColor: bgColor }}>
       <div className="w-full max-w-sm flex flex-col items-center">
-        <div className="w-20 h-20 rounded-full p-1 mb-4" style={{ background: `conic-gradient(from 180deg, ${BRASS_LIGHT}, ${BRASS}, ${BRASS_LIGHT})` }}>
-          <div className="w-full h-full rounded-full flex items-center justify-center text-lg" style={{ background: "#2A3542", color: BRASS_LIGHT, fontFamily: "Georgia, serif" }}>
+        <div className="w-20 h-20 rounded-full p-1 mb-4" style={{ background: `conic-gradient(from 180deg, ${ACCENT}, #6E8CFF, ${ACCENT})` }}>
+          <div className="font-display w-full h-full rounded-full flex items-center justify-center text-lg" style={{ background: UI.ink, color: "#FDFBF7" }}>
             {(name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
           </div>
         </div>
-        <h1 className="text-xl text-center mb-1" style={{ color: textOn(bgColor), fontFamily: "Georgia, serif" }}>{name || "Agent"}</h1>
-        {tagline && <p className="text-xs text-center mb-8 opacity-70 max-w-[240px]" style={{ color: textOn(bgColor) }}>{tagline}</p>}
+        <h1 className="font-display text-xl text-center mb-1" style={{ color: textOn(bgColor) }}>{name || "Agent"}</h1>
+        {tagline && <p className="font-body text-xs text-center mb-8 opacity-70 max-w-[240px]" style={{ color: textOn(bgColor) }}>{tagline}</p>}
 
         <div className="w-full flex flex-col gap-2.5 mt-2">
           {links.map((link, i) => {
@@ -107,14 +103,14 @@ export function PublicBioPage({ handle }) {
                 className="flex items-center gap-3 rounded-xl px-4 py-3 transition-transform hover:-translate-y-0.5"
                 style={{ backgroundColor: boxColor }}
               >
-                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ border: `2px solid ${BRASS}`, background: bgColor }}>
-                  <Icon size={11} style={{ color: BRASS }} />
+                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ border: `2px solid ${ACCENT}`, background: bgColor }}>
+                  <Icon size={11} style={{ color: ACCENT }} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold truncate" style={{ color: boxTextColor }}>{title}</p>
-                  {sub && <p className="text-[11px] truncate" style={{ color: boxSubColor }}>{sub}</p>}
+                  <p className="font-body text-sm font-semibold truncate" style={{ color: boxTextColor }}>{title}</p>
+                  {sub && <p className="font-body text-[11px] truncate" style={{ color: boxSubColor }}>{sub}</p>}
                 </div>
-                <span style={{ color: BRASS }}>›</span>
+                <span style={{ color: ACCENT }}>›</span>
               </a>
             );
           })}
@@ -122,7 +118,7 @@ export function PublicBioPage({ handle }) {
 
         <a href="/" className="flex items-center gap-1.5 mt-10 opacity-40 hover:opacity-70 transition-opacity">
           <Key size={11} style={{ color: textOn(bgColor), transform: "rotate(-45deg)" }} />
-          <span className="text-[10px] tracking-[0.1em] uppercase" style={{ color: textOn(bgColor) }}>Powered by PostKey</span>
+          <span className="font-mono text-[10px] tracking-[0.1em] uppercase" style={{ color: textOn(bgColor) }}>Powered by PostKey</span>
         </a>
       </div>
     </div>

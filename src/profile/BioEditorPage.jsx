@@ -16,9 +16,6 @@ const LINK_TYPES = [
   { id: "custom", label: "Custom Link", icon: LinkIcon, placeholder: "https://..." },
 ];
 
-const BRASS = "#C9A24B";
-const BRASS_LIGHT = "#E4C878";
-const CREAM = "#F3EFE6";
 const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 
 function hexToRgb(hex) {
@@ -35,7 +32,7 @@ function relativeLuminance(hex) {
   return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
 }
 function textOn(hex) {
-  return relativeLuminance(hex) > 0.5 ? "#20242C" : CREAM;
+  return relativeLuminance(hex) > 0.5 ? UI.ink : "#FDFBF7";
 }
 
 let linkIdSeq = 0;
@@ -51,7 +48,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
   const [handle, setHandle] = useState("");
   const [handleError, setHandleError] = useState("");
   const [tagline, setTagline] = useState("");
-  const [bgColor, setBgColor] = useState("#1B2430");
+  const [bgColor, setBgColor] = useState(UI.ink);
   const [boxColor, setBoxColor] = useState("#2E3B4C");
   const [links, setLinks] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -69,7 +66,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
         if (cancelled) return;
         setHandle(data.profile?.handle || "");
         setTagline(data.profile?.tagline || "");
-        setBgColor(data.profile?.bgColor || "#1B2430");
+        setBgColor(data.profile?.bgColor || UI.ink);
         setBoxColor(data.profile?.boxColor || "#2E3B4C");
         setLinks(data.links || []);
       } catch (err) {
@@ -167,7 +164,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
   }
 
   const boxTextColor = textOn(boxColor);
-  const boxSubColor = relativeLuminance(boxColor) > 0.5 ? "#5B6472" : "#B9C0CC";
+  const boxSubColor = relativeLuminance(boxColor) > 0.5 ? UI.inkSoft : "#B9C0CC";
 
   return (
     <div className="min-h-screen" style={{ background: UI.page }}>
@@ -186,50 +183,51 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6 items-start">
             {/* ---------------- EDITOR PANEL ---------------- */}
-            <div className="bg-[#1A212C] border border-white/[0.06] rounded-2xl p-6">
-              <p className="text-xs tracking-[0.1em] uppercase text-[#8A93A3] mb-3">Page basics</p>
+            <div className="rounded-2xl border p-5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
+              <p className="font-mono text-xs tracking-[0.1em] uppercase mb-3" style={{ color: UI.inkSoft }}>Page basics</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                 <div>
-                  <label className="text-[11px] uppercase tracking-wide text-[#8A93A3] block mb-1.5">Your link</label>
-                  <div className="flex items-center bg-[#232C39] border rounded-lg overflow-hidden" style={{ borderColor: handleError ? ERROR : "rgba(255,255,255,0.08)" }}>
-                    <span className="pl-3 text-xs text-[#5B6472] shrink-0">/u/</span>
+                  <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Your link</label>
+                  <div className="flex items-center rounded-lg overflow-hidden" style={{ background: UI.card, border: `1px solid ${handleError ? ERROR : UI.line}` }}>
+                    <span className="font-body pl-3 text-xs shrink-0" style={{ color: UI.inkSoft }}>/u/</span>
                     <input
                       value={handle}
                       onChange={(e) => onHandleChange(e.target.value)}
                       placeholder="dana-whitfield"
-                      className="w-full bg-transparent px-1.5 py-2 text-sm text-[#F3EFE6] outline-none min-w-0"
+                      className="font-body w-full bg-transparent px-1.5 py-2 text-sm outline-none min-w-0"
+                      style={{ color: UI.ink }}
                     />
                   </div>
-                  {handleError && <p className="text-[11px] mt-1" style={{ color: ERROR }}>{handleError}</p>}
+                  {handleError && <p className="font-body text-[11px] mt-1" style={{ color: ERROR }}>{handleError}</p>}
                 </div>
                 <div>
-                  <label className="text-[11px] uppercase tracking-wide text-[#8A93A3] block mb-1.5">Tagline</label>
+                  <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Tagline</label>
                   <input
                     value={tagline}
                     onChange={(e) => setTagline(e.target.value)}
                     placeholder="Coastal Living Realty · Ocean City, MD"
-                    className="w-full bg-[#232C39] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-[#F3EFE6] outline-none focus:border-[#C9A24B]"
+                    className="input"
                   />
                 </div>
               </div>
 
-              <p className="text-xs tracking-[0.1em] uppercase text-[#8A93A3] mb-3">Colors</p>
+              <p className="font-mono text-xs tracking-[0.1em] uppercase mb-3" style={{ color: UI.inkSoft }}>Colors</p>
               <div className="grid grid-cols-2 gap-3 mb-6">
                 <ColorField label="Background" value={bgColor} onChange={setBgColor} />
                 <ColorField label="Link box" value={boxColor} onChange={setBoxColor} />
               </div>
 
-              <div className="h-px bg-white/[0.06] mb-6" />
+              <div className="h-px mb-6" style={{ background: UI.line }} />
 
               <div className="flex items-center justify-between mb-3">
-                <p className="text-xs tracking-[0.1em] uppercase text-[#8A93A3]">
+                <p className="font-mono text-xs tracking-[0.1em] uppercase" style={{ color: UI.inkSoft }}>
                   Your links {links.length > 0 && `(${links.length})`}
                 </p>
               </div>
 
               {links.length === 0 && (
-                <div className="border border-dashed border-white/[0.12] rounded-xl py-8 px-4 text-center mb-4">
-                  <p className="text-sm text-[#8A93A3]">No links yet. Add your website, socials, or a Zillow listing below.</p>
+                <div className="rounded-xl py-8 px-4 text-center mb-4 border border-dashed" style={{ borderColor: UI.line }}>
+                  <p className="font-body text-sm" style={{ color: UI.inkSoft }}>No links yet. Add your website, socials, or a Zillow listing below.</p>
                 </div>
               )}
 
@@ -240,13 +238,13 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   const isZillow = link.type === "zillow";
 
                   return (
-                    <div key={link.id} className="bg-[#232C39] border border-white/[0.06] rounded-xl px-3 py-2.5">
+                    <div key={link.id} className="rounded-xl px-3 py-2.5 border" style={{ background: UI.stone, borderColor: UI.line }}>
                       <div className="flex items-center gap-2">
-                        <div className="flex flex-col text-[#4A5568] -ml-0.5">
-                          <button onClick={() => move(link.id, -1)} disabled={i === 0} className="disabled:opacity-20 hover:text-[#C9A24B] leading-none text-[10px] px-1" aria-label="Move up">▲</button>
-                          <button onClick={() => move(link.id, 1)} disabled={i === links.length - 1} className="disabled:opacity-20 hover:text-[#C9A24B] leading-none text-[10px] px-1" aria-label="Move down">▼</button>
+                        <div className="flex flex-col -ml-0.5" style={{ color: UI.inkSoft }}>
+                          <button onClick={() => move(link.id, -1)} disabled={i === 0} className="disabled:opacity-20 leading-none text-[10px] px-1 transition" style={{ color: "inherit" }} onMouseEnter={(e) => e.currentTarget.style.color = ACCENT} onMouseLeave={(e) => e.currentTarget.style.color = UI.inkSoft} aria-label="Move up">▲</button>
+                          <button onClick={() => move(link.id, 1)} disabled={i === links.length - 1} className="disabled:opacity-20 leading-none text-[10px] px-1 transition" style={{ color: "inherit" }} onMouseEnter={(e) => e.currentTarget.style.color = ACCENT} onMouseLeave={(e) => e.currentTarget.style.color = UI.inkSoft} aria-label="Move down">▼</button>
                         </div>
-                        <Icon size={16} className="text-[#C9A24B] shrink-0" />
+                        <Icon size={16} className="shrink-0" style={{ color: ACCENT }} />
 
                         {!isZillow && (
                           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 min-w-0">
@@ -254,13 +252,13 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                               value={link.label}
                               onChange={(e) => updateLink(link.id, "label", e.target.value)}
                               placeholder="Label"
-                              className="bg-[#1A212C] border border-white/[0.08] rounded-md px-2.5 py-1.5 text-sm text-[#F3EFE6] outline-none focus:border-[#C9A24B] min-w-0"
+                              className="input min-w-0"
                             />
                             <input
                               value={link.url}
                               onChange={(e) => updateLink(link.id, "url", e.target.value)}
                               placeholder={typeInfo.placeholder}
-                              className="bg-[#1A212C] border border-white/[0.08] rounded-md px-2.5 py-1.5 text-sm text-[#F3EFE6] outline-none focus:border-[#C9A24B] min-w-0"
+                              className="input min-w-0"
                             />
                           </div>
                         )}
@@ -271,12 +269,13 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                               value={link.url}
                               onChange={(e) => updateLink(link.id, "url", e.target.value)}
                               placeholder={typeInfo.placeholder}
-                              className="flex-1 bg-[#1A212C] border border-white/[0.08] rounded-md px-2.5 py-1.5 text-sm text-[#F3EFE6] outline-none focus:border-[#C9A24B] min-w-0"
+                              className="input flex-1 min-w-0"
                             />
                             <button
                               onClick={() => fetchZillowDetails(link.id, link.url)}
                               disabled={!link.url.trim() || link.fetching}
-                              className="shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-[#C9A24B]/60 text-[#E4C878] hover:bg-[#C9A24B]/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="font-body shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border disabled:opacity-40 disabled:cursor-not-allowed transition"
+                              style={{ borderColor: ACCENT, color: ACCENT }}
                             >
                               {link.fetching ? (<><Loader2 size={12} className="animate-spin" /> Fetching</>) : "Fetch details"}
                             </button>
@@ -285,37 +284,37 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
 
                         {isZillow && link.fetched && (
                           <div className="flex-1 flex items-center gap-2 min-w-0">
-                            <p className="text-sm text-[#F3EFE6] truncate flex-1">{link.address}</p>
-                            <span className="text-xs text-[#C9A24B] font-medium shrink-0">{link.price}</span>
+                            <p className="font-body text-sm truncate flex-1" style={{ color: UI.ink }}>{link.address}</p>
+                            <span className="font-body text-xs font-medium shrink-0" style={{ color: ACCENT }}>{link.price}</span>
                           </div>
                         )}
 
-                        <button onClick={() => removeLink(link.id)} className="text-[#8A93A3] hover:text-[#D9724B] shrink-0 p-1" aria-label="Remove link">
+                        <button onClick={() => removeLink(link.id)} className="shrink-0 p-1 transition" style={{ color: UI.inkSoft }} onMouseEnter={(e) => e.currentTarget.style.color = ERROR} onMouseLeave={(e) => e.currentTarget.style.color = UI.inkSoft} aria-label="Remove link">
                           <X size={16} />
                         </button>
                       </div>
 
                       {isZillow && link.fetchError && !link.fetched && (
-                        <p className="mt-2 ml-6 text-[11px]" style={{ color: ERROR }}>{link.fetchError} You can still add the details by hand below.</p>
+                        <p className="font-body mt-2 ml-6 text-[11px]" style={{ color: ERROR }}>{link.fetchError} You can still add the details by hand below.</p>
                       )}
 
                       {isZillow && link.fetched && (
-                        <div className="mt-2.5 ml-6 pl-3 border-l-2 border-[#C9A24B]/30 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-                          <span className="flex items-center gap-1 text-[11px] text-[#7FAE8C]">
+                        <div className="mt-2.5 ml-6 pl-3 border-l-2 flex flex-wrap items-center gap-x-4 gap-y-1.5" style={{ borderColor: UI.line }}>
+                          <span className="font-body flex items-center gap-1 text-[11px]" style={{ color: "#3F8F5F" }}>
                             <CheckCircle2 size={12} /> Pulled from Zillow
                           </span>
                           <LabeledMini label="Beds" value={link.beds} onChange={(v) => updateLink(link.id, "beds", v)} />
                           <LabeledMini label="Baths" value={link.baths} onChange={(v) => updateLink(link.id, "baths", v)} />
                           <LabeledMini label="Price" value={link.price} onChange={(v) => updateLink(link.id, "price", v)} />
-                          <button onClick={() => fetchZillowDetails(link.id, link.url)} className="flex items-center gap-1 text-[11px] text-[#8A93A3] hover:text-[#E4C878]">
+                          <button onClick={() => fetchZillowDetails(link.id, link.url)} className="font-body flex items-center gap-1 text-[11px] transition" style={{ color: UI.inkSoft }} onMouseEnter={(e) => e.currentTarget.style.color = ACCENT} onMouseLeave={(e) => e.currentTarget.style.color = UI.inkSoft}>
                             <RefreshCw size={11} /> Re-fetch
                           </button>
                         </div>
                       )}
 
                       {isZillow && !link.fetched && !link.fetching && (
-                        <div className="mt-2.5 ml-6 pl-3 border-l-2 border-white/[0.08] flex flex-wrap items-center gap-x-4 gap-y-1.5">
-                          <span className="text-[11px] text-[#5B6472]">Or enter manually:</span>
+                        <div className="mt-2.5 ml-6 pl-3 border-l-2 flex flex-wrap items-center gap-x-4 gap-y-1.5" style={{ borderColor: UI.line }}>
+                          <span className="font-body text-[11px]" style={{ color: UI.inkSoft }}>Or enter manually:</span>
                           <LabeledMini label="Address" value={link.address} onChange={(v) => updateLink(link.id, "address", v)} />
                           <LabeledMini label="Beds" value={link.beds} onChange={(v) => updateLink(link.id, "beds", v)} />
                           <LabeledMini label="Baths" value={link.baths} onChange={(v) => updateLink(link.id, "baths", v)} />
@@ -331,18 +330,19 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                 <button
                   onClick={() => setMenuOpen((o) => !o)}
                   disabled={availableTypes.length === 0}
-                  className="w-full flex items-center justify-center gap-2 border border-dashed border-[#C9A24B]/50 text-[#E4C878] rounded-xl py-2.5 text-sm font-medium hover:bg-[#C9A24B]/[0.06] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="font-body w-full flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  style={{ borderColor: ACCENT, color: ACCENT }}
                 >
                   <Plus size={16} /> Add a link
                 </button>
 
                 {menuOpen && (
-                  <div className="absolute z-10 mt-2 w-full bg-[#232C39] border border-white/[0.1] rounded-xl p-2 shadow-xl grid grid-cols-2 gap-1.5">
+                  <div className="absolute z-10 mt-2 w-full rounded-xl p-2 shadow-xl grid grid-cols-2 gap-1.5 border" style={{ background: UI.card, borderColor: UI.line }}>
                     {availableTypes.map((t) => {
                       const Icon = t.icon;
                       return (
-                        <button key={t.id} onClick={() => addLink(t)} className="flex items-center gap-2 text-left px-3 py-2 rounded-lg hover:bg-white/[0.06] text-sm text-[#F3EFE6]">
-                          <Icon size={15} className="text-[#C9A24B]" />
+                        <button key={t.id} onClick={() => addLink(t)} className="font-body flex items-center gap-2 text-left px-3 py-2 rounded-lg text-sm transition" style={{ color: UI.ink }} onMouseEnter={(e) => e.currentTarget.style.background = UI.stone} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+                          <Icon size={15} style={{ color: ACCENT }} />
                           {t.label}
                         </button>
                       );
@@ -351,7 +351,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                 )}
               </div>
 
-              <div className="h-px bg-white/[0.06] my-6" />
+              <div className="h-px my-6" style={{ background: UI.line }} />
 
               <div className="flex flex-wrap items-center gap-3">
                 <button
@@ -362,15 +362,15 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                 >
                   {saveStatus === "saving" ? "Saving…" : "Save changes"}
                 </button>
-                {saveStatus === "saved" && <span className="text-xs flex items-center gap-1 text-[#7FAE8C]"><Check size={14} /> Saved</span>}
-                {saveStatus === "error" && <span className="text-xs" style={{ color: ERROR }}>{saveError}</span>}
+                {saveStatus === "saved" && <span className="font-body text-xs flex items-center gap-1" style={{ color: "#3F8F5F" }}><Check size={14} /> Saved</span>}
+                {saveStatus === "error" && <span className="font-body text-xs" style={{ color: ERROR }}>{saveError}</span>}
 
                 {publicUrl && (
                   <div className="flex items-center gap-2 ml-auto">
-                    <a href={publicUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-[#8A93A3] hover:text-[#E4C878]">
+                    <a href={publicUrl} target="_blank" rel="noreferrer" className="font-body flex items-center gap-1 text-xs transition" style={{ color: UI.inkSoft }} onMouseEnter={(e) => e.currentTarget.style.color = ACCENT} onMouseLeave={(e) => e.currentTarget.style.color = UI.inkSoft}>
                       <ExternalLink size={12} /> {publicUrl.replace(/^https?:\/\//, "")}
                     </a>
-                    <button onClick={copyLink} className="flex items-center gap-1 text-xs text-[#8A93A3] hover:text-[#E4C878]" aria-label="Copy link">
+                    <button onClick={copyLink} className="flex items-center gap-1 text-xs transition" style={{ color: UI.inkSoft }} onMouseEnter={(e) => e.currentTarget.style.color = ACCENT} onMouseLeave={(e) => e.currentTarget.style.color = UI.inkSoft} aria-label="Copy link">
                       {copied ? <Check size={12} /> : <Copy size={12} />}
                     </button>
                   </div>
@@ -380,23 +380,23 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
 
             {/* ---------------- LIVE PREVIEW ---------------- */}
             <div className="lg:sticky lg:top-8">
-              <p className="text-xs tracking-[0.1em] uppercase text-[#8A93A3] mb-3">Live preview</p>
-              <div className="rounded-[2.2rem] border-4 border-[#232C39] p-3 bg-[#0D1117] shadow-2xl">
+              <p className="font-mono text-xs tracking-[0.1em] uppercase mb-3" style={{ color: UI.inkSoft }}>Live preview</p>
+              <div className="rounded-[2.2rem] border-4 p-3 shadow-2xl" style={{ borderColor: UI.stone, background: UI.card }}>
                 <div
                   className="rounded-[1.6rem] overflow-hidden min-h-[560px] px-6 py-10 flex flex-col items-center transition-colors duration-200"
                   style={{ backgroundColor: bgColor }}
                 >
-                  <div className="w-20 h-20 rounded-full p-1 mb-4" style={{ background: `conic-gradient(from 180deg, ${BRASS_LIGHT}, ${BRASS}, ${BRASS_LIGHT})` }}>
-                    <div className="w-full h-full rounded-full flex items-center justify-center text-lg" style={{ background: "#2A3542", color: BRASS_LIGHT, fontFamily: "Georgia, serif" }}>
+                  <div className="w-20 h-20 rounded-full p-1 mb-4" style={{ background: `conic-gradient(from 180deg, ${ACCENT}, #6E8CFF, ${ACCENT})` }}>
+                    <div className="font-display w-full h-full rounded-full flex items-center justify-center text-lg" style={{ background: UI.ink, color: "#FDFBF7" }}>
                       {(name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                     </div>
                   </div>
-                  <h2 className="text-xl text-center mb-1" style={{ color: textOn(bgColor), fontFamily: "Georgia, serif" }}>{name || "Your Name"}</h2>
-                  <p className="text-xs text-center mb-8 opacity-70 max-w-[240px]" style={{ color: textOn(bgColor) }}>{tagline}</p>
+                  <h2 className="font-display text-xl text-center mb-1" style={{ color: textOn(bgColor) }}>{name || "Your Name"}</h2>
+                  <p className="font-body text-xs text-center mb-8 opacity-70 max-w-[240px]" style={{ color: textOn(bgColor) }}>{tagline}</p>
 
                   <div className="w-full flex flex-col gap-2.5">
                     {links.length === 0 && (
-                      <p className="text-center text-xs italic opacity-50 mt-4" style={{ color: textOn(bgColor) }}>Your links will appear here</p>
+                      <p className="font-body text-center text-xs italic opacity-50 mt-4" style={{ color: textOn(bgColor) }}>Your links will appear here</p>
                     )}
                     {links.map((link) => {
                       const typeInfo = LINK_TYPES.find((t) => t.id === link.type);
@@ -409,20 +409,20 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
 
                       return (
                         <div key={link.id} className="flex items-center gap-3 rounded-xl px-4 py-3 transition-transform hover:-translate-y-0.5" style={{ backgroundColor: boxColor }}>
-                          <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ border: `2px solid ${BRASS}`, background: bgColor }}>
-                            <Icon size={11} style={{ color: BRASS }} />
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ border: `2px solid ${ACCENT}`, background: bgColor }}>
+                            <Icon size={11} style={{ color: ACCENT }} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold truncate" style={{ color: boxTextColor }}>{title}</p>
-                            <p className="text-[11px] truncate" style={{ color: boxSubColor }}>{sub}</p>
+                            <p className="font-body text-sm font-semibold truncate" style={{ color: boxTextColor }}>{title}</p>
+                            <p className="font-body text-[11px] truncate" style={{ color: boxSubColor }}>{sub}</p>
                           </div>
-                          <span style={{ color: BRASS }}>›</span>
+                          <span style={{ color: ACCENT }}>›</span>
                         </div>
                       );
                     })}
                   </div>
 
-                  <p className="text-[10px] tracking-[0.1em] uppercase mt-10 opacity-40" style={{ color: textOn(bgColor) }}>Powered by PostKey</p>
+                  <p className="font-mono text-[10px] tracking-[0.1em] uppercase mt-10 opacity-40" style={{ color: textOn(bgColor) }}>Powered by PostKey</p>
                 </div>
               </div>
             </div>
@@ -435,12 +435,15 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
 
 function LabeledMini({ label, value, onChange }) {
   return (
-    <span className="flex items-center gap-1 text-[11px] text-[#8A93A3]">
+    <span className="font-body flex items-center gap-1 text-[11px]" style={{ color: UI.inkSoft }}>
       {label}
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-14 bg-transparent border-b border-white/[0.15] text-[#F3EFE6] outline-none focus:border-[#C9A24B] px-0.5"
+        className="font-body w-14 bg-transparent border-b outline-none px-0.5"
+        style={{ borderColor: UI.line, color: UI.ink }}
+        onFocus={(e) => e.currentTarget.style.borderColor = ACCENT}
+        onBlur={(e) => e.currentTarget.style.borderColor = UI.line}
       />
     </span>
   );
@@ -449,10 +452,10 @@ function LabeledMini({ label, value, onChange }) {
 function ColorField({ label, value, onChange }) {
   return (
     <div>
-      <label className="text-[11px] uppercase tracking-wide text-[#8A93A3] block mb-1.5">{label}</label>
-      <div className="flex items-center gap-2 bg-[#232C39] border border-white/[0.08] rounded-lg px-2.5 py-1.5">
+      <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>{label}</label>
+      <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 border" style={{ borderColor: UI.line, background: UI.card }}>
         <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="w-7 h-7 rounded-md border-none cursor-pointer bg-transparent" />
-        <input value={value} onChange={(e) => onChange(e.target.value)} className="flex-1 bg-transparent text-sm text-[#F3EFE6] outline-none uppercase min-w-0" />
+        <input value={value} onChange={(e) => onChange(e.target.value)} className="font-body flex-1 bg-transparent text-sm outline-none uppercase min-w-0" style={{ color: UI.ink }} />
       </div>
     </div>
   );
