@@ -3,7 +3,7 @@ import {
   Plus, X, Loader2, CheckCircle2, RefreshCw, Copy, Check, ExternalLink,
   ChevronDown, ChevronUp, GripVertical, Smartphone, Monitor, RotateCcw, Eye,
 } from "lucide-react";
-import { UI, ACCENT, ERROR, WHITE, TopNav, SCRIPT_FONTS, scriptFontCss } from "../shared.jsx";
+import { UI, ACCENT, ERROR, WHITE, TopNav, SCRIPT_FONTS, scriptFontCss, DEFAULT_HEADSHOT_URL } from "../shared.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import {
   LINK_TYPES, SOCIAL_TYPES, BioLinksList, textOn, relativeLuminance,
@@ -78,7 +78,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
         if (cancelled) return;
         setHandle(data.profile?.handle || DEFAULTS.handle);
         setTagline(data.profile?.tagline || DEFAULTS.tagline);
-        setBrokerage(data.profile?.brokerage || DEFAULTS.brokerage);
+        setBrokerage(data.profile?.brokerage || brandKit?.brokerageName || DEFAULTS.brokerage);
         setBgColor(data.profile?.bgColor || DEFAULTS.bgColor);
         setBoxColor(data.profile?.boxColor || DEFAULTS.boxColor);
         setNameFont(data.profile?.nameFont || DEFAULTS.nameFont);
@@ -253,31 +253,53 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
             {/* ---------------- EDITOR PANEL ---------------- */}
             <div className="flex flex-col gap-4">
               <Section number={1} title="Profile">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Name</label>
-                    <input value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} placeholder="Jane Doe, Realtor" className="input" />
-                  </div>
-                  <div>
-                    <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Brokerage / Company</label>
-                    <input value={brokerage} onChange={(e) => setBrokerage(e.target.value)} placeholder="Coastal Living Realty" className="input" />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="font-mono text-xs uppercase tracking-wide" style={{ color: UI.inkSoft }}>Tagline / Bio</label>
-                      <span className="font-mono text-[10px]" style={{ color: UI.inkSoft }}>{tagline.length}/{TAGLINE_MAX}</span>
-                    </div>
-                    <input
-                      value={tagline}
-                      maxLength={TAGLINE_MAX}
-                      onChange={(e) => setTagline(e.target.value)}
-                      placeholder="Helping buyers and sellers in your area."
-                      className="input"
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex flex-col items-center gap-2 shrink-0">
+                    <img
+                      src={brandKit?.headshotUrl || DEFAULT_HEADSHOT_URL}
+                      alt=""
+                      className="w-20 h-20 rounded-full object-cover border"
+                      style={{ borderColor: UI.line }}
                     />
+                    <button
+                      type="button"
+                      onClick={() => onSwitchTool("profile")}
+                      className="font-body text-xs rounded-full px-3 py-1.5 border transition flex items-center gap-1.5"
+                      style={{ borderColor: UI.line, color: UI.inkSoft }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = ACCENT}
+                      onMouseLeave={(e) => e.currentTarget.style.color = UI.inkSoft}
+                    >
+                      Change Photo
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+                    <div>
+                      <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Name</label>
+                      <input value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} placeholder="Jane Doe, Realtor" className="input" />
+                    </div>
+                    <div>
+                      <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Brokerage / Company</label>
+                      <input value={brokerage} onChange={(e) => setBrokerage(e.target.value)} placeholder="Coastal Living Realty" className="input" />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="font-mono text-xs uppercase tracking-wide" style={{ color: UI.inkSoft }}>Tagline / Bio</label>
+                        <span className="font-mono text-[10px]" style={{ color: UI.inkSoft }}>{tagline.length}/{TAGLINE_MAX}</span>
+                      </div>
+                      <input
+                        value={tagline}
+                        maxLength={TAGLINE_MAX}
+                        onChange={(e) => setTagline(e.target.value)}
+                        placeholder="Helping buyers and sellers in your area."
+                        className="input"
+                      />
+                    </div>
                   </div>
                 </div>
                 <p className="font-body text-[11px] mt-3" style={{ color: UI.inkSoft }}>
-                  Your headshot comes from your <button type="button" onClick={() => onSwitchTool("profile")} className="underline" style={{ color: ACCENT }}>Profile → Brand</button> settings.
+                  Photo and name come from your <button type="button" onClick={() => onSwitchTool("profile")} className="underline" style={{ color: ACCENT }}>Profile → Brand</button> settings —
+                  editing the name here updates it there too. Brokerage is specific to this page.
                 </p>
               </Section>
 
