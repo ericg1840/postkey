@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { UI, ACCENT, scriptFontCss } from "../shared.jsx";
-import { BioLinksList, textOn, relativeLuminance, nameSizePx } from "./bioShared.jsx";
+import { BioLinksList, textOn, relativeLuminance, nameSizePx, bgStyle } from "./bioShared.jsx";
 
 export function PublicBioPage({ handle }) {
   const [state, setState] = useState({ loading: true, error: "", data: null });
@@ -38,10 +38,10 @@ export function PublicBioPage({ handle }) {
     );
   }
 
-  const { name, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links } = state.data;
+  const { name, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, bgImageUrl, bgTint, links } = state.data;
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-6 py-12" style={{ backgroundColor: bgColor }}>
+    <div className="min-h-screen flex flex-col items-center px-6 py-12" style={bgStyle(bgColor, bgImageUrl, bgTint)}>
       <div className="w-full max-w-sm flex flex-col items-center">
         <div className="w-24 h-24 rounded-full p-1 mb-4" style={{ background: `conic-gradient(from 180deg, ${ACCENT}, #6E8CFF, ${ACCENT})` }}>
           <div className="font-display w-full h-full rounded-full flex items-center justify-center text-xl" style={{ background: UI.ink, color: "#FDFBF7" }}>
