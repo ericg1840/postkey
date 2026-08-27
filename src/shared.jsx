@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { X, ChevronDown, Lock } from "lucide-react";
-import { ChangePasswordModal } from "./auth/ChangePasswordModal.jsx";
 
 // The Web Share API is also implemented by some desktop browsers now, which
 // makes the "share instead of download" trick misfire on laptops — gate it
@@ -597,7 +596,6 @@ export function GlobalStyles() {
 
 // Shared top bar: brand mark + the tab switcher between the two tools.
 export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
   return (
     <header className="sticky top-0 z-50 border-b" style={{ borderColor: UI.line, background: UI.page, paddingTop: "env(safe-area-inset-top)" }}>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-5 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
@@ -660,7 +658,7 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
         </nav>
         <div className="flex items-center gap-4">
           <span className="font-mono text-xs hidden sm:inline" style={{ color: UI.inkSoft }}>
-            {active === "listings" ? "PHOTO IN, POST OUT" : active === "community" ? "LOCAL LOVE, POSTED" : active === "calendar" ? "PLAN AHEAD, POST ON TIME" : "WRITE IT ONCE, POST IT EVERYWHERE"}
+            {active === "listings" ? "PHOTO IN, POST OUT" : active === "community" ? "LOCAL LOVE, POSTED" : active === "calendar" ? "PLAN AHEAD, POST ON TIME" : active === "profile" ? "YOUR BRAND, YOUR WAY" : "WRITE IT ONCE, POST IT EVERYWHERE"}
           </span>
           {onLogout && (
             <div className="flex items-center gap-2">
@@ -668,11 +666,11 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
                 <span className="font-body text-xs" style={{ color: UI.inkSoft }}>{userName}</span>
               )}
               <button
-                onClick={() => setShowPasswordModal(true)}
+                onClick={() => onSwitch("profile")}
                 className="font-body text-xs underline"
-                style={{ color: UI.inkSoft }}
+                style={{ color: active === "profile" ? UI.ink : UI.inkSoft, fontWeight: active === "profile" ? 600 : 400 }}
               >
-                Change password
+                Profile
               </button>
               <button
                 onClick={onLogout}
@@ -685,9 +683,6 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
           )}
         </div>
       </div>
-      {showPasswordModal && (
-        <ChangePasswordModal ui={UI} accent={ACCENT} onClose={() => setShowPasswordModal(false)} />
-      )}
     </header>
   );
 }
