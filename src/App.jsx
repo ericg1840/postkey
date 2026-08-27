@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
 import { AuthScreen } from "./auth/AuthScreen.jsx";
 import { ResetPasswordScreen } from "./auth/ResetPasswordScreen.jsx";
 import { OnboardingWizard } from "./onboarding/OnboardingWizard.jsx";
+import { ProfilePage } from "./profile/ProfilePage.jsx";
 import { AUTH } from "./auth/AuthShell.jsx";
 import { HomePage } from "./marketing/HomePage.jsx";
 import { AboutPage } from "./marketing/AboutPage.jsx";
@@ -87,6 +88,7 @@ function AppShell() {
 
   if (brandKit && !brandKit.onboarded) return <OnboardingWizard />;
 
+  if (activeTool === "profile") return <ProfilePage onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
   if (activeTool === "listings") return <ListingTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
   if (activeTool === "calendar") return <CalendarTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
   if (activeTool === "description") return <DescriptionTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;

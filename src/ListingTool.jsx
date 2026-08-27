@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
-  Download, Facebook, Image as ImageIcon, User, Building2, ChevronDown,
+  Download, Facebook, Image as ImageIcon, ChevronDown,
   HandCoins, Home, DoorOpen, Tag, Handshake, Calendar, Lightbulb, Check, Sparkles,
 } from "lucide-react";
 import {
@@ -101,7 +101,7 @@ function StepHeading({ n, title, subtitle }) {
 }
 
 export function ListingTool({ onSwitchTool, onGoHome }) {
-  const { user, brandKit, logout, saveBrandKit } = useAuth();
+  const { user, brandKit, logout } = useAuth();
   const [form, setForm] = useState(() => {
     const agentName = brandKit?.agentName ?? DEFAULTS.agentName;
     const handoff = peekPostHandoff("listings");
@@ -122,7 +122,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     };
   });
   const [fontsReady, setFontsReady] = useState(false);
-  const [brandStatus, setBrandStatus] = useState("idle"); // idle | saving | saved | error
   const [tip] = useState(() => TIPS[Math.floor(Math.random() * TIPS.length)]);
   const canvasRef = useRef(null);
   const photo = useUploadedImage();
@@ -132,30 +131,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
   const logo = useAgentAsset(DEFAULT_LOGO_URL, "Brokerage logo", brandKit?.logoUrl);
 
   const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
-
-  const handleSaveBrand = async () => {
-    setBrandStatus("saving");
-    try {
-      await saveBrandKit({
-        agentName: form.agentName,
-        agentPhone: form.agentPhone,
-        agentEmail: form.agentEmail,
-        brokerageName: form.brokerageName,
-        brokerageCity: form.brokerageCity,
-        officePhone: form.officePhone,
-        website: form.website,
-        licenseNumber: form.licenseNumber,
-        accentColor: form.accentColor,
-        scriptFont: form.scriptFont,
-        headshotUrl: headshot.source === "custom" ? headshot.url : null,
-        logoUrl: logo.source === "custom" ? logo.url : null,
-        onboarded: true,
-      });
-      setBrandStatus("saved");
-    } catch {
-      setBrandStatus("error");
-    }
-  };
 
   useEffect(() => { clearPostHandoff(); }, []);
 
@@ -1094,63 +1069,19 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               </div>
             </Accordion>
 
-            {/* Kept outside "Personalize your design" — this is the info
-                every post needs, so it shouldn't be a second click deep. */}
-            <Accordion title="Brand settings" subtitle="Logo, disclaimer for every post" icon={Tag}>
-              <div className="grid grid-cols-2 gap-3 md:col-span-2">
-                <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
-                <UploadBox label="LOGO" icon={Building2} state={logo} hint="Brokerage logo" />
-              </div>
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>AGENT NAME</span>
-                <input className="input" value={form.agentName} onChange={update("agentName")} />
-              </label>
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CELL PHONE</span>
-                <input className="input" value={form.agentPhone} onChange={update("agentPhone")} />
-              </label>
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>EMAIL</span>
-                <input className="input" value={form.agentEmail} onChange={update("agentEmail")} />
-              </label>
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BROKERAGE</span>
-                <input className="input" value={form.brokerageName} onChange={update("brokerageName")} />
-              </label>
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OFFICE CITY</span>
-                <input className="input" value={form.brokerageCity} onChange={update("brokerageCity")} />
-              </label>
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OFFICE PHONE</span>
-                <input className="input" value={form.officePhone} onChange={update("officePhone")} />
-              </label>
-              <label className="block">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>WEBSITE</span>
-                <input className="input" value={form.website} onChange={update("website")} />
-              </label>
-              <label className="block col-span-2">
-                <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LICENSE NUMBER</span>
-                <input className="input" value={form.licenseNumber} onChange={update("licenseNumber")} />
-              </label>
-              <div className="col-span-2 flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleSaveBrand}
-                  disabled={brandStatus === "saving"}
-                  className="font-body text-xs font-semibold rounded px-4 py-2 transition disabled:opacity-60"
-                  style={{ background: ACCENT, color: WHITE }}
-                >
-                  {brandStatus === "saving" ? "Saving…" : "Save brand settings"}
-                </button>
-                {brandStatus === "saved" && (
-                  <span className="font-body text-xs" style={{ color: UI.inkSoft }}>Saved to your account.</span>
-                )}
-                {brandStatus === "error" && (
-                  <span className="font-body text-xs" style={{ color: "#C0392B" }}>Couldn't save — try again.</span>
-                )}
-              </div>
-            </Accordion>
+            <div className="md:col-span-2 rounded border px-4 py-3 flex items-center justify-between gap-3 flex-wrap" style={{ borderColor: UI.line, background: UI.card }}>
+              <span className="font-body text-xs" style={{ color: UI.inkSoft }}>
+                Logo, headshot, and contact info come from your brand kit.
+              </span>
+              <button
+                type="button"
+                onClick={() => onSwitchTool("profile")}
+                className="font-body text-xs font-semibold underline"
+                style={{ color: ACCENT }}
+              >
+                Edit brand info →
+              </button>
+            </div>
 
             <div className="lg:hidden flex items-center gap-2">
               <button type="button" onClick={() => goToStep(1)}
