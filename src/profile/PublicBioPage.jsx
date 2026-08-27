@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { UI, ACCENT, scriptFontCss } from "../shared.jsx";
-import { BioLinksList, textOn } from "./bioShared.jsx";
+import { BioLinksList, textOn, nameSizePx } from "./bioShared.jsx";
 
 export function PublicBioPage({ handle }) {
   const [state, setState] = useState({ loading: true, error: "", data: null });
@@ -38,7 +38,7 @@ export function PublicBioPage({ handle }) {
     );
   }
 
-  const { name, tagline, bgColor, boxColor, nameFont, links } = state.data;
+  const { name, tagline, bgColor, boxColor, nameFont, nameSize, links } = state.data;
 
   return (
     <div className="min-h-screen flex flex-col items-center px-6 py-12" style={{ backgroundColor: bgColor }}>
@@ -49,8 +49,13 @@ export function PublicBioPage({ handle }) {
           </div>
         </div>
         <h1
-          className={nameFont ? "text-center mb-1" : "font-display text-2xl text-center mb-1"}
-          style={nameFont ? { color: textOn(bgColor), font: scriptFontCss(nameFont, 30) } : { color: textOn(bgColor) }}
+          className={nameFont ? "text-center mb-1" : "font-display text-center mb-1"}
+          style={{
+            color: textOn(bgColor),
+            font: nameFont ? scriptFontCss(nameFont, nameSizePx(nameSize)) : undefined,
+            fontSize: nameFont ? undefined : `${nameSizePx(nameSize)}px`,
+            fontWeight: nameFont ? undefined : 700,
+          }}
         >
           {name || "Agent"}
         </h1>

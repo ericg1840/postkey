@@ -33,7 +33,8 @@ CREATE TABLE brand_kits (
   bio_tagline TEXT NOT NULL DEFAULT '',
   bio_bg_color TEXT NOT NULL DEFAULT '#1B2430',
   bio_box_color TEXT NOT NULL DEFAULT '#2E3B4C',
-  bio_name_font TEXT NOT NULL DEFAULT ''
+  bio_name_font TEXT NOT NULL DEFAULT '',
+  bio_name_size TEXT NOT NULL DEFAULT 'md'
 );
 
 -- One row per link on an agent's link-in-bio page.

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Plus, X, Loader2, CheckCircle2, RefreshCw, Copy, Check, ExternalLink } from "lucide-react";
 import { UI, ACCENT, ERROR, WHITE, TopNav, SCRIPT_FONTS, scriptFontCss } from "../shared.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
-import { LINK_TYPES, BioLinksList, textOn } from "./bioShared.jsx";
+import { LINK_TYPES, BioLinksList, textOn, NAME_SIZES, nameSizePx } from "./bioShared.jsx";
 
 const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 
@@ -22,6 +22,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
   const [bgColor, setBgColor] = useState(UI.ink);
   const [boxColor, setBoxColor] = useState("#2E3B4C");
   const [nameFont, setNameFont] = useState("");
+  const [nameSize, setNameSize] = useState("md");
   const [links, setLinks] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved | error
@@ -41,6 +42,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
         setBgColor(data.profile?.bgColor || UI.ink);
         setBoxColor(data.profile?.boxColor || "#2E3B4C");
         setNameFont(data.profile?.nameFont || "");
+        setNameSize(data.profile?.nameSize || "md");
         setLinks(data.links || []);
       } catch (err) {
         if (!cancelled) setLoadError(err.message);
@@ -117,7 +119,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ handle, tagline, bgColor, boxColor, nameFont, links }),
+        body: JSON.stringify({ handle, tagline, bgColor, boxColor, nameFont, nameSize, links }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Couldn't save.");
@@ -199,12 +201,20 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                 <ColorField label="Link box" value={boxColor} onChange={setBoxColor} />
               </div>
 
-              <div>
-                <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Name style</label>
-                <select className="input" value={nameFont} onChange={(e) => setNameFont(e.target.value)}>
-                  <option value="">Default (PostKey Serif)</option>
-                  {SCRIPT_FONTS.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Name style</label>
+                  <select className="input" value={nameFont} onChange={(e) => setNameFont(e.target.value)}>
+                    <option value="">Default (PostKey Serif)</option>
+                    {SCRIPT_FONTS.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Name size</label>
+                  <select className="input" value={nameSize} onChange={(e) => setNameSize(e.target.value)}>
+                    {NAME_SIZES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  </select>
+                </div>
               </div>
 
               <div className="h-px my-6" style={{ background: UI.line }} />
@@ -377,18 +387,23 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   className="rounded-[1.6rem] overflow-hidden min-h-[560px] px-6 py-10 flex flex-col items-center transition-colors duration-200"
                   style={{ backgroundColor: bgColor }}
                 >
-                  <div className="w-20 h-20 rounded-full p-1 mb-4" style={{ background: `conic-gradient(from 180deg, ${ACCENT}, #6E8CFF, ${ACCENT})` }}>
-                    <div className="font-display w-full h-full rounded-full flex items-center justify-center text-lg" style={{ background: UI.ink, color: "#FDFBF7" }}>
+                  <div className="w-24 h-24 rounded-full p-1 mb-4" style={{ background: `conic-gradient(from 180deg, ${ACCENT}, #6E8CFF, ${ACCENT})` }}>
+                    <div className="font-display w-full h-full rounded-full flex items-center justify-center text-xl" style={{ background: UI.ink, color: "#FDFBF7" }}>
                       {(name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                     </div>
                   </div>
                   <h2
-                    className={nameFont ? "text-center mb-1" : "font-display text-xl text-center mb-1"}
-                    style={nameFont ? { color: textOn(bgColor), font: scriptFontCss(nameFont, 28) } : { color: textOn(bgColor) }}
+                    className={nameFont ? "text-center mb-1" : "font-display text-center mb-1"}
+                    style={{
+                      color: textOn(bgColor),
+                      font: nameFont ? scriptFontCss(nameFont, nameSizePx(nameSize)) : undefined,
+                      fontSize: nameFont ? undefined : `${nameSizePx(nameSize)}px`,
+                      fontWeight: nameFont ? undefined : 700,
+                    }}
                   >
                     {name || "Your Name"}
                   </h2>
-                  <p className="font-body text-xs text-center mb-8 opacity-70 max-w-[240px]" style={{ color: textOn(bgColor) }}>{tagline}</p>
+                  <p className="font-body text-sm text-center mb-8 opacity-70 max-w-[280px]" style={{ color: textOn(bgColor) }}>{tagline}</p>
 
                   <BioLinksList links={links} bgColor={bgColor} boxColor={boxColor} asLink={false} />
 
