@@ -48,7 +48,8 @@ CREATE TABLE bio_links (
   address TEXT,
   price TEXT,
   beds TEXT,
-  baths TEXT
+  baths TEXT,
+  photo_url TEXT
 );
 
 CREATE INDEX bio_links_user_id_idx ON bio_links(user_id);

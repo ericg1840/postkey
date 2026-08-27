@@ -16,7 +16,7 @@ export async function onRequestGet({ request, env }) {
   if (!kit) return json({ error: "Page not found." }, { status: 404 });
 
   const links = await db.sql`
-    SELECT type, label, url, address, price, beds, baths
+    SELECT type, label, url, address, price, beds, baths, photo_url
     FROM bio_links WHERE user_id = ${kit.user_id} ORDER BY sort_order ASC, id ASC
   `;
 
@@ -34,6 +34,7 @@ export async function onRequestGet({ request, env }) {
       price: l.price || "",
       beds: l.beds || "",
       baths: l.baths || "",
+      photoUrl: l.photo_url || "",
     })),
   });
 }
