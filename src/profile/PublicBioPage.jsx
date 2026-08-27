@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { UI, ACCENT, scriptFontCss } from "../shared.jsx";
-import { BioLinksList, textOn, nameSizePx } from "./bioShared.jsx";
+import { BioLinksList, textOn, relativeLuminance, nameSizePx } from "./bioShared.jsx";
 
 export function PublicBioPage({ handle }) {
   const [state, setState] = useState({ loading: true, error: "", data: null });
@@ -38,7 +38,7 @@ export function PublicBioPage({ handle }) {
     );
   }
 
-  const { name, tagline, bgColor, boxColor, nameFont, nameSize, links } = state.data;
+  const { name, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links } = state.data;
 
   return (
     <div className="min-h-screen flex flex-col items-center px-6 py-12" style={{ backgroundColor: bgColor }}>
@@ -59,11 +59,14 @@ export function PublicBioPage({ handle }) {
         >
           {name || "Agent"}
         </h1>
+        {brokerage && (
+          <p className="font-body text-sm text-center mb-1" style={{ color: relativeLuminance(bgColor) > 0.5 ? "#5B6472" : "#9FB4E8" }}>{brokerage}</p>
+        )}
         {tagline && (
           <p className="font-body text-sm text-center mb-8 opacity-70 max-w-[280px]" style={{ color: textOn(bgColor) }}>{tagline}</p>
         )}
 
-        <BioLinksList links={links} bgColor={bgColor} boxColor={boxColor} asLink />
+        <BioLinksList links={links} bgColor={bgColor} boxColor={boxColor} buttonStyle={buttonStyle} asLink />
 
         <a
           href="/"

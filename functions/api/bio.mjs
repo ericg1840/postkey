@@ -3,25 +3,28 @@ import { getUserIdFromRequest, json } from "../_lib/auth.mjs";
 
 const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 
-const LINK_TYPES = new Set(["website", "facebook", "instagram", "zillow", "realtor", "broker", "custom"]);
+const LINK_TYPES = new Set(["website", "facebook", "instagram", "tiktok", "linkedin", "zillow", "realtor", "broker", "custom"]);
 const NAME_SIZES = new Set(["sm", "md", "lg", "xl"]);
+const BUTTON_STYLES = new Set(["rounded", "pill", "square"]);
 
 export async function onRequestGet({ request, env }) {
   const userId = getUserIdFromRequest(request, env);
   if (!userId) return json({ error: "Not signed in." }, { status: 401 });
 
   const db = getDb(env);
-  const [kit] = await db.sql`SELECT bio_handle, bio_tagline, bio_bg_color, bio_box_color, bio_name_font, bio_name_size FROM brand_kits WHERE user_id = ${userId}`;
+  const [kit] = await db.sql`SELECT bio_handle, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style FROM brand_kits WHERE user_id = ${userId}`;
   const links = await db.sql`SELECT id, type, label, url, address, price, beds, baths, photo_url FROM bio_links WHERE user_id = ${userId} ORDER BY sort_order ASC, id ASC`;
 
   return json({
     profile: {
       handle: kit?.bio_handle || "",
       tagline: kit?.bio_tagline || "",
+      brokerage: kit?.bio_brokerage || "",
       bgColor: kit?.bio_bg_color || "#1B2430",
       boxColor: kit?.bio_box_color || "#2E3B4C",
       nameFont: kit?.bio_name_font || "",
       nameSize: kit?.bio_name_size || "md",
+      buttonStyle: kit?.bio_button_style || "rounded",
     },
     links: links.map((l) => ({
       id: String(l.id),
@@ -46,10 +49,12 @@ export async function onRequestPut({ request, env }) {
 
   const handle = String(body.handle || "").trim().toLowerCase();
   const tagline = String(body.tagline || "").slice(0, 200);
+  const brokerage = String(body.brokerage || "").slice(0, 120);
   const bgColor = String(body.bgColor || "#1B2430");
   const boxColor = String(body.boxColor || "#2E3B4C");
   const nameFont = String(body.nameFont || "").slice(0, 40);
   const nameSize = NAME_SIZES.has(body.nameSize) ? body.nameSize : "md";
+  const buttonStyle = BUTTON_STYLES.has(body.buttonStyle) ? body.buttonStyle : "rounded";
   const links = Array.isArray(body.links) ? body.links : [];
 
   if (handle && !HANDLE_RE.test(handle)) {
@@ -71,10 +76,12 @@ export async function onRequestPut({ request, env }) {
       UPDATE brand_kits SET
         bio_handle = ${handle || null},
         bio_tagline = ${tagline},
+        bio_brokerage = ${brokerage},
         bio_bg_color = ${bgColor},
         bio_box_color = ${boxColor},
         bio_name_font = ${nameFont},
         bio_name_size = ${nameSize},
+        bio_button_style = ${buttonStyle},
         updated_at = NOW()
       WHERE user_id = ${userId}
     `;
