@@ -11,7 +11,7 @@ export async function onRequestGet({ request, env }) {
 
   const db = getDb(env);
   const [kit] = await db.sql`SELECT bio_handle, bio_tagline, bio_bg_color, bio_box_color, bio_name_font FROM brand_kits WHERE user_id = ${userId}`;
-  const links = await db.sql`SELECT id, type, label, url, address, price, beds, baths FROM bio_links WHERE user_id = ${userId} ORDER BY sort_order ASC, id ASC`;
+  const links = await db.sql`SELECT id, type, label, url, address, price, beds, baths, photo_url FROM bio_links WHERE user_id = ${userId} ORDER BY sort_order ASC, id ASC`;
 
   return json({
     profile: {
@@ -30,6 +30,7 @@ export async function onRequestGet({ request, env }) {
       price: l.price || "",
       beds: l.beds || "",
       baths: l.baths || "",
+      photoUrl: l.photo_url || "",
     })),
   });
 }
@@ -82,13 +83,14 @@ export async function onRequestPut({ request, env }) {
   for (let i = 0; i < links.length; i++) {
     const l = links[i];
     await db.sql`
-      INSERT INTO bio_links (user_id, type, label, url, sort_order, address, price, beds, baths)
+      INSERT INTO bio_links (user_id, type, label, url, sort_order, address, price, beds, baths, photo_url)
       VALUES (
         ${userId}, ${l.type}, ${String(l.label || "").slice(0, 200)}, ${String(l.url || "").slice(0, 2000)}, ${i},
         ${l.address ? String(l.address).slice(0, 200) : null},
         ${l.price ? String(l.price).slice(0, 50) : null},
         ${l.beds ? String(l.beds).slice(0, 20) : null},
-        ${l.baths ? String(l.baths).slice(0, 20) : null}
+        ${l.baths ? String(l.baths).slice(0, 20) : null},
+        ${l.photoUrl ? String(l.photoUrl).slice(0, 1000) : null}
       )
     `;
   }

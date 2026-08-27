@@ -1,39 +1,10 @@
 import { useEffect, useState } from "react";
-import {
-  Globe, Facebook, Instagram, Home, Building2, Briefcase, Link as LinkIcon,
-  Plus, X, Loader2, CheckCircle2, RefreshCw, Copy, Check, ExternalLink,
-} from "lucide-react";
+import { Plus, X, Loader2, CheckCircle2, RefreshCw, Copy, Check, ExternalLink } from "lucide-react";
 import { UI, ACCENT, ERROR, WHITE, TopNav, SCRIPT_FONTS, scriptFontCss } from "../shared.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
-
-const LINK_TYPES = [
-  { id: "website", label: "Website", icon: Globe, placeholder: "yourname.com" },
-  { id: "facebook", label: "Facebook", icon: Facebook, placeholder: "facebook.com/yourpage" },
-  { id: "instagram", label: "Instagram", icon: Instagram, placeholder: "instagram.com/yourhandle" },
-  { id: "zillow", label: "Zillow Listing", icon: Home, placeholder: "zillow.com/homedetails/..." },
-  { id: "realtor", label: "Realtor.com", icon: Building2, placeholder: "realtor.com/agent/you" },
-  { id: "broker", label: "Brokerage Site", icon: Briefcase, placeholder: "yourbrokerage.com" },
-  { id: "custom", label: "Custom Link", icon: LinkIcon, placeholder: "https://..." },
-];
+import { LINK_TYPES, BioLinksList, textOn } from "./bioShared.jsx";
 
 const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
-
-function hexToRgb(hex) {
-  const m = hex.replace("#", "");
-  const bigint = parseInt(m.length === 3 ? m.split("").map((c) => c + c).join("") : m, 16);
-  return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
-}
-function relativeLuminance(hex) {
-  const { r, g, b } = hexToRgb(hex);
-  const a = [r, g, b].map((v) => {
-    v /= 255;
-    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
-}
-function textOn(hex) {
-  return relativeLuminance(hex) > 0.5 ? UI.ink : "#FDFBF7";
-}
 
 let linkIdSeq = 0;
 function newLinkId() {
@@ -164,9 +135,6 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
       setTimeout(() => setCopied(false), 1500);
     });
   }
-
-  const boxTextColor = textOn(boxColor);
-  const boxSubColor = relativeLuminance(boxColor) > 0.5 ? UI.inkSoft : "#B9C0CC";
 
   return (
     <div className="min-h-screen" style={{ background: UI.page }}>
@@ -422,33 +390,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   </h2>
                   <p className="font-body text-xs text-center mb-8 opacity-70 max-w-[240px]" style={{ color: textOn(bgColor) }}>{tagline}</p>
 
-                  <div className="w-full flex flex-col gap-2.5">
-                    {links.length === 0 && (
-                      <p className="font-body text-center text-xs italic opacity-50 mt-4" style={{ color: textOn(bgColor) }}>Your links will appear here</p>
-                    )}
-                    {links.map((link) => {
-                      const typeInfo = LINK_TYPES.find((t) => t.id === link.type);
-                      const Icon = typeInfo.icon;
-                      const isZillow = link.type === "zillow";
-                      const title = isZillow && (link.fetched || link.address) ? (link.address || link.label || typeInfo.label) : (link.label || typeInfo.label);
-                      const sub = isZillow && (link.fetched || link.address)
-                        ? [link.beds && `${link.beds} bed`, link.baths && `${link.baths} bath`, link.price].filter(Boolean).join(" · ")
-                        : link.url || typeInfo.placeholder;
-
-                      return (
-                        <div key={link.id} className="flex items-center gap-3 rounded-xl px-4 py-3 transition-transform hover:-translate-y-0.5" style={{ backgroundColor: boxColor }}>
-                          <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ border: `2px solid ${ACCENT}`, background: bgColor }}>
-                            <Icon size={11} style={{ color: ACCENT }} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-body text-sm font-semibold truncate" style={{ color: boxTextColor }}>{title}</p>
-                            <p className="font-body text-[11px] truncate" style={{ color: boxSubColor }}>{sub}</p>
-                          </div>
-                          <span style={{ color: ACCENT }}>›</span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <BioLinksList links={links} bgColor={bgColor} boxColor={boxColor} asLink={false} />
 
                   <p className="font-mono text-[10px] tracking-[0.1em] uppercase mt-10 opacity-40" style={{ color: textOn(bgColor) }}>Powered by PostKey</p>
                 </div>
