@@ -1,4 +1,4 @@
-import { Globe, Facebook, Instagram, Home, Building2, Briefcase, Link as LinkIcon, BedDouble, Bath } from "lucide-react";
+import { Globe, Facebook, Instagram, Home, Building2, Briefcase, Link as LinkIcon, BedDouble, Bath, Star, ChevronRight } from "lucide-react";
 import { UI, ACCENT } from "../shared.jsx";
 
 export const LINK_TYPES = [
@@ -36,6 +36,17 @@ export function relativeLuminance(hex) {
 }
 export function textOn(hex) {
   return relativeLuminance(hex) > 0.5 ? UI.ink : "#FDFBF7";
+}
+
+// Paired with the "Name style" font picker — same idea, but for size.
+export const NAME_SIZES = [
+  { id: "sm", label: "Small", px: 22 },
+  { id: "md", label: "Medium", px: 30 },
+  { id: "lg", label: "Large", px: 38 },
+  { id: "xl", label: "Extra Large", px: 46 },
+];
+export function nameSizePx(id) {
+  return (NAME_SIZES.find((s) => s.id === id) || NAME_SIZES[1]).px;
 }
 
 function linkHref(link) {
@@ -80,27 +91,27 @@ export function BioLinksList({ links, bgColor, boxColor, asLink }) {
               className="rounded-xl overflow-hidden block"
               style={{ backgroundColor: boxColor }}
             >
-              <img src={link.photoUrl} alt="" className="w-full h-36 object-cover" />
+              <img src={link.photoUrl} alt="" className="w-full h-44 object-cover" />
               <div className="p-4">
                 <span
-                  className="font-mono inline-block text-[10px] tracking-[0.08em] uppercase px-2 py-1 rounded mb-2"
+                  className="font-mono inline-flex items-center gap-1 text-[10px] tracking-[0.08em] uppercase px-2.5 py-1 rounded-full mb-2.5 shadow-sm"
                   style={{ background: ACCENT, color: "#FFFFFF" }}
                 >
-                  Featured Listing
+                  <Star size={10} fill="#FFFFFF" /> Featured Listing
                 </span>
-                <p className="font-body text-base font-semibold" style={{ color: boxTextColor }}>{link.address}</p>
+                <p className="font-display text-lg font-bold" style={{ color: boxTextColor }}>{link.address}</p>
                 {(stats.length > 0) && (
-                  <div className="flex items-center gap-4 mt-2 pt-2 border-t" style={{ borderColor: relativeLuminance(boxColor) > 0.5 ? "rgba(27,36,48,0.12)" : "rgba(255,255,255,0.12)" }}>
+                  <div className="flex items-center gap-5 mt-2.5 pt-2.5 border-t" style={{ borderColor: relativeLuminance(boxColor) > 0.5 ? "rgba(27,36,48,0.12)" : "rgba(255,255,255,0.12)" }}>
                     {stats.map((s) => (
-                      <span key={s.label} className="flex items-center gap-1.5 font-body text-xs" style={{ color: boxSubColor }}>
-                        <s.icon size={13} />
+                      <span key={s.label} className="flex items-center gap-1.5 font-body text-sm" style={{ color: boxSubColor }}>
+                        <s.icon size={16} />
                         <span className="font-semibold" style={{ color: boxTextColor }}>{s.value}</span> {s.label}
                       </span>
                     ))}
                   </div>
                 )}
                 {link.price && (
-                  <p className="font-display text-lg font-bold mt-2" style={{ color: ACCENT }}>{link.price}</p>
+                  <p className="font-display text-2xl font-bold mt-2.5" style={{ color: ACCENT }}>{link.price}</p>
                 )}
               </div>
             </Row>
@@ -116,29 +127,32 @@ export function BioLinksList({ links, bgColor, boxColor, asLink }) {
           <Row
             key={link.id ?? i}
             {...(asLink ? { href: linkHref(link), target: "_blank", rel: "noreferrer" } : {})}
-            className="flex items-center gap-3 rounded-xl px-4 py-3 transition-transform hover:-translate-y-0.5"
+            className="flex items-center gap-3.5 rounded-xl px-4 py-3.5 transition-transform hover:-translate-y-0.5"
             style={{ backgroundColor: boxColor }}
           >
-            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: ACCENT }}>
-              <Icon size={16} style={{ color: "#FFFFFF" }} />
+            <div
+              className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: `linear-gradient(135deg, ${ACCENT}, #6E8CFF)`, boxShadow: `0 2px 8px ${ACCENT}55` }}
+            >
+              <Icon size={19} style={{ color: "#FFFFFF" }} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-body text-sm font-semibold truncate" style={{ color: boxTextColor }}>{title}</p>
-              <p className="font-body text-[11px] truncate" style={{ color: boxSubColor }}>{sub}</p>
+              <p className="font-body text-base font-semibold truncate" style={{ color: boxTextColor }}>{title}</p>
+              <p className="font-body text-xs truncate" style={{ color: boxSubColor }}>{sub}</p>
             </div>
-            <span style={{ color: ACCENT }}>›</span>
+            <ChevronRight size={20} style={{ color: ACCENT }} className="shrink-0" />
           </Row>
         );
       })}
 
       {social.length > 0 && (
-        <div className="flex flex-col items-center gap-3 mt-3">
+        <div className="flex flex-col items-center gap-4 mt-4">
           <div className="flex items-center gap-3 w-full">
             <span className="flex-1 h-px" style={{ background: `${textOn(bgColor)}33` }} />
-            <span className="font-body text-xs italic" style={{ color: textOn(bgColor), opacity: 0.7 }}>Let's Connect</span>
+            <span className="font-body text-sm italic" style={{ color: textOn(bgColor), opacity: 0.7 }}>Let's Connect</span>
             <span className="flex-1 h-px" style={{ background: `${textOn(bgColor)}33` }} />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {social.map((link, i) => {
               const typeInfo = LINK_TYPE_MAP[link.type] || LINK_TYPE_MAP.custom;
               const Icon = typeInfo.icon;
@@ -147,10 +161,10 @@ export function BioLinksList({ links, bgColor, boxColor, asLink }) {
                   key={link.id ?? `s${i}`}
                   {...(asLink ? { href: linkHref(link), target: "_blank", rel: "noreferrer" } : {})}
                   aria-label={typeInfo.label}
-                  className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: SOCIAL_BG[link.type] || ACCENT }}
+                  className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 transition-transform hover:scale-105"
+                  style={{ background: SOCIAL_BG[link.type] || ACCENT, boxShadow: "0 3px 10px rgba(0,0,0,0.25)" }}
                 >
-                  <Icon size={18} color="#FFFFFF" />
+                  <Icon size={24} color="#FFFFFF" />
                 </Row>
               );
             })}
