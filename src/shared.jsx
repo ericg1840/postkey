@@ -655,10 +655,21 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
           >
             Description
           </button>
+          <button
+            onClick={() => onSwitch("bio")}
+            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
+            style={{
+              background: active === "bio" ? UI.card : "transparent",
+              color: active === "bio" ? UI.ink : UI.inkSoft,
+              boxShadow: active === "bio" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+            }}
+          >
+            Bio Link
+          </button>
         </nav>
         <div className="flex items-center gap-4">
           <span className="font-mono text-xs hidden sm:inline" style={{ color: UI.inkSoft }}>
-            {active === "listings" ? "PHOTO IN, POST OUT" : active === "community" ? "LOCAL LOVE, POSTED" : active === "calendar" ? "PLAN AHEAD, POST ON TIME" : active === "profile" ? "YOUR BRAND, YOUR WAY" : "WRITE IT ONCE, POST IT EVERYWHERE"}
+            {active === "listings" ? "PHOTO IN, POST OUT" : active === "community" ? "LOCAL LOVE, POSTED" : active === "calendar" ? "PLAN AHEAD, POST ON TIME" : active === "profile" ? "YOUR BRAND, YOUR WAY" : active === "bio" ? "ONE LINK, EVERYWHERE" : "WRITE IT ONCE, POST IT EVERYWHERE"}
           </span>
           {onLogout && (
             <div className="flex items-center gap-2">

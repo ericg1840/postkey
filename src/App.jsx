@@ -10,6 +10,8 @@ import { AuthScreen } from "./auth/AuthScreen.jsx";
 import { ResetPasswordScreen } from "./auth/ResetPasswordScreen.jsx";
 import { OnboardingWizard } from "./onboarding/OnboardingWizard.jsx";
 import { ProfilePage } from "./profile/ProfilePage.jsx";
+import { BioEditorPage } from "./profile/BioEditorPage.jsx";
+import { PublicBioPage } from "./profile/PublicBioPage.jsx";
 import { AUTH } from "./auth/AuthShell.jsx";
 import { HomePage } from "./marketing/HomePage.jsx";
 import { AboutPage } from "./marketing/AboutPage.jsx";
@@ -42,9 +44,15 @@ function getResetParams() {
   return token && email ? { token, email } : null;
 }
 
+function getBioHandle() {
+  const m = window.location.pathname.match(/^\/u\/([^/]+)\/?$/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
 function AppShell() {
   const [activeTool, setActiveTool] = useState("listings");
   const [resetParams, setResetParams] = useState(getResetParams);
+  const [bioHandle] = useState(getBioHandle);
   const [authView, setAuthView] = useState(null); // null (homepage) | "login" | "signup"
   const [showHome, setShowHome] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
@@ -55,6 +63,13 @@ function AppShell() {
   // the same way regardless of which screen they were clicked from.
   const goGetStarted = () => { setShowAbout(false); setShowHome(false); if (!user) setAuthView("signup"); };
   const goLogIn = () => { setShowAbout(false); setShowHome(false); if (!user) setAuthView("login"); };
+
+  // Public link-in-bio page — no auth, no app chrome, renders before every
+  // other gate (including the auth-loading screen) since it doesn't depend
+  // on whether anyone is logged in on this browser.
+  if (bioHandle) {
+    return <PublicBioPage handle={bioHandle} />;
+  }
 
   if (resetParams) {
     return (
@@ -89,6 +104,7 @@ function AppShell() {
   if (brandKit && !brandKit.onboarded) return <OnboardingWizard />;
 
   if (activeTool === "profile") return <ProfilePage onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
+  if (activeTool === "bio") return <BioEditorPage onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
   if (activeTool === "listings") return <ListingTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
   if (activeTool === "calendar") return <CalendarTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
   if (activeTool === "description") return <DescriptionTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
