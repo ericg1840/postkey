@@ -8,6 +8,7 @@ async function sendResetEmail(toEmail, resetUrl, env) {
       to: toEmail,
       subject: "Reset your PostKey password",
       html: `
+      <meta charset="utf-8">
       ${preheader("This link expires in 1 hour. If you didn't request this, ignore this email.")}
       <div style="background:#FDFBF7;padding:40px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
         <div style="max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;border:1px solid #EAE4D8;">
@@ -28,7 +29,7 @@ async function sendResetEmail(toEmail, resetUrl, env) {
             </div>
             <p style="margin:0 0 24px;font-size:12px;color:#9AA3B2;text-align:center;">Or paste this into your browser: <a href="${resetUrl}" style="color:#0043FF;">${resetUrl}</a></p>
             <p style="margin:0;font-size:14px;line-height:1.6;color:#697386;">
-              This link expires in 1 hour. If you didn't request this, you can safely ignore this email — your password won't change.
+              This link expires in 1 hour. If you didn't request this, you can safely ignore this email &mdash; your password won't change.
             </p>
           </div>
         </div>
@@ -39,7 +40,7 @@ async function sendResetEmail(toEmail, resetUrl, env) {
 
 Set a new password: ${resetUrl}
 
-This link expires in 1 hour. If you didn't request this, you can safely ignore this email — your password won't change.`,
+This link expires in 1 hour. If you didn't request this, you can safely ignore this email -- your password won't change.`,
     },
     env
   );

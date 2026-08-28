@@ -8,7 +8,8 @@ async function sendWelcomeEmail(toEmail, firstName, appUrl, env) {
       to: toEmail,
       subject: "Welcome to PostKey!",
       html: `
-      ${preheader(`Set up your brand kit, ${firstName} — your first post is a couple of minutes away.`)}
+      <meta charset="utf-8">
+      ${preheader(`Set up your brand kit, ${firstName} &mdash; your first post is a couple of minutes away.`)}
       <div style="background:#FDFBF7;padding:40px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
         <div style="max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;border:1px solid #EAE4D8;">
           <div style="padding:40px 40px 8px;text-align:center;">
@@ -24,7 +25,7 @@ async function sendWelcomeEmail(toEmail, firstName, appUrl, env) {
             </table>
             <p style="margin:0 0 18px;font-size:15px;color:#1B2430;text-align:left;">Hey ${firstName},</p>
             <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#1B2430;text-align:left;">
-              Welcome to PostKey! We built this so you never have to stare at a blank screen wondering what to post — set up your brand once, and every graphic comes out looking like you.
+              Welcome to PostKey! We built this so you never have to stare at a blank screen wondering what to post &mdash; set up your brand once, and every graphic comes out looking like you.
             </p>
           </div>
           <div style="text-align:center;padding:0 40px 8px;">
@@ -43,7 +44,7 @@ async function sendWelcomeEmail(toEmail, firstName, appUrl, env) {
               <li>Browse the Community tab for market updates and local posts</li>
             </ul>
             <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#697386;">
-              That's it — most agents have their first post ready in a couple of minutes.
+              That's it &mdash; most agents have their first post ready in a couple of minutes.
             </p>
             <p style="margin:0;font-size:15px;color:#1B2430;">
               Thanks for joining,<br />The PostKey Team
@@ -55,7 +56,7 @@ async function sendWelcomeEmail(toEmail, firstName, appUrl, env) {
     `,
       text: `Hey ${firstName},
 
-Welcome to PostKey! We built this so you never have to stare at a blank screen wondering what to post — set up your brand once, and every graphic comes out looking like you.
+Welcome to PostKey! We built this so you never have to stare at a blank screen wondering what to post -- set up your brand once, and every graphic comes out looking like you.
 
 Set up your brand kit: ${appUrl}
 
@@ -64,7 +65,7 @@ Here's how to get your first post out the door:
 - Create a Just Listed or Just Sold post in the Listings tool
 - Browse the Community tab for market updates and local posts
 
-That's it — most agents have their first post ready in a couple of minutes.
+That's it -- most agents have their first post ready in a couple of minutes.
 
 Thanks for joining,
 The PostKey Team`,
