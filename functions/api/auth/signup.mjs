@@ -89,11 +89,17 @@ export async function onRequestPost({ request, env }) {
   if (existing.length > 0) return json({ error: "An account with that email already exists." }, { status: 409 });
 
   const passwordHash = hashPassword(password);
-  const [user] = await db.sql`
-    INSERT INTO users (email, password_hash, full_name)
-    VALUES (${email}, ${passwordHash}, ${fullName})
-    RETURNING id, email, full_name
-  `;
+  let user;
+  try {
+    [user] = await db.sql`
+      INSERT INTO users (email, password_hash, full_name)
+      VALUES (${email}, ${passwordHash}, ${fullName})
+      RETURNING id, email, full_name
+    `;
+  } catch (err) {
+    if (err?.code === "23505") return json({ error: "An account with that email already exists." }, { status: 409 });
+    throw err;
+  }
   await db.sql`INSERT INTO brand_kits (user_id, agent_name) VALUES (${user.id}, ${fullName})`;
 
   const token = createSessionToken(user.id, env);

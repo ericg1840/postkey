@@ -41,10 +41,11 @@ export default {
       } catch (err) {
         // An uncaught error here would otherwise surface as Cloudflare's
         // generic "Worker threw exception" HTML page (error 1101) — useless
-        // to the frontend, which expects JSON. Surface the real message
-        // instead (e.g. a missing DB column) so it's actually debuggable.
+        // to the frontend, which expects JSON. Log the real error for
+        // debugging, but never hand the raw message (DB errors, missing
+        // env vars, etc) to the client — the frontend shows it verbatim.
         console.error(`${pathname} threw:`, err);
-        return new Response(JSON.stringify({ error: err?.message || "Something went wrong." }), {
+        return new Response(JSON.stringify({ error: "Something went wrong. Please try again." }), {
           status: 500,
           headers: { "Content-Type": "application/json" },
         });

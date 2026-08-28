@@ -13,6 +13,7 @@ export function OnboardingWizard() {
   const { user, brandKit, saveBrandKit } = useAuth();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const [data, setData] = useState({
     agentName: brandKit?.agentName || user?.fullName || "",
     agentPhone: brandKit?.agentPhone || "",
@@ -31,6 +32,7 @@ export function OnboardingWizard() {
 
   const finish = async (markOnboarded) => {
     setBusy(true);
+    setError("");
     try {
       await saveBrandKit({
         ...data,
@@ -38,6 +40,8 @@ export function OnboardingWizard() {
         logoUrl: logo.source === "custom" ? logo.url : null,
         onboarded: markOnboarded,
       });
+    } catch (err) {
+      setError(err.message || "Couldn't save your brand kit — check your connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -169,6 +173,10 @@ export function OnboardingWizard() {
                 <span className="ob-field"><input className="ob-input" value={data.licenseNumber} onChange={set("licenseNumber")} placeholder="For required disclosures" /></span>
               </label>
             </div>
+          )}
+
+          {error && (
+            <p className="font-body text-sm mt-4" style={{ color: "#C0273D" }}>{error}</p>
           )}
 
           <div className="flex items-center justify-between mt-8">
