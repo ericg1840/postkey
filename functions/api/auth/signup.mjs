@@ -1,6 +1,6 @@
 import { getDb } from "../../_lib/db.mjs";
 import { hashPassword, createSessionToken, sessionCookie, json } from "../../_lib/auth.mjs";
-import { sendEmail } from "../../_lib/email.mjs";
+import { sendEmail, preheader } from "../../_lib/email.mjs";
 
 async function sendWelcomeEmail(toEmail, firstName, appUrl, env) {
   await sendEmail(
@@ -8,6 +8,7 @@ async function sendWelcomeEmail(toEmail, firstName, appUrl, env) {
       to: toEmail,
       subject: "Welcome to PostKey!",
       html: `
+      ${preheader(`Set up your brand kit, ${firstName} — your first post is a couple of minutes away.`)}
       <div style="background:#FDFBF7;padding:40px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
         <div style="max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;border:1px solid #EAE4D8;">
           <div style="padding:40px 40px 8px;text-align:center;">
@@ -26,10 +27,13 @@ async function sendWelcomeEmail(toEmail, firstName, appUrl, env) {
               Welcome to PostKey! We built this so you never have to stare at a blank screen wondering what to post — set up your brand once, and every graphic comes out looking like you.
             </p>
           </div>
-          <div style="text-align:center;padding:0 40px 32px;">
+          <div style="text-align:center;padding:0 40px 8px;">
             <a href="${appUrl}" style="display:inline-block;background:#0043FF;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;padding:14px 36px;border-radius:999px;">
               Set Up My Brand Kit &rarr;
             </a>
+          </div>
+          <div style="text-align:center;padding:0 40px 32px;">
+            <p style="margin:0;font-size:12px;color:#9AA3B2;">Or paste this into your browser: <a href="${appUrl}" style="color:#0043FF;">${appUrl}</a></p>
           </div>
           <div style="border-top:1px solid #EFEAE0;padding:28px 40px 32px;text-align:left;">
             <p style="margin:0 0 12px;font-size:15px;font-weight:600;color:#1B2430;">Here's how to get your first post out the door:</p>
@@ -49,6 +53,21 @@ async function sendWelcomeEmail(toEmail, firstName, appUrl, env) {
         <p style="text-align:center;color:#9AA3B2;font-size:12px;margin:24px 0 0;">PostKey &middot; Branded social graphics for real estate agents</p>
       </div>
     `,
+      text: `Hey ${firstName},
+
+Welcome to PostKey! We built this so you never have to stare at a blank screen wondering what to post — set up your brand once, and every graphic comes out looking like you.
+
+Set up your brand kit: ${appUrl}
+
+Here's how to get your first post out the door:
+- Add your logo, headshot, and colors to your brand kit
+- Create a Just Listed or Just Sold post in the Listings tool
+- Browse the Community tab for market updates and local posts
+
+That's it — most agents have their first post ready in a couple of minutes.
+
+Thanks for joining,
+The PostKey Team`,
     },
     env
   );
