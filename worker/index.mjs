@@ -11,7 +11,6 @@ import * as requestReset from "../functions/api/auth/request-reset.mjs";
 import * as resetPassword from "../functions/api/auth/reset-password.mjs";
 import * as changePassword from "../functions/api/auth/change-password.mjs";
 import * as brandKit from "../functions/api/brand-kit.mjs";
-import * as propertyLookup from "../functions/api/property-lookup.mjs";
 import * as bio from "../functions/api/bio.mjs";
 import * as bioPublic from "../functions/api/bio-public.mjs";
 import * as listingsFetch from "../functions/api/listings-fetch.mjs";
@@ -25,7 +24,6 @@ const ROUTES = {
   "/api/auth/reset-password": { POST: resetPassword.onRequestPost },
   "/api/auth/change-password": { POST: changePassword.onRequestPost },
   "/api/brand-kit": { GET: brandKit.onRequestGet, PUT: brandKit.onRequestPut },
-  "/api/property-lookup": { GET: propertyLookup.onRequestGet },
   "/api/bio": { GET: bio.onRequestGet, PUT: bio.onRequestPut },
   "/api/bio-public": { GET: bioPublic.onRequestGet },
   "/api/listings-fetch": { POST: listingsFetch.onRequestPost },

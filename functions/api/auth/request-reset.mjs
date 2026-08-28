@@ -1,6 +1,6 @@
 import { getDb } from "../../_lib/db.mjs";
 import { createResetToken, json } from "../../_lib/auth.mjs";
-import { sendEmail } from "../../_lib/email.mjs";
+import { sendEmail, preheader } from "../../_lib/email.mjs";
 
 async function sendResetEmail(toEmail, resetUrl, env) {
   await sendEmail(
@@ -8,6 +8,8 @@ async function sendResetEmail(toEmail, resetUrl, env) {
       to: toEmail,
       subject: "Reset your PostKey password",
       html: `
+      <meta charset="utf-8">
+      ${preheader("This link expires in 1 hour. If you didn't request this, ignore this email.")}
       <div style="background:#FDFBF7;padding:40px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
         <div style="max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;border:1px solid #EAE4D8;">
           <div style="padding:40px 40px 32px;text-align:left;">
@@ -18,21 +20,27 @@ async function sendResetEmail(toEmail, resetUrl, env) {
               </tr>
             </table>
             <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#1B2430;">
-              Someone requested a password reset for this PostKey account.
+              Someone requested a password reset for the PostKey account at <strong>${toEmail}</strong>.
             </p>
-            <div style="text-align:center;margin:0 0 24px;">
+            <div style="text-align:center;margin:0 0 16px;">
               <a href="${resetUrl}" style="display:inline-block;background:#0043FF;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;padding:14px 36px;border-radius:999px;">
                 Set a new password
               </a>
             </div>
-            <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#697386;">
-              This link expires in 1 hour. If you didn't request this, you can safely ignore this email.
+            <p style="margin:0 0 24px;font-size:12px;color:#9AA3B2;text-align:center;">Or paste this into your browser: <a href="${resetUrl}" style="color:#0043FF;">${resetUrl}</a></p>
+            <p style="margin:0;font-size:14px;line-height:1.6;color:#697386;">
+              This link expires in 1 hour. If you didn't request this, you can safely ignore this email &mdash; your password won't change.
             </p>
           </div>
         </div>
         <p style="text-align:center;color:#9AA3B2;font-size:12px;margin:24px 0 0;">PostKey &middot; Branded social graphics for real estate agents</p>
       </div>
     `,
+      text: `Someone requested a password reset for the PostKey account at ${toEmail}.
+
+Set a new password: ${resetUrl}
+
+This link expires in 1 hour. If you didn't request this, you can safely ignore this email -- your password won't change.`,
     },
     env
   );
