@@ -54,14 +54,14 @@ export function PostCard({ category, headline, color, rotate, top, left, scale =
         boxShadow: "0 20px 40px rgba(27,36,48,0.22)",
       }}
     >
-      <div className="relative flex items-end p-2.5" style={{ height: "64%", background: `linear-gradient(155deg, ${color}26, ${color}68)` }}>
+      <div className="relative flex items-end p-2.5" style={{ height: "64%", background: `linear-gradient(155deg, ${color}55, ${color}E6)` }}>
         <span
           className="absolute rounded-full font-mono font-bold"
           style={{ top: 8, left: 8, background: color, color: "#FFFFFF", fontSize: "0.5rem", letterSpacing: "0.04em", padding: "3px 7px" }}
         >
           {category}
         </span>
-        <h4 className="font-display font-bold" style={{ color: AUTH.ink, fontSize: "1.05rem", lineHeight: 1.08, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{headline}</h4>
+        <h4 className="font-display font-bold" style={{ color: "#FFFFFF", fontSize: "1.05rem", lineHeight: 1.08, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textShadow: "0 2px 10px rgba(0,0,0,0.18)" }}>{headline}</h4>
       </div>
       <div className="flex items-center gap-1.5 px-2.5" style={{ height: "36%" }}>
         <div className="rounded-full flex-shrink-0" style={{ width: 20, height: 20, background: AUTH.border }} />
@@ -90,15 +90,15 @@ export function FloatingSparkle({ top, left, right, bottom, size = 22, color, ro
 function ExampleCard({ category, headline, sub, caption, cta, color }) {
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: "#FFFFFF", boxShadow: "0 12px 30px rgba(27,36,48,0.1)" }}>
-      <div className="relative flex flex-col justify-end p-5" style={{ height: 224, background: `linear-gradient(165deg, ${color}24, ${color}70)` }}>
+      <div className="relative flex flex-col justify-end p-5" style={{ height: 240, background: `linear-gradient(165deg, ${color}70, ${color}F2)` }}>
         <span
           className="absolute rounded-full font-mono font-bold"
-          style={{ top: 14, left: 14, background: color, color: "#FFFFFF", fontSize: "0.6rem", letterSpacing: "0.05em", padding: "4px 11px" }}
+          style={{ top: 14, left: 14, background: "#FFFFFF", color, fontSize: "0.6rem", letterSpacing: "0.05em", padding: "4px 11px" }}
         >
           {category}
         </span>
-        <h4 className="font-display font-bold" style={{ color: AUTH.ink, fontSize: "1.4rem", lineHeight: 1.12 }}>{headline}</h4>
-        <p className="font-body text-xs mt-1" style={{ color: AUTH.ink, opacity: 0.72 }}>{sub}</p>
+        <h4 className="font-display font-bold" style={{ color: "#FFFFFF", fontSize: "1.45rem", lineHeight: 1.12, textShadow: "0 2px 10px rgba(0,0,0,0.18)" }}>{headline}</h4>
+        <p className="font-body text-xs mt-1" style={{ color: "#FFFFFF", opacity: 0.88 }}>{sub}</p>
       </div>
       <div className="flex items-center gap-3 px-4 pt-3" style={{ color: AUTH.muted }}>
         <Heart size={16} />
@@ -161,7 +161,7 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
   return (
     <div style={{ background: "#FDFBF7" }}>
       <header style={{ paddingTop: "env(safe-area-inset-top)" }}>
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-1">
+        <div className="max-w-7xl mx-auto px-3 sm:px-8 py-4 sm:py-5 flex items-center justify-between gap-1">
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-0">
             <Logo size={26} />
             <span className="font-display font-bold text-base sm:text-lg whitespace-nowrap" style={{ color: AUTH.ink }}>PostKey</span>
@@ -195,10 +195,11 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
 
       {/* HERO */}
       <section className="relative overflow-hidden">
-        <div className="absolute rounded-full" style={{ width: 460, height: 460, top: -220, left: -180, background: `${ACCENT_PRESETS[4]}12`, filter: "blur(20px)" }} />
-        <div className="absolute rounded-full" style={{ width: 360, height: 360, bottom: -180, right: -120, background: `${PRIMARY}14`, filter: "blur(20px)" }} />
+        <div className="absolute rounded-full" style={{ width: 560, height: 560, top: -260, left: -220, background: `${ACCENT_PRESETS[4]}22`, filter: "blur(30px)" }} />
+        <div className="absolute rounded-full" style={{ width: 460, height: 460, bottom: -220, right: -160, background: `${PRIMARY}24`, filter: "blur(30px)" }} />
+        <div className="absolute rounded-full" style={{ width: 260, height: 260, top: 60, right: "22%", background: `${ACCENT_PRESETS[3]}1E`, filter: "blur(26px)" }} />
 
-        <div className="max-w-6xl mx-auto px-6 pt-10 sm:pt-14 relative grid lg:grid-cols-2 gap-14 items-center">
+        <div className="max-w-7xl mx-auto px-6 sm:px-10 pt-10 sm:pt-14 relative grid lg:grid-cols-2 gap-14 items-center">
           <div>
             <div
               className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-6"
@@ -252,14 +253,14 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
             </p>
           </div>
 
-          <div className="relative hidden lg:block" style={{ height: 420 }}>
-            <FloatingSparkle top={-6} right={40} size={26} color={ACCENT_PRESETS[3]} rotate={-10} />
-            <FloatingSparkle bottom={20} left={0} size={18} color={ACCENT_PRESETS[1]} rotate={12} />
-            <FloatingDot top={30} right={0} size={12} color={ACCENT_PRESETS[2]} />
-            <FloatingDot bottom={60} right={60} size={8} color={PRIMARY} />
-            <Star size={16} color={AUTH.border} fill={AUTH.border} strokeWidth={0} className="absolute" style={{ top: 130, right: 10 }} />
+          <div className="relative hidden lg:block" style={{ height: 480 }}>
+            <FloatingSparkle top={-10} right={30} size={30} color={ACCENT_PRESETS[3]} rotate={-10} />
+            <FloatingSparkle bottom={30} left={-10} size={22} color={ACCENT_PRESETS[1]} rotate={12} />
+            <FloatingDot top={30} right={-10} size={14} color={ACCENT_PRESETS[2]} />
+            <FloatingDot bottom={80} right={50} size={10} color={PRIMARY} />
+            <Star size={18} color={ACCENT_PRESETS[0]} fill={ACCENT_PRESETS[0]} strokeWidth={0} className="absolute" style={{ top: 140, right: -10 }} />
 
-            <div className="relative mx-auto" style={{ width: 340, height: 400 }}>
+            <div className="relative mx-auto" style={{ width: 380, height: 440, transform: "scale(1.12)" }}>
               <PostCard category="SOLD" headline="Sold Fast!" color={PRIMARY} rotate={-9} top={10} left={0} />
               <PostCard category="CLIENT LOVE" headline="5-Star Review!" color={ACCENT_PRESETS[4]} rotate={6} top={70} left={150} />
               <PostCard category="LOCAL" headline="Local Favorite!" color={ACCENT_PRESETS[3]} rotate={-4} top={190} left={20} scale={1.06} />
@@ -269,7 +270,7 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how-it-works" className="max-w-5xl mx-auto px-6 pt-10 pb-16 sm:pt-12 sm:pb-20">
+      <section id="how-it-works" className="max-w-6xl mx-auto px-6 sm:px-10 pt-14 pb-20 sm:pt-16 sm:pb-24">
         <h2 className="font-display font-bold text-center" style={{ color: AUTH.ink, fontSize: "1.75rem" }}>
           Your next post in 3 steps
         </h2>
@@ -302,7 +303,7 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
       </section>
 
       {/* FEATURES */}
-      <section id="features" className="max-w-6xl mx-auto px-6 py-14 sm:py-16">
+      <section id="features" className="max-w-7xl mx-auto px-6 sm:px-10 py-16 sm:py-20">
         <h2 className="font-display font-bold text-center" style={{ color: AUTH.ink, fontSize: "1.75rem" }}>
           Everything you need to stay consistent
         </h2>
@@ -320,7 +321,7 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
       </section>
 
       {/* EXAMPLES */}
-      <section className="max-w-6xl mx-auto px-6 py-14 sm:py-16">
+      <section className="max-w-7xl mx-auto px-6 sm:px-10 py-16 sm:py-20">
         <h2 className="font-display font-bold text-center" style={{ color: AUTH.ink, fontSize: "1.75rem" }}>
           See what you can create
         </h2>
@@ -342,7 +343,7 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
       </section>
 
       {/* BRAND KIT */}
-      <section className="max-w-6xl mx-auto px-6 py-6 sm:py-8">
+      <section className="max-w-7xl mx-auto px-6 sm:px-10 py-8 sm:py-12">
         <div className="rounded-3xl p-8 sm:p-14 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center" style={{ background: "#F1EFE8" }}>
           <div className="text-center lg:text-left">
             <span className="font-mono font-bold" style={{ color: AUTH.muted, letterSpacing: "0.06em", fontSize: "0.7rem" }}>
@@ -391,7 +392,7 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
       {/* FINAL CTA */}
       <section className="px-6 py-14 sm:py-16">
         <div
-          className="max-w-5xl mx-auto rounded-3xl relative overflow-hidden py-14 px-6 sm:px-14"
+          className="max-w-6xl mx-auto rounded-3xl relative overflow-hidden py-16 px-6 sm:px-16"
           style={{ background: AUTH.ink }}
         >
           <FloatingSparkle top={20} left={40} size={20} color={ACCENT_PRESETS[3]} rotate={-8} />
@@ -425,7 +426,7 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
         </div>
       </section>
 
-      <footer className="max-w-6xl mx-auto px-6 pt-10 pb-8 border-t" style={{ borderColor: AUTH.border }}>
+      <footer className="max-w-7xl mx-auto px-6 sm:px-10 pt-10 pb-8 border-t" style={{ borderColor: AUTH.border }}>
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-8">
           <div>
             <div className="flex items-center gap-2">
