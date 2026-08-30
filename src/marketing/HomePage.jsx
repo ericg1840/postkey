@@ -1,4 +1,4 @@
-import { Key, Sparkles, Lock, Lightbulb, Zap, Repeat, Star, ArrowRight, Heart, MessageCircle, Send, Bookmark, Check } from "lucide-react";
+import { Key, Sparkles, Lock, Lightbulb, Zap, Palette, Star, ArrowRight, Heart, MessageCircle, Send, Bookmark, Check, Home, Award, MapPin, Users, Instagram } from "lucide-react";
 import { AUTH } from "../auth/AuthShell.jsx";
 import { ACCENT_PRESETS, Logo } from "../shared.jsx";
 
@@ -6,15 +6,26 @@ import { ACCENT_PRESETS, Logo } from "../shared.jsx";
 const PRIMARY = ACCENT_PRESETS[1];
 
 const FEATURES = [
-  { icon: Lightbulb, title: "Never run out of ideas", text: "Fresh real estate, local, educational, and engagement content to post between listings.", color: ACCENT_PRESETS[3] },
-  { icon: Zap, title: "Create in seconds", text: "Turn an idea, listing, or photo into a ready-to-post graphic — no design tool required.", color: PRIMARY },
-  { icon: Repeat, title: "Stay consistent", text: "Know exactly what to post next, so a busy week never means a quiet feed.", color: ACCENT_PRESETS[2] },
+  { icon: Lightbulb, title: "Fresh real estate ideas", text: "Listings, market updates, local spots, and buyer & seller tips — so you're never staring at a blank feed.", color: ACCENT_PRESETS[3] },
+  { icon: Zap, title: "Ready-to-post in seconds", text: "Turn an idea, listing, or photo into a finished graphic — no design tool required.", color: PRIMARY },
+  { icon: Palette, title: "Your branding applied automatically", text: "Your colors, logo, and contact info are already on every post — no re-formatting, ever.", color: ACCENT_PRESETS[2] },
+];
+
+// Content categories PostKey is actually built around, not a generic social caption tool.
+const CONTENT_TYPES = [
+  { icon: Home, label: "Listings" },
+  { icon: Award, label: "Just Sold" },
+  { icon: Zap, label: "Market Updates" },
+  { icon: Star, label: "Testimonials" },
+  { icon: Key, label: "Open Houses" },
+  { icon: MapPin, label: "Neighborhood Spotlights" },
+  { icon: Users, label: "Buyer & Seller Tips" },
 ];
 
 const STEPS = [
-  { n: 1, title: "Choose what to post", text: "Listings, testimonials, local favorites, buyer & seller tips, design inspiration, and more.", color: PRIMARY },
-  { n: 2, title: "PostKey creates it", text: "Get your graphic, headline, and copy, formatted and ready for social.", color: ACCENT_PRESETS[4] },
-  { n: 3, title: "Make it yours", text: "Your colors, logo, headshot, and contact info are already applied.", color: ACCENT_PRESETS[3] },
+  { n: 1, title: "Choose what to post", text: "Listings, testimonials, local favorites, buyer & seller tips, design inspiration, and more.", color: PRIMARY, visual: "choose" },
+  { n: 2, title: "PostKey creates it", text: "Get your graphic, headline, and copy, formatted and ready for social.", color: ACCENT_PRESETS[4], visual: "create" },
+  { n: 3, title: "Make it yours", text: "Your colors, logo, headshot, and contact info are already applied.", color: ACCENT_PRESETS[3], visual: "brand" },
 ];
 
 const EXAMPLES = [
@@ -90,15 +101,15 @@ export function FloatingSparkle({ top, left, right, bottom, size = 22, color, ro
 function ExampleCard({ category, headline, sub, caption, cta, color }) {
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: "#FFFFFF", boxShadow: "0 12px 30px rgba(27,36,48,0.1)" }}>
-      <div className="relative flex flex-col justify-end p-5" style={{ height: 240, background: `linear-gradient(165deg, ${color}70, ${color}F2)` }}>
+      <div className="relative flex flex-col justify-end p-6" style={{ height: 280, background: `linear-gradient(165deg, ${color}70, ${color}F2)` }}>
         <span
           className="absolute rounded-full font-mono font-bold"
-          style={{ top: 14, left: 14, background: "#FFFFFF", color, fontSize: "0.6rem", letterSpacing: "0.05em", padding: "4px 11px" }}
+          style={{ top: 16, left: 16, background: "#FFFFFF", color, fontSize: "0.62rem", letterSpacing: "0.05em", padding: "5px 12px" }}
         >
           {category}
         </span>
-        <h4 className="font-display font-bold" style={{ color: "#FFFFFF", fontSize: "1.45rem", lineHeight: 1.12, textShadow: "0 2px 10px rgba(0,0,0,0.18)" }}>{headline}</h4>
-        <p className="font-body text-xs mt-1" style={{ color: "#FFFFFF", opacity: 0.88 }}>{sub}</p>
+        <h4 className="font-display font-bold" style={{ color: "#FFFFFF", fontSize: "1.6rem", lineHeight: 1.1, textShadow: "0 2px 10px rgba(0,0,0,0.18)" }}>{headline}</h4>
+        <p className="font-body text-sm mt-1" style={{ color: "#FFFFFF", opacity: 0.88 }}>{sub}</p>
       </div>
       <div className="flex items-center gap-3 px-4 pt-3" style={{ color: AUTH.muted }}>
         <Heart size={16} />
@@ -111,6 +122,44 @@ function ExampleCard({ category, headline, sub, caption, cta, color }) {
         <p className="font-body text-xs" style={{ color: AUTH.muted, lineHeight: 1.55 }}>
           {caption} <span className="font-semibold" style={{ color }}>{cta}</span>
         </p>
+      </div>
+    </div>
+  );
+}
+
+// Tiny "screenshot" mockups that sit inside each How-It-Works card, so the
+// section shows real product moments instead of just numbered text.
+function StepVisual({ visual, color }) {
+  if (visual === "choose") {
+    return (
+      <div className="rounded-xl p-3 flex flex-col gap-1.5" style={{ background: "#F8F6F0" }}>
+        {["Just Listed!", "Market Update", "5-Star Review!"].map((label, i) => (
+          <div key={label} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5" style={{ background: i === 0 ? color : "#FFFFFF", border: i === 0 ? "none" : `1px solid ${AUTH.border}` }}>
+            <span className="rounded-full flex-shrink-0" style={{ width: 6, height: 6, background: i === 0 ? "#FFFFFF" : AUTH.border }} />
+            <span className="font-body font-semibold" style={{ color: i === 0 ? "#FFFFFF" : AUTH.muted, fontSize: "0.66rem" }}>{label}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (visual === "create") {
+    return (
+      <div className="rounded-xl overflow-hidden relative" style={{ height: 96, background: `linear-gradient(155deg, ${color}55, ${color}E6)` }}>
+        <span className="absolute rounded-full font-mono font-bold" style={{ top: 8, left: 8, background: color, color: "#FFFFFF", fontSize: "0.46rem", letterSpacing: "0.04em", padding: "2px 6px" }}>SOLD</span>
+        <h4 className="absolute font-display font-bold" style={{ bottom: 8, left: 10, color: "#FFFFFF", fontSize: "0.9rem", textShadow: "0 2px 8px rgba(0,0,0,0.18)" }}>Sold Fast!</h4>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl p-3 flex items-center justify-between" style={{ background: "#F8F6F0" }}>
+      <div className="flex items-center gap-1.5 rounded-lg px-2 py-1.5" style={{ background: AUTH.ink }}>
+        <Key size={9} color="#FFFFFF" style={{ transform: "rotate(-45deg)" }} />
+        <span className="font-display font-bold" style={{ color: "#FFFFFF", fontSize: "0.56rem" }}>PostKey Realty</span>
+      </div>
+      <div className="flex items-center gap-1">
+        {[AUTH.ink, color, "#F1EFE8"].map((c, i) => (
+          <span key={i} className="rounded-full" style={{ width: 12, height: 12, background: c, border: c === "#F1EFE8" ? `1px solid ${AUTH.border}` : "none" }} />
+        ))}
       </div>
     </div>
   );
@@ -229,11 +278,11 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
                 Get Started Free
               </button>
               <a
-                href="#how-it-works"
+                href="#examples"
                 className="font-body font-semibold rounded-full px-6 py-3.5 transition hover:opacity-75"
                 style={{ color: AUTH.ink, fontSize: "0.95rem", background: "#F1EFE8", border: `1.5px solid ${AUTH.border}` }}
               >
-                See How It Works
+                See a Sample Post
               </a>
             </div>
 
@@ -269,26 +318,63 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
         </div>
       </section>
 
+      {/* WHY REAL ESTATE / TRUST STRIP */}
+      <section className="max-w-6xl mx-auto px-6 sm:px-10 pt-14 pb-6 sm:pt-16">
+        <div className="text-center">
+          <div className="flex items-center justify-center -space-x-2 mb-4">
+            {[ACCENT_PRESETS[0], PRIMARY, ACCENT_PRESETS[2], ACCENT_PRESETS[3], ACCENT_PRESETS[4]].map((c, i) => (
+              <div
+                key={i}
+                className="rounded-full flex items-center justify-center font-display font-bold"
+                style={{ width: 30, height: 30, background: `linear-gradient(155deg, ${c}, ${c}CC)`, color: "#FFFFFF", fontSize: "0.6rem", border: "2px solid #FDFBF7" }}
+              >
+                <Home size={13} color="#FFFFFF" />
+              </div>
+            ))}
+          </div>
+          <h2 className="font-display font-bold" style={{ color: AUTH.ink, fontSize: "1.4rem" }}>
+            Built specifically for busy real estate agents.
+          </h2>
+          <p className="font-body text-sm mt-2 mx-auto" style={{ color: AUTH.muted, maxWidth: 480 }}>
+            Not a generic caption generator — every idea, template, and headline is built around what agents actually post.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-2.5 mt-8">
+          {CONTENT_TYPES.map(({ icon: Icon, label }) => (
+            <span
+              key={label}
+              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 font-body text-xs font-semibold"
+              style={{ background: "#FFFFFF", color: AUTH.ink, boxShadow: "0 3px 12px rgba(27,36,48,0.07)" }}
+            >
+              <Icon size={13} color={PRIMARY} />
+              {label}
+            </span>
+          ))}
+        </div>
+      </section>
+
       {/* HOW IT WORKS */}
       <section id="how-it-works" className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #F1EFE8, #FDFBF7)" }}>
         <div className="max-w-6xl mx-auto px-6 sm:px-10 pt-16 pb-20 sm:pt-20 sm:pb-24">
           <h2 className="font-display font-bold text-center" style={{ color: AUTH.ink, fontSize: "1.75rem" }}>
             Your next post in 3 steps
           </h2>
-          <div className="grid sm:grid-cols-3 gap-8 mt-12 relative">
+          <div className="grid sm:grid-cols-3 gap-6 mt-12 relative">
             {STEPS.map((s, i) => (
-              <div key={s.n} className="relative text-center sm:text-left">
+              <div key={s.n} className="relative rounded-2xl p-6" style={{ background: "#FFFFFF", boxShadow: "0 4px 20px rgba(27,36,48,0.06)" }}>
                 {i < STEPS.length - 1 && (
-                  <ArrowRight size={20} className="hidden sm:block absolute" style={{ top: 18, right: -34, color: AUTH.border }} />
+                  <ArrowRight size={20} className="hidden sm:block absolute" style={{ top: 24, right: -30, color: AUTH.border }} />
                 )}
                 <div
-                  className="flex items-center justify-center rounded-full font-display font-bold mx-auto sm:mx-0"
-                  style={{ width: 44, height: 44, background: s.color, color: "#FFFFFF", fontSize: "1.1rem", boxShadow: `0 10px 22px ${s.color}40` }}
+                  className="flex items-center justify-center rounded-full font-display font-bold"
+                  style={{ width: 40, height: 40, background: s.color, color: "#FFFFFF", fontSize: "1.05rem", boxShadow: `0 10px 22px ${s.color}40` }}
                 >
                   {s.n}
                 </div>
                 <h3 className="font-display font-bold text-base mt-4" style={{ color: AUTH.ink }}>{s.title}</h3>
-                <p className="font-body text-sm mt-1.5" style={{ color: AUTH.muted }}>{s.text}</p>
+                <p className="font-body text-sm mt-1.5 mb-4" style={{ color: AUTH.muted }}>{s.text}</p>
+                <StepVisual visual={s.visual} color={s.color} />
               </div>
             ))}
           </div>
@@ -304,38 +390,25 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
         </div>
       </section>
 
-      {/* FEATURES */}
-      <section id="features" className="max-w-7xl mx-auto px-6 sm:px-10 py-16 sm:py-20">
-        <h2 className="font-display font-bold text-center" style={{ color: AUTH.ink, fontSize: "1.75rem" }}>
-          Everything you need to stay consistent
-        </h2>
-        <div className="grid sm:grid-cols-3 gap-5 mt-10">
-          {FEATURES.map(({ icon: Icon, title, text, color }, i) => (
-            <div key={i} className="rounded-2xl p-6 relative overflow-hidden" style={{ background: "#FFFFFF", boxShadow: "0 4px 20px rgba(27,36,48,0.06)" }}>
-              <div className="absolute top-0 left-0 right-0" style={{ height: 5, background: color }} />
-              <div className="flex items-center justify-center rounded-xl mb-4" style={{ width: 46, height: 46, background: `linear-gradient(155deg, ${color}, ${color}CC)` }}>
-                <Icon size={21} color="#FFFFFF" />
-              </div>
-              <h3 className="font-display font-bold text-base" style={{ color: AUTH.ink }}>{title}</h3>
-              <p className="font-body text-sm mt-1.5" style={{ color: AUTH.muted }}>{text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* EXAMPLES */}
-      <section className="relative overflow-hidden" style={{ background: "#F1EFE8" }}>
-        <div className="max-w-7xl mx-auto px-6 sm:px-10 py-16 sm:py-20">
-          <h2 className="font-display font-bold text-center" style={{ color: AUTH.ink, fontSize: "1.75rem" }}>
-            See what you can create
-          </h2>
-          <p className="font-body text-sm text-center mt-2 mx-auto" style={{ color: AUTH.muted, maxWidth: 440 }}>
-            Listings, closings, market updates, local content, and more — all styled to match your brand.
-          </p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-10">
-            {EXAMPLES.map((e, i) => <ExampleCard key={i} {...e} />)}
+      <section id="examples" className="relative overflow-hidden" style={{ background: "#F1EFE8" }}>
+        <div className="max-w-7xl mx-auto pt-16 pb-16 sm:pt-20 sm:pb-20">
+          <div className="px-6 sm:px-10">
+            <h2 className="font-display font-bold text-center" style={{ color: AUTH.ink, fontSize: "1.75rem" }}>
+              See what you can create
+            </h2>
+            <p className="font-body text-sm text-center mt-2 mx-auto" style={{ color: AUTH.muted, maxWidth: 440 }}>
+              Listings, closings, market updates, local content, and more — all styled to match your brand.
+            </p>
           </div>
-          <div className="text-center mt-8">
+          <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory px-6 sm:px-10 pb-2 sm:pb-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible mt-10" style={{ scrollbarWidth: "none" }}>
+            {EXAMPLES.map((e, i) => (
+              <div key={i} className="flex-shrink-0 w-[82%] xs:w-[70%] snap-center sm:w-auto">
+                <ExampleCard {...e} />
+              </div>
+            ))}
+          </div>
+          <div className="text-center mt-8 px-6 sm:px-10">
             <button
               onClick={onGetStarted}
               className="font-body font-semibold rounded-full px-6 py-3 transition hover:opacity-80"
@@ -396,6 +469,25 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
         </div>
       </section>
 
+      {/* FEATURES */}
+      <section id="features" className="max-w-7xl mx-auto px-6 sm:px-10 py-16 sm:py-20">
+        <h2 className="font-display font-bold text-center" style={{ color: AUTH.ink, fontSize: "1.75rem" }}>
+          Everything you need to stay consistent
+        </h2>
+        <div className="grid sm:grid-cols-3 gap-5 mt-10">
+          {FEATURES.map(({ icon: Icon, title, text, color }, i) => (
+            <div key={i} className="rounded-2xl p-6 relative overflow-hidden" style={{ background: "#FFFFFF", boxShadow: "0 4px 20px rgba(27,36,48,0.06)" }}>
+              <div className="absolute top-0 left-0 right-0" style={{ height: 5, background: color }} />
+              <div className="flex items-center justify-center rounded-xl mb-4" style={{ width: 46, height: 46, background: `linear-gradient(155deg, ${color}, ${color}CC)` }}>
+                <Icon size={21} color="#FFFFFF" />
+              </div>
+              <h3 className="font-display font-bold text-base" style={{ color: AUTH.ink }}>{title}</h3>
+              <p className="font-body text-sm mt-1.5" style={{ color: AUTH.muted }}>{text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* FINAL CTA */}
       <section className="px-6 py-14 sm:py-16">
         <div
@@ -409,10 +501,10 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
               <PostCard category="SOLD" headline="Just Sold!" color={PRIMARY} rotate={-4} top={0} left={0} scale={0.78} />
             </div>
             <h2 className="font-display font-bold text-2xl sm:text-3xl mt-6" style={{ color: "#FFFFFF" }}>
-              Your next post is already waiting.
+              Your next week of content could be ready in minutes.
             </h2>
             <p className="font-body text-sm mt-3 mx-auto" style={{ color: "rgba(255,255,255,0.65)", maxWidth: 400 }}>
-              Choose an idea, personalize it, and share it in minutes.
+              Choose a few ideas, personalize them, and your feed is covered.
             </p>
             <button
               onClick={onGetStarted}
@@ -443,15 +535,33 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
             <p className="font-body text-xs mt-3" style={{ color: AUTH.muted, maxWidth: 240 }}>
               Built for real estate agents. Create better content, stay consistent, and close more.
             </p>
+            <a
+              href="#"
+              aria-label="PostKey on Instagram"
+              className="inline-flex items-center justify-center rounded-full mt-4 transition hover:opacity-75"
+              style={{ width: 32, height: 32, background: "#F1EFE8" }}
+            >
+              <Instagram size={15} color={AUTH.ink} />
+            </a>
           </div>
-          <div>
-            <span className="font-mono font-bold block mb-3" style={{ color: AUTH.ink, letterSpacing: "0.05em", fontSize: "0.68rem" }}>PRODUCT</span>
-            <div className="grid gap-2">
-              <a href="#features" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>Features</a>
-              <a href="#how-it-works" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>How It Works</a>
-              {onAbout && (
-                <button onClick={onAbout} className="font-body text-xs font-semibold text-left" style={{ color: AUTH.muted }}>About</button>
-              )}
+          <div className="flex gap-10 sm:gap-14">
+            <div>
+              <span className="font-mono font-bold block mb-3" style={{ color: AUTH.ink, letterSpacing: "0.05em", fontSize: "0.68rem" }}>PRODUCT</span>
+              <div className="grid gap-2">
+                <a href="#features" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>Features</a>
+                <a href="#how-it-works" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>How It Works</a>
+                {onAbout && (
+                  <button onClick={onAbout} className="font-body text-xs font-semibold text-left" style={{ color: AUTH.muted }}>About</button>
+                )}
+              </div>
+            </div>
+            <div>
+              <span className="font-mono font-bold block mb-3" style={{ color: AUTH.ink, letterSpacing: "0.05em", fontSize: "0.68rem" }}>COMPANY</span>
+              <div className="grid gap-2">
+                <a href="#" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>Privacy Policy</a>
+                <a href="#" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>Terms of Service</a>
+                <a href="mailto:support@postkey.app" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>Contact & Support</a>
+              </div>
             </div>
           </div>
         </div>
