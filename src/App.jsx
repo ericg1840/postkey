@@ -10,6 +10,7 @@ import { AuthScreen } from "./auth/AuthScreen.jsx";
 import { ResetPasswordScreen } from "./auth/ResetPasswordScreen.jsx";
 import { OnboardingWizard } from "./onboarding/OnboardingWizard.jsx";
 import { ProfilePage } from "./profile/ProfilePage.jsx";
+import { HelpPage } from "./HelpPage.jsx";
 import { BioEditorPage } from "./profile/BioEditorPage.jsx";
 import { PublicBioPage } from "./profile/PublicBioPage.jsx";
 import { AUTH } from "./auth/AuthShell.jsx";
@@ -126,6 +127,7 @@ function AppShell() {
   if (brandKit && !brandKit.onboarded) return <OnboardingWizard />;
 
   if (activeTool === "profile") return <ProfilePage onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
+  if (activeTool === "help") return <HelpPage onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
   if (activeTool === "bio") return <BioEditorPage onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
   if (activeTool === "listings") return <ListingTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
   if (activeTool === "calendar") return <CalendarTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
