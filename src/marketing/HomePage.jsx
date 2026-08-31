@@ -472,8 +472,11 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
       {/* FEATURES */}
       <section id="features" className="max-w-7xl mx-auto px-6 sm:px-10 py-16 sm:py-20">
         <h2 className="font-display font-bold text-center" style={{ color: AUTH.ink, fontSize: "1.75rem" }}>
-          Everything you need to stay consistent
+          Focus on your clients, not content.
         </h2>
+        <p className="font-body text-sm text-center mt-2 mx-auto" style={{ color: AUTH.muted, maxWidth: 480 }}>
+          Every minute you're not staring at a blank feed is a minute back for showings, calls, and closings.
+        </p>
         <div className="grid sm:grid-cols-3 gap-5 mt-10">
           {FEATURES.map(({ icon: Icon, title, text, color }, i) => (
             <div key={i} className="rounded-2xl p-6 relative overflow-hidden" style={{ background: "#FFFFFF", boxShadow: "0 4px 20px rgba(27,36,48,0.06)" }}>
