@@ -58,3 +58,18 @@ CREATE TABLE bio_links (
 );
 
 CREATE INDEX bio_links_user_id_idx ON bio_links(user_id);
+
+-- One row per downloaded post, so an agent can revisit or re-download
+-- something they made earlier. image_data holds a data: URL, same
+-- pattern as brand_kits.headshot_url/logo_url.
+CREATE TABLE posts (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  category TEXT NOT NULL DEFAULT '',
+  headline TEXT NOT NULL DEFAULT '',
+  template TEXT NOT NULL DEFAULT '',
+  image_data TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX posts_user_id_idx ON posts(user_id, created_at DESC);

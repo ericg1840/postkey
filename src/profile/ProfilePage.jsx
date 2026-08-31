@@ -1,11 +1,151 @@
-import { useState } from "react";
-import { User, Building2, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, Building2, Check, Download, Trash2, ImageOff, Loader2 } from "lucide-react";
 import {
   UI, ACCENT, WHITE, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, mixWithWhite,
   useAgentAsset, UploadBox, TopNav,
 } from "../shared.jsx";
-import { useAuth } from "../auth/AuthContext.jsx";
+import { useAuth, api } from "../auth/AuthContext.jsx";
+
+function formatPostDate(iso) {
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function downloadDataUrl(dataUrl, filename) {
+  const link = document.createElement("a");
+  link.href = dataUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function PostThumb({ post, onDelete }) {
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await onDelete(post.id);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const filename = `${(post.category || "post").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${post.id}.png`;
+
+  return (
+    <div className="rounded-xl overflow-hidden border group relative" style={{ borderColor: UI.line, background: UI.card }}>
+      <div className="flex items-center justify-center" style={{ aspectRatio: "4 / 5", background: mixWithWhite(UI.ink, 0.95) }}>
+        <img src={post.imageData} alt={post.headline || post.category} className="w-full h-full object-cover" />
+      </div>
+
+      <div
+        className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition"
+        style={{ background: "rgba(27,36,48,0.55)" }}
+      >
+        {confirming ? (
+          <>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="font-body text-xs font-semibold rounded-full px-3 py-1.5 disabled:opacity-60"
+              style={{ background: "#C0392B", color: WHITE }}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              className="font-body text-xs font-semibold rounded-full px-3 py-1.5"
+              style={{ background: WHITE, color: UI.ink }}
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              aria-label="Download"
+              onClick={() => downloadDataUrl(post.imageData, filename)}
+              className="flex items-center justify-center rounded-full transition hover:opacity-85"
+              style={{ width: 32, height: 32, background: WHITE, color: UI.ink }}
+            >
+              <Download size={14} />
+            </button>
+            <button
+              aria-label="Delete"
+              onClick={() => setConfirming(true)}
+              className="flex items-center justify-center rounded-full transition hover:opacity-85"
+              style={{ width: 32, height: 32, background: WHITE, color: "#C0392B" }}
+            >
+              <Trash2 size={14} />
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="px-2.5 py-2 flex items-center justify-between gap-2">
+        <span className="font-body text-[0.65rem] font-semibold truncate" style={{ color: UI.inkSoft }}>{post.category || post.template}</span>
+        <span className="font-mono text-[0.6rem] flex-shrink-0" style={{ color: UI.inkSoft }}>{formatPostDate(post.createdAt)}</span>
+      </div>
+    </div>
+  );
+}
+
+function PostsSection() {
+  const [posts, setPosts] = useState(null); // null while loading
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    api("/api/posts")
+      .then((data) => { if (!cancelled) setPosts(data.posts || []); })
+      .catch(() => { if (!cancelled) setError("Couldn't load your posts — try refreshing."); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const deletePost = async (id) => {
+    await api(`/api/posts?id=${id}`, { method: "DELETE" });
+    setPosts((p) => p.filter((post) => post.id !== id));
+  };
+
+  if (error) {
+    return <p className="font-body text-sm py-8 text-center" style={{ color: "#C0392B" }}>{error}</p>;
+  }
+
+  if (posts === null) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 size={22} className="animate-spin" style={{ color: UI.inkSoft }} />
+      </div>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-16">
+        <ImageOff size={28} style={{ color: UI.inkSoft }} />
+        <p className="font-body text-sm mt-3" style={{ color: UI.inkSoft }}>
+          Posts you download will show up here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="font-body text-xs mb-5" style={{ color: UI.inkSoft }}>
+        Every post you've downloaded, newest first. Re-download or remove one below.
+      </p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {posts.map((post) => (
+          <PostThumb key={post.id} post={post} onDelete={deletePost} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // A small, non-canvas mockup of the contact band every post carries — lets
 // an agent see the effect of a brand-kit change (color, font, logo) without
@@ -214,7 +354,7 @@ function AccountSection() {
 
 export function ProfilePage({ onSwitchTool, onGoHome }) {
   const { user, brandKit, logout, saveBrandKit } = useAuth();
-  const [tab, setTab] = useState("brand"); // brand | account
+  const [tab, setTab] = useState("brand"); // brand | posts | account
 
   return (
     <div className="min-h-screen" style={{ background: UI.page }}>
@@ -238,6 +378,17 @@ export function ProfilePage({ onSwitchTool, onGoHome }) {
             Brand
           </button>
           <button
+            onClick={() => setTab("posts")}
+            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
+            style={{
+              background: tab === "posts" ? UI.card : "transparent",
+              color: tab === "posts" ? UI.ink : UI.inkSoft,
+              boxShadow: tab === "posts" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+            }}
+          >
+            Past Posts
+          </button>
+          <button
             onClick={() => setTab("account")}
             className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
             style={{
@@ -251,11 +402,9 @@ export function ProfilePage({ onSwitchTool, onGoHome }) {
         </div>
 
         <div className="rounded-2xl border p-5 sm:p-8" style={{ background: UI.card, borderColor: UI.line }}>
-          {tab === "brand" ? (
-            <BrandSection brandKit={brandKit} saveBrandKit={saveBrandKit} />
-          ) : (
-            <AccountSection />
-          )}
+          {tab === "brand" && <BrandSection brandKit={brandKit} saveBrandKit={saveBrandKit} />}
+          {tab === "posts" && <PostsSection />}
+          {tab === "account" && <AccountSection />}
         </div>
       </div>
     </div>

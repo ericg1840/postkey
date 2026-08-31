@@ -37,7 +37,7 @@ function StandaloneAuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-async function api(path, options) {
+export async function api(path, options) {
   const res = await fetch(path, {
     credentials: "include",
     headers: { "Content-Type": "application/json" },
