@@ -15,6 +15,7 @@ import { PublicBioPage } from "./profile/PublicBioPage.jsx";
 import { AUTH } from "./auth/AuthShell.jsx";
 import { HomePage } from "./marketing/HomePage.jsx";
 import { AboutPage } from "./marketing/AboutPage.jsx";
+import { LegalPage } from "./marketing/LegalPage.jsx";
 
 function LoadingScreen() {
   return (
@@ -56,13 +57,14 @@ function AppShell() {
   const [authView, setAuthView] = useState(null); // null (homepage) | "login" | "signup"
   const [showHome, setShowHome] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [legalView, setLegalView] = useState(null); // null | "privacy" | "terms"
   const { user, brandKit, loading } = useAuth();
 
   // Shared by every entry point (logged-out homepage, standalone "go home"
   // link, the About page itself) so "Get Started"/"Log in" always resolve
   // the same way regardless of which screen they were clicked from.
-  const goGetStarted = () => { setShowAbout(false); setShowHome(false); if (!user) setAuthView("signup"); };
-  const goLogIn = () => { setShowAbout(false); setShowHome(false); if (!user) setAuthView("login"); };
+  const goGetStarted = () => { setShowAbout(false); setShowHome(false); setLegalView(null); if (!user) setAuthView("signup"); };
+  const goLogIn = () => { setShowAbout(false); setShowHome(false); setLegalView(null); if (!user) setAuthView("login"); };
 
   // Public link-in-bio page — no auth, no app chrome, renders before every
   // other gate (including the auth-loading screen) since it doesn't depend
@@ -90,15 +92,35 @@ function AppShell() {
     return <AboutPage onBack={() => setShowAbout(false)} onGetStarted={goGetStarted} onLogIn={goLogIn} />;
   }
 
+  if (legalView) {
+    return <LegalPage variant={legalView} onBack={() => setLegalView(null)} />;
+  }
+
   if (!user) {
     if (!authView) {
-      return <HomePage onGetStarted={goGetStarted} onLogIn={goLogIn} onAbout={() => setShowAbout(true)} />;
+      return (
+        <HomePage
+          onGetStarted={goGetStarted}
+          onLogIn={goLogIn}
+          onAbout={() => setShowAbout(true)}
+          onPrivacy={() => setLegalView("privacy")}
+          onTerms={() => setLegalView("terms")}
+        />
+      );
     }
     return <AuthScreen initialMode={authView} onBack={() => setAuthView(null)} />;
   }
 
   if (showHome) {
-    return <HomePage onGetStarted={goGetStarted} onLogIn={goLogIn} onAbout={() => setShowAbout(true)} />;
+    return (
+      <HomePage
+        onGetStarted={goGetStarted}
+        onLogIn={goLogIn}
+        onAbout={() => setShowAbout(true)}
+        onPrivacy={() => setLegalView("privacy")}
+        onTerms={() => setLegalView("terms")}
+      />
+    );
   }
 
   if (brandKit && !brandKit.onboarded) return <OnboardingWizard />;

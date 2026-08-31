@@ -206,7 +206,7 @@ export function BrandKitPreview() {
   );
 }
 
-export function HomePage({ onGetStarted, onLogIn, onAbout }) {
+export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms }) {
   return (
     <div style={{ background: "#FDFBF7" }}>
       <header style={{ paddingTop: "env(safe-area-inset-top)" }}>
@@ -558,8 +558,16 @@ export function HomePage({ onGetStarted, onLogIn, onAbout }) {
             <div>
               <span className="font-mono font-bold block mb-3" style={{ color: AUTH.ink, letterSpacing: "0.05em", fontSize: "0.68rem" }}>COMPANY</span>
               <div className="grid gap-2">
-                <a href="#" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>Privacy Policy</a>
-                <a href="#" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>Terms of Service</a>
+                {onPrivacy ? (
+                  <button onClick={onPrivacy} className="font-body text-xs font-semibold text-left" style={{ color: AUTH.muted }}>Privacy Policy</button>
+                ) : (
+                  <a href="#" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>Privacy Policy</a>
+                )}
+                {onTerms ? (
+                  <button onClick={onTerms} className="font-body text-xs font-semibold text-left" style={{ color: AUTH.muted }}>Terms of Service</button>
+                ) : (
+                  <a href="#" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>Terms of Service</a>
+                )}
                 <a href="mailto:support@postkey.app" className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>Contact & Support</a>
               </div>
             </div>
