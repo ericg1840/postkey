@@ -669,7 +669,7 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
         </nav>
         <div className="flex items-center gap-4">
           <span className="font-mono text-xs hidden sm:inline" style={{ color: UI.inkSoft }}>
-            {active === "listings" ? "PHOTO IN, POST OUT" : active === "community" ? "LOCAL LOVE, POSTED" : active === "calendar" ? "PLAN AHEAD, POST ON TIME" : active === "profile" ? "YOUR BRAND, YOUR WAY" : active === "bio" ? "ONE LINK, EVERYWHERE" : "WRITE IT ONCE, POST IT EVERYWHERE"}
+            {active === "listings" ? "PHOTO IN, POST OUT" : active === "community" ? "LOCAL LOVE, POSTED" : active === "calendar" ? "PLAN AHEAD, POST ON TIME" : active === "profile" ? "YOUR BRAND, YOUR WAY" : active === "bio" ? "ONE LINK, EVERYWHERE" : active === "help" ? "QUICK ANSWERS" : "WRITE IT ONCE, POST IT EVERYWHERE"}
           </span>
           {onLogout && (
             <div className="flex items-center gap-2">
@@ -682,6 +682,13 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
                 style={{ color: active === "profile" ? UI.ink : UI.inkSoft, fontWeight: active === "profile" ? 600 : 400 }}
               >
                 Profile
+              </button>
+              <button
+                onClick={() => onSwitch("help")}
+                className="font-body text-xs underline"
+                style={{ color: active === "help" ? UI.ink : UI.inkSoft, fontWeight: active === "help" ? 600 : 400 }}
+              >
+                Help
               </button>
               <button
                 onClick={onLogout}
