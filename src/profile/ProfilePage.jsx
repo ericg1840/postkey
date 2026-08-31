@@ -1,11 +1,122 @@
 import { useState } from "react";
-import { User, Building2, Check } from "lucide-react";
+import { User, Building2, Check, Download, Trash2, ImageOff } from "lucide-react";
 import {
   UI, ACCENT, WHITE, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, mixWithWhite,
   useAgentAsset, UploadBox, TopNav,
 } from "../shared.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
+
+// MOCK — stand-in for GET /api/posts until posts are actually persisted.
+// Each real post will carry a stored PNG (image_url); here we render the
+// same headline/category treatment as a gradient card so the layout can be
+// reviewed before the backend exists.
+const MOCK_POSTS = [
+  { id: 1, category: "JUST LISTED", headline: "New on the Market!", template: "Modern", color: ACCENT_PRESETS[1], createdAt: "2026-08-29T14:12:00Z" },
+  { id: 2, category: "SOLD", headline: "Sold Above Asking!", template: "Bold", color: ACCENT_PRESETS[3], createdAt: "2026-08-26T18:40:00Z" },
+  { id: 3, category: "OPEN HOUSE", headline: "This Weekend!", template: "Modern", color: ACCENT_PRESETS[2], createdAt: "2026-08-22T16:05:00Z" },
+  { id: 4, category: "CLIENT LOVE", headline: "5-Star Review!", template: "Classic", color: ACCENT_PRESETS[4], createdAt: "2026-08-19T13:30:00Z" },
+  { id: 5, category: "LOCAL", headline: "Local Favorite!", template: "Modern", color: ACCENT_PRESETS[0], createdAt: "2026-08-14T20:15:00Z" },
+];
+
+function formatPostDate(iso) {
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function PostThumb({ post, onDelete }) {
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <div className="rounded-xl overflow-hidden border group relative" style={{ borderColor: UI.line, background: UI.card }}>
+      <div
+        className="flex flex-col items-center justify-center text-center px-4"
+        style={{ aspectRatio: "4 / 5", background: mixWithWhite(post.color, 0.86) }}
+      >
+        <span className="font-body text-[0.65rem] font-semibold tracking-wide mb-1" style={{ color: post.color }}>
+          {post.category}
+        </span>
+        <span className="font-display font-bold text-base" style={{ color: UI.ink, lineHeight: 1.15 }}>
+          {post.headline}
+        </span>
+      </div>
+
+      <div
+        className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition"
+        style={{ background: "rgba(27,36,48,0.55)" }}
+      >
+        {confirming ? (
+          <>
+            <button
+              onClick={() => onDelete(post.id)}
+              className="font-body text-xs font-semibold rounded-full px-3 py-1.5"
+              style={{ background: "#C0392B", color: WHITE }}
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              className="font-body text-xs font-semibold rounded-full px-3 py-1.5"
+              style={{ background: WHITE, color: UI.ink }}
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              aria-label="Download"
+              className="flex items-center justify-center rounded-full transition hover:opacity-85"
+              style={{ width: 32, height: 32, background: WHITE, color: UI.ink }}
+            >
+              <Download size={14} />
+            </button>
+            <button
+              aria-label="Delete"
+              onClick={() => setConfirming(true)}
+              className="flex items-center justify-center rounded-full transition hover:opacity-85"
+              style={{ width: 32, height: 32, background: WHITE, color: "#C0392B" }}
+            >
+              <Trash2 size={14} />
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="px-2.5 py-2 flex items-center justify-between gap-2">
+        <span className="font-body text-[0.65rem] font-semibold truncate" style={{ color: UI.inkSoft }}>{post.template}</span>
+        <span className="font-mono text-[0.6rem] flex-shrink-0" style={{ color: UI.inkSoft }}>{formatPostDate(post.createdAt)}</span>
+      </div>
+    </div>
+  );
+}
+
+function PostsSection() {
+  const [posts, setPosts] = useState(MOCK_POSTS);
+  const deletePost = (id) => setPosts((p) => p.filter((post) => post.id !== id));
+
+  if (posts.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-16">
+        <ImageOff size={28} style={{ color: UI.inkSoft }} />
+        <p className="font-body text-sm mt-3" style={{ color: UI.inkSoft }}>
+          Posts you download will show up here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="font-body text-xs mb-5" style={{ color: UI.inkSoft }}>
+        Every post you've downloaded, newest first. Re-download or remove one below.
+      </p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {posts.map((post) => (
+          <PostThumb key={post.id} post={post} onDelete={deletePost} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // A small, non-canvas mockup of the contact band every post carries — lets
 // an agent see the effect of a brand-kit change (color, font, logo) without
@@ -214,7 +325,7 @@ function AccountSection() {
 
 export function ProfilePage({ onSwitchTool, onGoHome }) {
   const { user, brandKit, logout, saveBrandKit } = useAuth();
-  const [tab, setTab] = useState("brand"); // brand | account
+  const [tab, setTab] = useState("brand"); // brand | posts | account
 
   return (
     <div className="min-h-screen" style={{ background: UI.page }}>
@@ -238,6 +349,17 @@ export function ProfilePage({ onSwitchTool, onGoHome }) {
             Brand
           </button>
           <button
+            onClick={() => setTab("posts")}
+            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
+            style={{
+              background: tab === "posts" ? UI.card : "transparent",
+              color: tab === "posts" ? UI.ink : UI.inkSoft,
+              boxShadow: tab === "posts" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+            }}
+          >
+            Past Posts
+          </button>
+          <button
             onClick={() => setTab("account")}
             className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
             style={{
@@ -251,11 +373,9 @@ export function ProfilePage({ onSwitchTool, onGoHome }) {
         </div>
 
         <div className="rounded-2xl border p-5 sm:p-8" style={{ background: UI.card, borderColor: UI.line }}>
-          {tab === "brand" ? (
-            <BrandSection brandKit={brandKit} saveBrandKit={saveBrandKit} />
-          ) : (
-            <AccountSection />
-          )}
+          {tab === "brand" && <BrandSection brandKit={brandKit} saveBrandKit={saveBrandKit} />}
+          {tab === "posts" && <PostsSection />}
+          {tab === "account" && <AccountSection />}
         </div>
       </div>
     </div>
