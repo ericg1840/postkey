@@ -11,7 +11,7 @@ import {
   Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord, firstNameOf,
   peekPostHandoff, clearPostHandoff, shareImageToFacebook,
 } from "./shared.jsx";
-import { useAuth } from "./auth/AuthContext.jsx";
+import { useAuth, api } from "./auth/AuthContext.jsx";
 
 // The four visual Styles, rendered as live thumbnail previews in "Choose
 // your look" so people pick with their eyes instead of reading captions.
@@ -694,6 +694,26 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
   const [downloadError, setDownloadError] = useState("");
   const [downloading, setDownloading] = useState(false);
 
+  // Fire-and-forget save into the agent's post history — never blocks or
+  // fails the download/share the agent actually asked for.
+  const savePostToHistory = (canvas) => {
+    let imageData;
+    try {
+      imageData = canvas.toDataURL("image/png");
+    } catch {
+      return; // tainted canvas (cross-origin headshot/logo) — nothing to save
+    }
+    api("/api/posts", {
+      method: "POST",
+      body: JSON.stringify({
+        category: TEMPLATES[form.template]?.label || form.template,
+        headline: `${form.word1} ${form.script}`.trim(),
+        template: TEMPLATES[form.template]?.label || form.template,
+        imageData,
+      }),
+    }).catch(() => {});
+  };
+
   const downloadImage = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -706,6 +726,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       const blob = await new Promise((resolve, reject) => {
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
       });
+      savePostToHistory(canvas);
 
       // On phones, the native share sheet is far more reliable than a download link —
       // iOS Safari in particular often just opens the image instead of saving it.
@@ -757,6 +778,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       const blob = await new Promise((resolve, reject) => {
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
       });
+      savePostToHistory(canvas);
       const result = await shareImageToFacebook(blob, filename);
       if (!result.shared) {
         setDownloadError("Image downloaded — attach it to the new Facebook post that just opened.");
@@ -784,6 +806,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
     for (const aspectKey of Object.keys(ASPECTS)) {
       drawToCanvas(offscreen, aspectKey);
+      if (aspectKey === "square") savePostToHistory(offscreen);
       const blob = await new Promise((resolve, reject) => {
         offscreen.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
       });

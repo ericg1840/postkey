@@ -1,42 +1,44 @@
-import { useState } from "react";
-import { User, Building2, Check, Download, Trash2, ImageOff } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, Building2, Check, Download, Trash2, ImageOff, Loader2 } from "lucide-react";
 import {
   UI, ACCENT, WHITE, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, mixWithWhite,
   useAgentAsset, UploadBox, TopNav,
 } from "../shared.jsx";
-import { useAuth } from "../auth/AuthContext.jsx";
-
-// MOCK — stand-in for GET /api/posts until posts are actually persisted.
-// Each real post will carry a stored PNG (image_url); here we render the
-// same headline/category treatment as a gradient card so the layout can be
-// reviewed before the backend exists.
-const MOCK_POSTS = [
-  { id: 1, category: "JUST LISTED", headline: "New on the Market!", template: "Modern", color: ACCENT_PRESETS[1], createdAt: "2026-08-29T14:12:00Z" },
-  { id: 2, category: "SOLD", headline: "Sold Above Asking!", template: "Bold", color: ACCENT_PRESETS[3], createdAt: "2026-08-26T18:40:00Z" },
-  { id: 3, category: "OPEN HOUSE", headline: "This Weekend!", template: "Modern", color: ACCENT_PRESETS[2], createdAt: "2026-08-22T16:05:00Z" },
-  { id: 4, category: "CLIENT LOVE", headline: "5-Star Review!", template: "Classic", color: ACCENT_PRESETS[4], createdAt: "2026-08-19T13:30:00Z" },
-  { id: 5, category: "LOCAL", headline: "Local Favorite!", template: "Modern", color: ACCENT_PRESETS[0], createdAt: "2026-08-14T20:15:00Z" },
-];
+import { useAuth, api } from "../auth/AuthContext.jsx";
 
 function formatPostDate(iso) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+function downloadDataUrl(dataUrl, filename) {
+  const link = document.createElement("a");
+  link.href = dataUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
 function PostThumb({ post, onDelete }) {
   const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await onDelete(post.id);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const filename = `${(post.category || "post").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${post.id}.png`;
+
   return (
     <div className="rounded-xl overflow-hidden border group relative" style={{ borderColor: UI.line, background: UI.card }}>
-      <div
-        className="flex flex-col items-center justify-center text-center px-4"
-        style={{ aspectRatio: "4 / 5", background: mixWithWhite(post.color, 0.86) }}
-      >
-        <span className="font-body text-[0.65rem] font-semibold tracking-wide mb-1" style={{ color: post.color }}>
-          {post.category}
-        </span>
-        <span className="font-display font-bold text-base" style={{ color: UI.ink, lineHeight: 1.15 }}>
-          {post.headline}
-        </span>
+      <div className="flex items-center justify-center" style={{ aspectRatio: "4 / 5", background: mixWithWhite(UI.ink, 0.95) }}>
+        <img src={post.imageData} alt={post.headline || post.category} className="w-full h-full object-cover" />
       </div>
 
       <div
@@ -46,11 +48,12 @@ function PostThumb({ post, onDelete }) {
         {confirming ? (
           <>
             <button
-              onClick={() => onDelete(post.id)}
-              className="font-body text-xs font-semibold rounded-full px-3 py-1.5"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="font-body text-xs font-semibold rounded-full px-3 py-1.5 disabled:opacity-60"
               style={{ background: "#C0392B", color: WHITE }}
             >
-              Delete
+              {deleting ? "Deleting…" : "Delete"}
             </button>
             <button
               onClick={() => setConfirming(false)}
@@ -64,6 +67,7 @@ function PostThumb({ post, onDelete }) {
           <>
             <button
               aria-label="Download"
+              onClick={() => downloadDataUrl(post.imageData, filename)}
               className="flex items-center justify-center rounded-full transition hover:opacity-85"
               style={{ width: 32, height: 32, background: WHITE, color: UI.ink }}
             >
@@ -82,7 +86,7 @@ function PostThumb({ post, onDelete }) {
       </div>
 
       <div className="px-2.5 py-2 flex items-center justify-between gap-2">
-        <span className="font-body text-[0.65rem] font-semibold truncate" style={{ color: UI.inkSoft }}>{post.template}</span>
+        <span className="font-body text-[0.65rem] font-semibold truncate" style={{ color: UI.inkSoft }}>{post.category || post.template}</span>
         <span className="font-mono text-[0.6rem] flex-shrink-0" style={{ color: UI.inkSoft }}>{formatPostDate(post.createdAt)}</span>
       </div>
     </div>
@@ -90,8 +94,33 @@ function PostThumb({ post, onDelete }) {
 }
 
 function PostsSection() {
-  const [posts, setPosts] = useState(MOCK_POSTS);
-  const deletePost = (id) => setPosts((p) => p.filter((post) => post.id !== id));
+  const [posts, setPosts] = useState(null); // null while loading
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    api("/api/posts")
+      .then((data) => { if (!cancelled) setPosts(data.posts || []); })
+      .catch(() => { if (!cancelled) setError("Couldn't load your posts — try refreshing."); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const deletePost = async (id) => {
+    await api(`/api/posts?id=${id}`, { method: "DELETE" });
+    setPosts((p) => p.filter((post) => post.id !== id));
+  };
+
+  if (error) {
+    return <p className="font-body text-sm py-8 text-center" style={{ color: "#C0392B" }}>{error}</p>;
+  }
+
+  if (posts === null) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 size={22} className="animate-spin" style={{ color: UI.inkSoft }} />
+      </div>
+    );
+  }
 
   if (posts.length === 0) {
     return (
