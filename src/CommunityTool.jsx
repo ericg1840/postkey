@@ -132,10 +132,10 @@ const TEMPLATES = {
 // Visual structures a post can take — independent of TEMPLATES above, which
 // only supplies headline copy for the "card" style.
 const STYLES = {
-  card: { label: "Classic Card", description: "Photo, headline band, description" },
+  card: { label: "Feature Card", description: "Photo, headline band, description" },
   tips: { label: "Tip List", description: "Title band + list over a photo" },
   testimonial: { label: "Testimonial", description: "Star rating + client quote" },
-  stats: { label: "Big Number List", description: "Big numeral + icon list" },
+  stats: { label: "Stat Spotlight", description: "Big numeral + icon list" },
   checklist: { label: "Checklist", description: "Headline card + checkmarks" },
   quote: { label: "Quote Card", description: "Big pull-quote + your message" },
   poll: { label: "This or That", description: "Two-option compare card" },
@@ -300,19 +300,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     return found ? found[0] : "local";
   };
 
-  const [category, setCategory] = useState(() =>
-    form.style === "testimonial" ? "client_love" : categoryOfTemplate(form.template)
-  );
-
-  const selectCategory = (key) => {
-    setCategory(key);
-    const cat = CATEGORIES[key];
-    if (cat.isTestimonial) {
-      setForm((f) => ({ ...f, style: "testimonial" }));
-    } else if (form.style === "testimonial" || !cat.options.includes(form.template)) {
-      applyTemplate(cat.options[0]);
-    }
-  };
+  const category = form.style === "testimonial" ? "client_love" : categoryOfTemplate(form.template);
 
   const [idea, setIdea] = useState(null);
   const [ideaSaved, setIdeaSaved] = useState(false);
@@ -335,7 +323,6 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
   const createFromIdea = () => {
     if (!idea) return;
     applyTemplate(idea.template);
-    setCategory(categoryOfTemplate(idea.template));
   };
 
   const activeTemplate = TEMPLATES[form.template];
@@ -1183,7 +1170,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
             evenly across the full width instead of bunching together at
             the left edge on wide screens. */}
         <div className="flex items-center mb-5 sm:mb-8 lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}>
-          {[{ n: 1, label: "Choose a Post Idea" }, { n: 2, label: "Make It Yours" }, { n: 3, label: "Post It" }].map((s, i, arr) => (
+          {[{ n: 1, label: "Choose Your Look" }, { n: 2, label: "Make It Yours" }, { n: 3, label: "Post It" }].map((s, i, arr) => (
             <div key={s.n} className={`flex items-center min-w-0 ${i < arr.length - 1 ? "flex-1" : "flex-shrink-0"}`}>
               <button type="button" onClick={() => goToStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-0">
                 <span
@@ -1211,7 +1198,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
 
         {/* NEED INSPIRATION */}
         <div
-          className={`${mobileStep === 1 ? "flex" : "hidden lg:flex"} rounded-2xl p-4 sm:p-6 mb-2 sm:mb-3 flex-col sm:flex-row sm:items-center gap-4`}
+          className={`${mobileStep === 2 ? "flex" : "hidden lg:flex"} rounded-2xl p-4 sm:p-6 mb-2 sm:mb-3 flex-col sm:flex-row sm:items-center gap-4`}
           style={{ background: UI.card, border: `1px solid ${UI.line}`, borderLeft: `4px solid ${ACCENT}`, boxShadow: "0 1px 3px rgba(27,36,48,0.04)" }}
         >
           <div className="flex items-center justify-center rounded-full flex-shrink-0" style={{ width: 48, height: 48, background: mixWithWhite(ACCENT, 0.9) }}>
@@ -1262,41 +1249,25 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
           <div className={mobileStep === 3 ? "hidden lg:flex lg:flex-col lg:gap-6" : "flex flex-col gap-6"}>
           <div className={`${mobileStep === 1 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section ref={(el) => { sectionRefs.current[1] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
-              <h3 className="font-body text-base font-semibold mb-3" style={{ color: UI.ink }}>What do you want to share?</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {Object.entries(CATEGORIES).map(([key, c]) => (
-                  <button key={key} onClick={() => selectCategory(key)}
-                    className="relative text-left p-4 rounded-2xl border-2 transition font-body flex flex-col"
-                    style={{
-                      minHeight: 118,
-                      borderColor: category === key ? ACCENT : UI.line,
-                      borderWidth: category === key ? 2.5 : 1.5,
-                      background: category === key ? mixWithWhite(ACCENT, 0.94) : UI.card,
-                      boxShadow: category === key ? `0 0 0 3px ${ACCENT}22, 0 4px 14px rgba(27,36,48,0.06)` : "0 1px 3px rgba(27,36,48,0.04)",
-                    }}>
-                    {category === key && (
-                      <span className="absolute flex items-center justify-center rounded-full" style={{ top: 10, right: 10, width: 20, height: 20, background: ACCENT, boxShadow: "0 1px 3px rgba(27,36,48,0.25)" }}>
-                        <Check size={12} color={WHITE} strokeWidth={3.5} />
+              <h3 className="font-body text-base font-semibold mb-3" style={{ color: UI.ink }}>Choose your look</h3>
+              <div className="grid grid-cols-3 gap-2">
+                {Object.entries(STYLES).map(([key, s]) => (
+                  <button key={key} onClick={() => setForm((f) => ({ ...f, style: key }))}
+                    className="relative text-left rounded-lg border overflow-hidden transition"
+                    style={{ borderColor: form.style === key ? ACCENT : UI.line, borderWidth: form.style === key ? 2 : 1, boxShadow: form.style === key ? `0 0 0 2px ${ACCENT}22` : "none" }}>
+                    {form.style === key && (
+                      <span className="absolute flex items-center justify-center rounded-full" style={{ top: 6, right: 6, width: 18, height: 18, background: ACCENT, zIndex: 1 }}>
+                        <Check size={11} color={WHITE} strokeWidth={3} />
                       </span>
                     )}
-                    <span style={{ fontSize: "1.6rem", lineHeight: 1 }}>{c.icon}</span>
-                    <span className="font-semibold text-sm block mt-2 leading-snug" style={{ color: UI.ink }}>{c.label}</span>
-                    <span className="block mt-0.5 text-xs leading-snug" style={{ color: "#586171" }}>{c.description}</span>
+                    <canvas
+                      ref={(el) => { styleThumbRefs.current[key] = el; }}
+                      style={{ display: "block", width: "100%", height: "auto" }}
+                    />
+                    <span className="font-body font-semibold block px-2 py-1.5" style={{ color: UI.ink, background: UI.card, fontSize: "0.68rem" }}>{s.label}</span>
                   </button>
                 ))}
               </div>
-
-              {!CATEGORIES[category].isTestimonial && CATEGORIES[category].options.length > 1 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {CATEGORIES[category].options.map((key) => (
-                    <button key={key} onClick={() => applyTemplate(key)}
-                      className="py-1.5 px-3 rounded-full border font-body text-xs font-semibold transition"
-                      style={{ borderColor: form.template === key ? ACCENT : UI.line, background: form.template === key ? UI.card : "transparent", color: UI.ink }}>
-                      {TEMPLATES[key].label}
-                    </button>
-                  ))}
-                </div>
-              )}
             </section>
 
             <button
@@ -1317,6 +1288,17 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
             >
               <h3 className="font-body text-base font-bold mb-3" style={{ color: UI.ink }}>2. Add the details</h3>
               <div className="grid gap-3">
+                {form.style === "card" && (
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>POST TYPE</span>
+                    <select className="input" value={form.template} onChange={(e) => applyTemplate(e.target.value)}>
+                      {Object.entries(TEMPLATES).map(([key, t]) => (
+                        <option key={key} value={key}>{t.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+
                 {form.style !== "testimonial" && form.style !== "poll" && (
                   <>
                     <UploadBox label="PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add a photo" large required />
@@ -1469,30 +1451,6 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                 )}
               </div>
             </section>
-
-            {form.style !== "testimonial" && (
-              <section>
-                <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>3. Choose your look</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {Object.entries(STYLES).filter(([key]) => key !== "testimonial").map(([key, s]) => (
-                    <button key={key} onClick={() => setForm((f) => ({ ...f, style: key }))}
-                      className="relative text-left rounded-lg border overflow-hidden transition"
-                      style={{ borderColor: form.style === key ? ACCENT : UI.line, borderWidth: form.style === key ? 2 : 1, boxShadow: form.style === key ? `0 0 0 2px ${ACCENT}22` : "none" }}>
-                      {form.style === key && (
-                        <span className="absolute flex items-center justify-center rounded-full" style={{ top: 6, right: 6, width: 18, height: 18, background: ACCENT, zIndex: 1 }}>
-                          <Check size={11} color={WHITE} strokeWidth={3} />
-                        </span>
-                      )}
-                      <canvas
-                        ref={(el) => { styleThumbRefs.current[key] = el; }}
-                        style={{ display: "block", width: "100%", height: "auto" }}
-                      />
-                      <span className="font-body font-semibold block px-2 py-1.5" style={{ color: UI.ink, background: UI.card, fontSize: "0.68rem" }}>{s.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
 
             <label
               className="flex items-center gap-3 p-4 rounded-xl border cursor-pointer"
