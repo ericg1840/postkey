@@ -132,10 +132,10 @@ const TEMPLATES = {
 // Visual structures a post can take — independent of TEMPLATES above, which
 // only supplies headline copy for the "card" style.
 const STYLES = {
-  card: { label: "Classic Card", description: "Photo, headline band, description" },
+  card: { label: "Feature Card", description: "Photo, headline band, description" },
   tips: { label: "Tip List", description: "Title band + list over a photo" },
   testimonial: { label: "Testimonial", description: "Star rating + client quote" },
-  stats: { label: "Big Number List", description: "Big numeral + icon list" },
+  stats: { label: "Stat Spotlight", description: "Big numeral + icon list" },
   checklist: { label: "Checklist", description: "Headline card + checkmarks" },
   quote: { label: "Quote Card", description: "Big pull-quote + your message" },
   poll: { label: "This or That", description: "Two-option compare card" },
