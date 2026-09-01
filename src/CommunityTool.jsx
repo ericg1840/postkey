@@ -130,68 +130,42 @@ const TEMPLATES = {
 };
 
 // Visual structures a post can take — independent of TEMPLATES above, which
-// only supplies headline copy for the "card" style.
+// only supplies headline copy for the "card" style. This is also the single
+// list agents pick from up front: card and testimonial double as the
+// "content idea" picks (Local & Trending, Client Love), since choosing a
+// look and choosing what to share are the same decision for every style
+// but card — card is the one look that still needs a specific angle, which
+// "Give Me an Idea" (below) or a manual template pick supplies.
 const STYLES = {
-  card: { label: "Classic Card", description: "Photo, headline band, description" },
+  card: { label: "Local & Trending", description: "Restaurants, local favorites & more" },
+  testimonial: { label: "Client Love", description: "Testimonials & client stories" },
   tips: { label: "Tip List", description: "Title band + list over a photo" },
-  testimonial: { label: "Testimonial", description: "Star rating + client quote" },
   stats: { label: "Big Number List", description: "Big numeral + icon list" },
   checklist: { label: "Checklist", description: "Headline card + checkmarks" },
   quote: { label: "Quote Card", description: "Big pull-quote + your message" },
   poll: { label: "This or That", description: "Two-option compare card" },
 };
 
-// Broader groupings the individual TEMPLATES sit under — agents pick a
-// category first, then a specific idea within it, instead of scanning a
-// flat grid of every template at once.
-const CATEGORIES = {
-  local: {
-    icon: "📍", label: "Local & Trending",
-    description: "Restaurants & local favorites",
-    options: ["spotlight"],
-  },
-  client_love: {
-    icon: "💬", label: "Client Love",
-    description: "Testimonials & client stories",
-    isTestimonial: true,
-  },
-  design: {
-    icon: "🏡", label: "Home & Design",
-    description: "Design trends & décor tips",
-    options: ["design_trend", "paint"],
-  },
-  tips: {
-    icon: "💡", label: "Buyer & Seller Tips",
-    description: "Buying & selling tips",
-    options: ["home_value"],
-  },
-  home_prep: {
-    icon: "🧹", label: "Home Prep",
-    description: "Maintenance & curb appeal",
-    options: ["reno_tip"],
-  },
-  neighborhood: {
-    icon: "🌎", label: "Neighborhood Life",
-    description: "Local guides & features",
-    options: ["neighborhood"],
-  },
-  fun: {
-    icon: "✨", label: "Just for Fun",
-    description: "Recipes, holidays & fun",
-    options: ["recipe"],
-  },
-};
-
-// A short, category-appropriate hashtag set for the caption composer below —
-// deterministic, not AI-generated, so it never invents a claim about the post.
-const CATEGORY_HASHTAGS = {
-  local: ["#ShopLocal", "#SupportSmallBusiness", "#CommunityFavorite"],
-  client_love: ["#ClientLove", "#HappyClients", "#RealEstateReview"],
-  design: ["#HomeDesign", "#DesignTips", "#HomeInspo"],
-  tips: ["#RealEstateTips", "#HomeBuyingTips", "#HomeSellingTips"],
-  home_prep: ["#HomeMaintenance", "#HomeTips", "#CurbAppeal"],
+// A short hashtag set for the caption composer below — deterministic, not
+// AI-generated, so it never invents a claim about the post. Card-style posts
+// carry a specific template (spotlight, reno tip, recipe, ...), so those get
+// their own tags; every other look gets one set for the whole style.
+const TEMPLATE_HASHTAGS = {
+  spotlight: ["#ShopLocal", "#SupportSmallBusiness", "#CommunityFavorite"],
+  reno_tip: ["#HomeMaintenance", "#HomeTips", "#CurbAppeal"],
+  paint: ["#HomeDesign", "#DesignTips", "#HomeInspo"],
+  recipe: ["#RealEstateAgent", "#LocalLife", "#JustForFun"],
   neighborhood: ["#NeighborhoodGuide", "#LocalLife", "#CommunityFirst"],
-  fun: ["#RealEstateAgent", "#LocalLife", "#JustForFun"],
+  home_value: ["#RealEstateTips", "#HomeBuyingTips", "#HomeSellingTips"],
+  design_trend: ["#HomeDesign", "#DesignTips", "#HomeInspo"],
+};
+const STYLE_HASHTAGS = {
+  testimonial: ["#ClientLove", "#HappyClients", "#RealEstateReview"],
+  tips: ["#RealEstateTips", "#HomeBuyingTips", "#HomeSellingTips"],
+  stats: ["#RealEstateTips", "#HomeBuyingTips", "#HomeSellingTips"],
+  checklist: ["#RealEstateTips", "#HomeBuyingTips", "#HomeSellingTips"],
+  quote: ["#HomeDesign", "#DesignTips", "#HomeInspo"],
+  poll: ["#RealEstateAgent", "#LocalLife", "#JustForFun"],
 };
 
 // Curated prompts for agents who know they should post but can't think of
@@ -295,25 +269,6 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     }));
   };
 
-  const categoryOfTemplate = (key) => {
-    const found = Object.entries(CATEGORIES).find(([, c]) => c.options?.includes(key));
-    return found ? found[0] : "local";
-  };
-
-  const [category, setCategory] = useState(() =>
-    form.style === "testimonial" ? "client_love" : categoryOfTemplate(form.template)
-  );
-
-  const selectCategory = (key) => {
-    setCategory(key);
-    const cat = CATEGORIES[key];
-    if (cat.isTestimonial) {
-      setForm((f) => ({ ...f, style: "testimonial" }));
-    } else if (form.style === "testimonial" || !cat.options.includes(form.template)) {
-      applyTemplate(cat.options[0]);
-    }
-  };
-
   const [idea, setIdea] = useState(null);
   const [ideaSaved, setIdeaSaved] = useState(false);
   const giveIdea = () => {
@@ -335,7 +290,6 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
   const createFromIdea = () => {
     if (!idea) return;
     applyTemplate(idea.template);
-    setCategory(categoryOfTemplate(idea.template));
   };
 
   const activeTemplate = TEMPLATES[form.template];
@@ -1133,7 +1087,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
   // not AI-written, just assembled, so it never says something the post
   // itself doesn't.
   const buildCaption = (variant = 0) => {
-    const tags = (CATEGORY_HASHTAGS[category] || []).join(" ");
+    const tagSet = form.style === "card" ? TEMPLATE_HASHTAGS[form.template] : STYLE_HASHTAGS[form.style];
+    const tags = (tagSet || []).join(" ");
     let lines;
     if (form.style === "testimonial") {
       lines = [`"${form.quote}"`, `— ${form.clientName}${form.clientType ? `, ${form.clientType}` : ""}`];
@@ -1251,7 +1206,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               className="flex items-center gap-1.5 py-2.5 px-5 rounded-lg font-body text-sm font-semibold transition whitespace-nowrap"
               style={idea ? { borderColor: UI.line, color: UI.ink, background: UI.card, border: `1px solid ${UI.line}` } : { background: ACCENT, color: WHITE }}
             >
-              {idea ? "Surprise me again →" : "Surprise me →"}
+              {idea ? "Give Me Another →" : "Give Me an Idea →"}
             </button>
           </div>
         </div>
@@ -1263,40 +1218,31 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
           <div className={`${mobileStep === 1 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section ref={(el) => { sectionRefs.current[1] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
               <h3 className="font-body text-base font-semibold mb-3" style={{ color: UI.ink }}>What do you want to share?</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {Object.entries(CATEGORIES).map(([key, c]) => (
-                  <button key={key} onClick={() => selectCategory(key)}
-                    className="relative text-left p-4 rounded-2xl border-2 transition font-body flex flex-col"
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {Object.entries(STYLES).map(([key, s]) => (
+                  <button key={key} onClick={() => setForm((f) => ({ ...f, style: key }))}
+                    className="relative text-left rounded-2xl border-2 overflow-hidden transition font-body flex flex-col"
                     style={{
-                      minHeight: 118,
-                      borderColor: category === key ? ACCENT : UI.line,
-                      borderWidth: category === key ? 2.5 : 1.5,
-                      background: category === key ? mixWithWhite(ACCENT, 0.94) : UI.card,
-                      boxShadow: category === key ? `0 0 0 3px ${ACCENT}22, 0 4px 14px rgba(27,36,48,0.06)` : "0 1px 3px rgba(27,36,48,0.04)",
+                      borderColor: form.style === key ? ACCENT : UI.line,
+                      borderWidth: form.style === key ? 2.5 : 1.5,
+                      boxShadow: form.style === key ? `0 0 0 3px ${ACCENT}22, 0 4px 14px rgba(27,36,48,0.06)` : "0 1px 3px rgba(27,36,48,0.04)",
                     }}>
-                    {category === key && (
-                      <span className="absolute flex items-center justify-center rounded-full" style={{ top: 10, right: 10, width: 20, height: 20, background: ACCENT, boxShadow: "0 1px 3px rgba(27,36,48,0.25)" }}>
+                    {form.style === key && (
+                      <span className="absolute flex items-center justify-center rounded-full" style={{ top: 8, right: 8, width: 20, height: 20, background: ACCENT, boxShadow: "0 1px 3px rgba(27,36,48,0.25)", zIndex: 1 }}>
                         <Check size={12} color={WHITE} strokeWidth={3.5} />
                       </span>
                     )}
-                    <span style={{ fontSize: "1.6rem", lineHeight: 1 }}>{c.icon}</span>
-                    <span className="font-semibold text-sm block mt-2 leading-snug" style={{ color: UI.ink }}>{c.label}</span>
-                    <span className="block mt-0.5 text-xs leading-snug" style={{ color: "#586171" }}>{c.description}</span>
+                    <canvas
+                      ref={(el) => { styleThumbRefs.current[key] = el; }}
+                      style={{ display: "block", width: "100%", height: "auto", background: "#F1EFE8" }}
+                    />
+                    <span className="p-3">
+                      <span className="font-semibold text-sm block leading-snug" style={{ color: UI.ink }}>{s.label}</span>
+                      <span className="block mt-0.5 text-xs leading-snug" style={{ color: "#586171" }}>{s.description}</span>
+                    </span>
                   </button>
                 ))}
               </div>
-
-              {!CATEGORIES[category].isTestimonial && CATEGORIES[category].options.length > 1 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {CATEGORIES[category].options.map((key) => (
-                    <button key={key} onClick={() => applyTemplate(key)}
-                      className="py-1.5 px-3 rounded-full border font-body text-xs font-semibold transition"
-                      style={{ borderColor: form.template === key ? ACCENT : UI.line, background: form.template === key ? UI.card : "transparent", color: UI.ink }}>
-                      {TEMPLATES[key].label}
-                    </button>
-                  ))}
-                </div>
-              )}
             </section>
 
             <button
@@ -1315,7 +1261,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               className="rounded-2xl p-4 sm:p-5"
               style={{ scrollMarginTop: "1.5rem", background: mixWithWhite(ACCENT, 0.96), border: `1.5px solid ${mixWithWhite(ACCENT, 0.8)}` }}
             >
-              <h3 className="font-body text-base font-bold mb-3" style={{ color: UI.ink }}>2. Add the details</h3>
+              <h3 className="font-body text-base font-bold mb-3" style={{ color: UI.ink }}>Add the details</h3>
               <div className="grid gap-3">
                 {form.style !== "testimonial" && form.style !== "poll" && (
                   <>
@@ -1469,30 +1415,6 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                 )}
               </div>
             </section>
-
-            {form.style !== "testimonial" && (
-              <section>
-                <h3 className="font-body text-sm font-semibold mb-2.5" style={{ color: UI.ink }}>3. Choose your look</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {Object.entries(STYLES).filter(([key]) => key !== "testimonial").map(([key, s]) => (
-                    <button key={key} onClick={() => setForm((f) => ({ ...f, style: key }))}
-                      className="relative text-left rounded-lg border overflow-hidden transition"
-                      style={{ borderColor: form.style === key ? ACCENT : UI.line, borderWidth: form.style === key ? 2 : 1, boxShadow: form.style === key ? `0 0 0 2px ${ACCENT}22` : "none" }}>
-                      {form.style === key && (
-                        <span className="absolute flex items-center justify-center rounded-full" style={{ top: 6, right: 6, width: 18, height: 18, background: ACCENT, zIndex: 1 }}>
-                          <Check size={11} color={WHITE} strokeWidth={3} />
-                        </span>
-                      )}
-                      <canvas
-                        ref={(el) => { styleThumbRefs.current[key] = el; }}
-                        style={{ display: "block", width: "100%", height: "auto" }}
-                      />
-                      <span className="font-body font-semibold block px-2 py-1.5" style={{ color: UI.ink, background: UI.card, fontSize: "0.68rem" }}>{s.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
 
             <label
               className="flex items-center gap-3 p-4 rounded-xl border cursor-pointer"
