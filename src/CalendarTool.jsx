@@ -88,6 +88,53 @@ function isFillWeekday(date) {
   return fillWeekdaysFor(date).includes(date.getDay());
 }
 
+// ---- Holidays — surfaced as ready-made post ideas, both in the "Ideas for
+// this month" panel and as a small badge right on the calendar day, so a
+// holiday people actually post around doesn't sneak up on them. ----
+function nthWeekdayOfMonth(year, month, weekday, n) {
+  const first = new Date(year, month, 1);
+  const offset = (7 + weekday - first.getDay()) % 7;
+  return new Date(year, month, 1 + offset + (n - 1) * 7);
+}
+function lastWeekdayOfMonth(year, month, weekday) {
+  const last = new Date(year, month + 1, 0);
+  const offset = (7 + last.getDay() - weekday) % 7;
+  return new Date(year, month, last.getDate() - offset);
+}
+
+// Federal holidays plus the widely-marketed calendar moments (Valentine's
+// Day, Halloween) real estate agents actually post around. Several move
+// year to year (e.g. Thanksgiving is the 4th Thursday of November, not a
+// fixed date), so each is computed from a year rather than hardcoded.
+// `short` is only set where the full label is too long for the calendar
+// grid's tight cells.
+const HOLIDAYS = [
+  { label: "New Year's Day", date: (y) => new Date(y, 0, 1) },
+  { label: "Martin Luther King Jr. Day", short: "MLK Day", date: (y) => nthWeekdayOfMonth(y, 0, 1, 3) },
+  { label: "Valentine's Day", date: (y) => new Date(y, 1, 14) },
+  { label: "Presidents Day", date: (y) => nthWeekdayOfMonth(y, 1, 1, 3) },
+  { label: "St. Patrick's Day", date: (y) => new Date(y, 2, 17) },
+  { label: "Memorial Day", date: (y) => lastWeekdayOfMonth(y, 4, 1) },
+  { label: "Juneteenth", date: (y) => new Date(y, 5, 19) },
+  { label: "Independence Day", short: "July 4th", date: (y) => new Date(y, 6, 4) },
+  { label: "Labor Day", date: (y) => nthWeekdayOfMonth(y, 8, 1, 1) },
+  { label: "Halloween", date: (y) => new Date(y, 9, 31) },
+  { label: "Veterans Day", date: (y) => new Date(y, 10, 11) },
+  { label: "Thanksgiving", date: (y) => nthWeekdayOfMonth(y, 10, 4, 4) },
+  { label: "Christmas Eve", date: (y) => new Date(y, 11, 24) },
+  { label: "Christmas Day", date: (y) => new Date(y, 11, 25) },
+  { label: "New Year's Eve", date: (y) => new Date(y, 11, 31) },
+];
+
+// Every holiday's date for one year, keyed by "YYYY-MM-DD" — computed once
+// per year rather than per day since a few need a small weekday calculation.
+function holidaysForYear(year) {
+  return HOLIDAYS.map((h) => {
+    const date = h.date(year);
+    return { label: h.label, short: h.short || h.label, dateKey: toDateKey(date) };
+  });
+}
+
 const VIEW_MODES = ["month", "week", "day"];
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -142,6 +189,14 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   const entriesByDate = {};
   entries.forEach((e) => { (entriesByDate[e.date] ||= []).push(e); });
 
+  // Spans a year either side of the viewed year so a grid's leading/trailing
+  // cells from an adjacent month (e.g. late-December cells shown in a
+  // January view) still resolve correctly.
+  const holidaysByDate = {};
+  [year - 1, year, year + 1].forEach((y) => {
+    holidaysForYear(y).forEach((h) => { holidaysByDate[h.dateKey] = h; });
+  });
+
   const toggleFilter = (key) => setActiveFilters((prev) => {
     const next = new Set(prev);
     if (next.has(key)) {
@@ -182,6 +237,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   // date is just editing that default like any other field.
   const openEditEntry = (entry) => setEditing({ time: "", ...entry, date: entry.date || todayKey });
   const openSuggestion = (dateKey, suggestion) => openNewEntry(dateKey, { title: suggestion.title, type: suggestion.type, source: "suggestion" });
+  const openHoliday = (dateKey, label) => openNewEntry(dateKey, { title: `${label} Post`, type: "community", source: "suggestion" });
 
   const upsert = (prev, entry) => (
     entry.id
@@ -279,6 +335,9 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   // and ideas saved without a date yet (e.g. from Community's "Need
   // inspiration" card) waiting to be scheduled. ----
   const upNext = entries.filter((e) => e.date >= todayKey).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6);
+  const monthHolidays = remainingMonthDays
+    .map((d) => ({ date: d, holiday: holidaysByDate[toDateKey(d)] }))
+    .filter((h) => h.holiday);
   const monthIdeas = remainingMonthDays
     .map((d) => ({ date: d, suggestion: suggestionForDate(d) }))
     .filter(({ date, suggestion }) => suggestion && (entriesByDate[toDateKey(date)] || []).length === 0)
@@ -311,6 +370,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
     const suggestion = inMonth && dayEntries.length === 0 && dateKey >= todayKey ? suggestionForDate(date) : null;
     const isEmpty = inMonth && dayEntries.length === 0 && !suggestion;
     const isOpenHighlight = highlightOpenDays && inMonth && isFillWeekday(date) && dayEntries.length === 0 && dateKey >= todayKey;
+    const holiday = holidaysByDate[dateKey];
     return (
       <div
         key={i}
@@ -353,6 +413,24 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
             <Plus size={11} />
           </button>
         </div>
+        {holiday && (
+          <button
+            type="button"
+            onClick={() => openHoliday(dateKey, holiday.label)}
+            className="text-left truncate transition hover:opacity-80"
+            style={{
+              fontSize: "0.62rem",
+              fontWeight: 700,
+              color: "#B45309",
+              background: mixWithWhite("#B45309", 0.88),
+              borderRadius: 6,
+              padding: "0.15rem 0.4rem",
+            }}
+            title={`Plan a post for ${holiday.label}`}
+          >
+            🎉 {holiday.short}
+          </button>
+        )}
         <div className="flex flex-col gap-1.5">
           {visible.map((entry) => {
             const t = typeInfo(entry.type);
@@ -652,7 +730,24 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
 
             <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
               <h3 className="font-body text-sm font-semibold mb-3" style={{ color: UI.ink }}>Ideas for this month</h3>
-              {monthIdeas.length === 0 ? (
+
+              {monthHolidays.length > 0 && (
+                <ul className="grid gap-2 mb-3 pb-3" style={{ borderBottom: `1px solid ${UI.line}` }}>
+                  {monthHolidays.map(({ date, holiday }) => {
+                    const dateKey = toDateKey(date);
+                    const label = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                    return (
+                      <li key={dateKey}>
+                        <button type="button" onClick={() => openHoliday(dateKey, holiday.label)} className="text-left w-full font-body text-xs" style={{ color: UI.ink }}>
+                          <span className="font-mono font-semibold">{label}</span>{" — "}🎉 {holiday.label}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              {monthIdeas.length === 0 && monthHolidays.length === 0 ? (
                 monthOpenDays.length === 0 ? (
                   <div>
                     <p className="font-body text-sm font-semibold" style={{ color: UI.ink }}>You're covered this month ✓</p>
@@ -669,7 +764,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                 ) : (
                   <p className="font-body text-xs" style={{ color: UI.inkSoft }}>No specific ideas for your open days — try "Fill my month" above.</p>
                 )
-              ) : (
+              ) : monthIdeas.length > 0 ? (
                 <ul className="grid gap-2">
                   {monthIdeas.map(({ date, suggestion }) => {
                     const dateKey = toDateKey(date);
@@ -683,7 +778,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                     );
                   })}
                 </ul>
-              )}
+              ) : null}
             </div>
           </div>
 
