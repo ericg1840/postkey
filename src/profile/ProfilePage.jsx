@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { User, Building2, Check, Download, Trash2, ImageOff, Loader2 } from "lucide-react";
+import { User, Building2, Check, Download, Trash2, ImageOff, Loader2, CalendarDays, X } from "lucide-react";
 import {
   UI, ACCENT, WHITE, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, mixWithWhite,
-  useAgentAsset, UploadBox, TopNav,
+  useAgentAsset, UploadBox, TopNav, loadCalendarEntries, saveCalendarEntries, writePostHandoff,
 } from "../shared.jsx";
 import { useAuth, api } from "../auth/AuthContext.jsx";
 
@@ -143,6 +143,150 @@ function PostsSection() {
           <PostThumb key={post.id} post={post} onDelete={deletePost} />
         ))}
       </div>
+    </div>
+  );
+}
+
+const PLANNED_TYPE_INFO = {
+  listing: { label: "Listing", color: "#0043FF", emoji: "🏡" },
+  community: { label: "Community", color: "#0F9D58", emoji: "📍" },
+  other: { label: "Other", color: "#697386", emoji: "💬" },
+};
+const plannedTypeInfo = (key) => PLANNED_TYPE_INFO[key] || PLANNED_TYPE_INFO.other;
+
+function todayKeyNow() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Everything saved in the Content Planner that isn't done yet — future-dated
+// posts plus ideas saved without a date — read straight from the same
+// localStorage the planner writes to, so there's nothing extra to sync.
+function PlannedPostsSection({ onSwitchTool }) {
+  const [entries, setEntries] = useState(() => loadCalendarEntries());
+  const todayKey = todayKeyNow();
+
+  // Pick up anything planned in the Planner while this tab is already open.
+  useEffect(() => {
+    const onFocus = () => setEntries(loadCalendarEntries());
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
+  // Removes it here AND from the Planner — they share the same saved list,
+  // so there's only one copy to delete.
+  const removeEntry = (id) => {
+    const next = entries.filter((e) => e.id !== id);
+    setEntries(next);
+    saveCalendarEntries(next);
+  };
+
+  // The idea stays saved (so it's still here to come back to) — this just
+  // jumps straight into whichever tool builds that kind of post, prefilled
+  // with its title, same as "Create this post" does inside the Planner.
+  const createFromEntry = (entry) => {
+    const targetTool = entry.type === "listing" ? "listings" : "community";
+    const field = entry.type === "listing" ? "address" : "subject";
+    writePostHandoff({ tool: targetTool, field, value: entry.title });
+    onSwitchTool(targetTool);
+  };
+
+  const upcoming = entries
+    .filter((e) => e.date && e.date >= todayKey && !e.done)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const undated = entries.filter((e) => !e.date);
+
+  if (upcoming.length === 0 && undated.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-16">
+        <CalendarDays size={28} style={{ color: UI.inkSoft }} />
+        <p className="font-body text-sm mt-3" style={{ color: UI.inkSoft }}>
+          Posts you plan for future dates will show up here.
+        </p>
+        <button
+          type="button"
+          onClick={() => onSwitchTool("calendar")}
+          className="mt-4 px-4 py-2 rounded-lg font-body text-sm font-semibold transition"
+          style={{ background: ACCENT, color: WHITE }}
+        >
+          Open the Content Planner
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="font-body text-xs mb-5" style={{ color: UI.inkSoft }}>
+        Saved from the Content Planner. Click one to start building that post — it stays saved here either way. Hover for the × to remove it.
+      </p>
+      {upcoming.length > 0 && (
+        <ul className="grid gap-2 mb-5">
+          {upcoming.map((entry) => {
+            const t = plannedTypeInfo(entry.type);
+            const label = new Date(`${entry.date}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+            return (
+              <li key={entry.id} className="relative group">
+                <button
+                  type="button"
+                  onClick={() => createFromEntry(entry)}
+                  className="flex items-center justify-between gap-3 w-full text-left pl-3 pr-8 py-2.5 rounded-lg border transition hover:opacity-90"
+                  style={{ borderColor: UI.line, background: mixWithWhite(t.color, 0.94) }}
+                >
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-1.5">
+                      <span className="rounded-full flex-shrink-0" style={{ width: 7, height: 7, background: t.color }} />
+                      <span className="font-body text-sm font-semibold truncate" style={{ color: UI.ink }}>{entry.title}</span>
+                    </span>
+                    <span className="block font-body text-xs mt-0.5" style={{ marginLeft: "0.9rem", color: UI.inkSoft }}>{t.label} post</span>
+                  </span>
+                  <span className="font-mono flex-shrink-0" style={{ fontSize: "0.68rem", color: UI.inkSoft }}>{label}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeEntry(entry.id)}
+                  aria-label={`Remove ${entry.title}`}
+                  className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 focus:opacity-100 transition flex items-center justify-center rounded-full"
+                  style={{ right: 8, width: 18, height: 18, color: UI.inkSoft }}
+                >
+                  <X size={14} />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {undated.length > 0 && (
+        <>
+          <h3 className="font-body text-sm font-semibold mb-2" style={{ color: UI.ink }}>Saved ideas</h3>
+          <ul className="grid gap-2">
+            {undated.map((entry) => {
+              const t = plannedTypeInfo(entry.type);
+              return (
+                <li key={entry.id} className="relative group">
+                  <button
+                    type="button"
+                    onClick={() => createFromEntry(entry)}
+                    className="w-full text-left pl-3 pr-8 py-2.5 rounded-lg border font-body text-sm transition hover:opacity-90"
+                    style={{ borderColor: UI.line, color: UI.ink }}
+                  >
+                    {t.emoji} {entry.title}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeEntry(entry.id)}
+                    aria-label={`Remove ${entry.title}`}
+                    className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 focus:opacity-100 transition flex items-center justify-center rounded-full"
+                    style={{ right: 8, width: 18, height: 18, color: UI.inkSoft }}
+                  >
+                    <X size={14} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
@@ -354,7 +498,7 @@ function AccountSection() {
 
 export function ProfilePage({ onSwitchTool, onGoHome }) {
   const { user, brandKit, logout, saveBrandKit } = useAuth();
-  const [tab, setTab] = useState("brand"); // brand | posts | account
+  const [tab, setTab] = useState("brand"); // brand | planned | posts | account
 
   return (
     <div className="min-h-screen" style={{ background: UI.page }}>
@@ -376,6 +520,17 @@ export function ProfilePage({ onSwitchTool, onGoHome }) {
             }}
           >
             Brand
+          </button>
+          <button
+            onClick={() => setTab("planned")}
+            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
+            style={{
+              background: tab === "planned" ? UI.card : "transparent",
+              color: tab === "planned" ? UI.ink : UI.inkSoft,
+              boxShadow: tab === "planned" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+            }}
+          >
+            Planned Posts
           </button>
           <button
             onClick={() => setTab("posts")}
@@ -403,6 +558,7 @@ export function ProfilePage({ onSwitchTool, onGoHome }) {
 
         <div className="rounded-2xl border p-5 sm:p-8" style={{ background: UI.card, borderColor: UI.line }}>
           {tab === "brand" && <BrandSection brandKit={brandKit} saveBrandKit={saveBrandKit} />}
+          {tab === "planned" && <PlannedPostsSection onSwitchTool={onSwitchTool} />}
           {tab === "posts" && <PostsSection />}
           {tab === "account" && <AccountSection />}
         </div>
