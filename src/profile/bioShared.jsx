@@ -206,9 +206,12 @@ export function BioLinksList({ links, bgColor, boxColor, buttonStyle, asLink }) 
           }
 
           const title = hasListing ? (link.address || link.label || typeInfo.label) : (link.label || typeInfo.label);
+          // Listing stats (beds/baths/price) are worth showing — the raw
+          // URL isn't. A visitor should see "Website" or "Zillow Listing"
+          // and click through, not read out the link before they click it.
           const sub = hasListing
             ? [link.beds && `${link.beds} bed`, link.baths && `${link.baths} bath`, link.price].filter(Boolean).join(" · ")
-            : (link.url || typeInfo.placeholder);
+            : "";
 
           return (
             <Row
@@ -225,7 +228,7 @@ export function BioLinksList({ links, bgColor, boxColor, buttonStyle, asLink }) 
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-body text-base font-semibold truncate" style={{ color: boxTextColor }}>{title}</p>
-                <p className="font-body text-xs truncate" style={{ color: boxSubColor }}>{sub}</p>
+                {sub && <p className="font-body text-xs truncate" style={{ color: boxSubColor }}>{sub}</p>}
               </div>
               <ChevronRight size={20} style={{ color: boxTextColor, opacity: 0.5 }} className="shrink-0" />
             </Row>
