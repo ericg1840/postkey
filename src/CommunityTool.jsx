@@ -283,7 +283,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     if (!idea) return;
     const entries = loadCalendarEntries();
     saveCalendarEntries([...entries, {
-      id: genCalendarEntryId(), date: null, title: idea.text, type: "community", notes: "", time: "", done: false,
+      id: genCalendarEntryId(), date: null, title: idea.text, type: "community", notes: "", time: "", done: false, source: "community",
     }]);
     setIdeaSaved(true);
   };
