@@ -17,6 +17,67 @@ const POST_TYPES = [
 ];
 const typeInfo = (key) => POST_TYPES.find((t) => t.key === key) || POST_TYPES[2];
 
+function toDateKey(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+// ---- US holidays ----
+// Federal holidays plus a handful of widely-observed ones (Mother's Day,
+// Halloween, etc.) real estate audiences actually engage with — computed
+// per-year rather than hardcoded dates so the calendar stays correct
+// across years without upkeep.
+function nthWeekdayOfMonth(year, month, weekday, n) {
+  const first = new Date(year, month, 1);
+  const offset = (weekday - first.getDay() + 7) % 7;
+  return new Date(year, month, 1 + offset + (n - 1) * 7);
+}
+function lastWeekdayOfMonth(year, month, weekday) {
+  const last = new Date(year, month + 1, 0);
+  const offset = (last.getDay() - weekday + 7) % 7;
+  return new Date(year, month, last.getDate() - offset);
+}
+
+const holidaysByYear = new Map();
+function holidaysForYear(year) {
+  if (holidaysByYear.has(year)) return holidaysByYear.get(year);
+  const list = [
+    { date: new Date(year, 0, 1), name: "New Year's Day", emoji: "🎉" },
+    { date: nthWeekdayOfMonth(year, 0, 1, 3), name: "MLK Day", emoji: "✊" },
+    { date: new Date(year, 1, 14), name: "Valentine's Day", emoji: "💘" },
+    { date: nthWeekdayOfMonth(year, 1, 1, 3), name: "Presidents Day", emoji: "🇺🇸" },
+    { date: new Date(year, 2, 17), name: "St. Patrick's Day", emoji: "🍀" },
+    { date: nthWeekdayOfMonth(year, 4, 0, 2), name: "Mother's Day", emoji: "💐" },
+    { date: lastWeekdayOfMonth(year, 4, 1), name: "Memorial Day", emoji: "🇺🇸" },
+    { date: nthWeekdayOfMonth(year, 5, 0, 3), name: "Father's Day", emoji: "👔" },
+    { date: new Date(year, 5, 19), name: "Juneteenth", emoji: "✊🏾" },
+    { date: new Date(year, 6, 4), name: "Independence Day", emoji: "🎆" },
+    { date: nthWeekdayOfMonth(year, 8, 1, 1), name: "Labor Day", emoji: "🛠️" },
+    { date: nthWeekdayOfMonth(year, 9, 1, 2), name: "Columbus Day", emoji: "🧭" },
+    { date: new Date(year, 9, 31), name: "Halloween", emoji: "🎃" },
+    { date: new Date(year, 10, 11), name: "Veterans Day", emoji: "🎖️" },
+    { date: nthWeekdayOfMonth(year, 10, 4, 4), name: "Thanksgiving", emoji: "🦃" },
+    { date: new Date(year, 11, 24), name: "Christmas Eve", emoji: "🎄" },
+    { date: new Date(year, 11, 25), name: "Christmas Day", emoji: "🎄" },
+    { date: new Date(year, 11, 31), name: "New Year's Eve", emoji: "🥂" },
+  ];
+  const byKey = {};
+  list.forEach((h) => { byKey[toDateKey(h.date)] = h; });
+  holidaysByYear.set(year, byKey);
+  return byKey;
+}
+function holidayForDate(date) {
+  return holidaysForYear(date.getFullYear())[toDateKey(date)] || null;
+}
+
 // A light, rotating pool of post ideas sprinkled onto open days so a month
 // with nothing planned yet still feels useful — these are prompts, not
 // real posts, and are styled dashed/muted in the grid to make that obvious.
@@ -31,28 +92,18 @@ const SUGGESTIONS = [
 const WEEKEND_SUGGESTION = { title: "Weekend Open House", type: "listing" };
 
 // Deterministic (not random) so a suggestion doesn't jump around on every
-// re-render. Weekends get their own once-every-other-Saturday cadence;
-// weekdays cycle through the general pool every 4th day.
+// re-render. A holiday always wins — it's a better, more specific idea than
+// the rotating pool — then weekends get their own once-every-other-Saturday
+// cadence, and weekdays cycle through the general pool every 4th day.
 function suggestionForDate(date) {
+  const holiday = holidayForDate(date);
+  if (holiday) return { title: `Happy ${holiday.name}!`, type: "community", emoji: holiday.emoji };
   const day = date.getDate();
   const weekday = date.getDay();
   if (weekday === 6) return day % 4 < 2 ? WEEKEND_SUGGESTION : null; // Saturday, every other week
   if (weekday === 0) return null; // Sunday: skip, Saturday already covers the weekend
   if (day % 4 !== 1) return null;
   return SUGGESTIONS[Math.floor(day / 4) % SUGGESTIONS.length];
-}
-
-function toDateKey(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-function addDays(date, n) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + n);
-  return d;
 }
 
 // The rough split a healthy, varied posting habit tends toward — shown
@@ -308,6 +359,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
     const visible = dayEntries.slice(0, tall ? 6 : 3);
     const overflow = dayEntries.length - visible.length;
     const isDragOver = dragOverDate === dateKey;
+    const holiday = inMonth ? holidayForDate(date) : null;
     const suggestion = inMonth && dayEntries.length === 0 && dateKey >= todayKey ? suggestionForDate(date) : null;
     const isEmpty = inMonth && dayEntries.length === 0 && !suggestion;
     const isOpenHighlight = highlightOpenDays && inMonth && isFillWeekday(date) && dayEntries.length === 0 && dateKey >= todayKey;
@@ -353,6 +405,11 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
             <Plus size={11} />
           </button>
         </div>
+        {holiday && (
+          <span className="font-body font-semibold truncate" style={{ fontSize: "0.62rem", color: "#C0392B", marginTop: "-0.25rem" }}>
+            {holiday.emoji} {holiday.name}
+          </span>
+        )}
         <div className="flex flex-col gap-1.5">
           {visible.map((entry) => {
             const t = typeInfo(entry.type);
@@ -409,7 +466,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                 color: UI.inkSoft,
               }}
             >
-              <span className="block truncate italic">✨ {suggestion.title}</span>
+              <span className="block truncate italic">{suggestion.emoji || "✨"} {suggestion.title}</span>
               <span className="block font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.03em" }}>SUGGESTED</span>
             </button>
           )}
@@ -431,6 +488,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   // ---- Day view data ----
   const dayKey = toDateKey(focusDate);
   const dayEntries = (entriesByDate[dayKey] || []).filter((e) => activeFilters.has(e.type));
+  const dayHoliday = holidayForDate(focusDate);
   const daySuggestion = dayEntries.length === 0 && dayKey >= todayKey ? suggestionForDate(focusDate) : null;
 
   return (
@@ -677,7 +735,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                     return (
                       <li key={dateKey}>
                         <button type="button" onClick={() => openSuggestion(dateKey, suggestion)} className="text-left w-full font-body text-xs" style={{ color: UI.inkSoft }}>
-                          <span className="font-mono font-semibold">{label}</span>{" — "}✨ {suggestion.title}
+                          <span className="font-mono font-semibold">{label}</span>{" — "}{suggestion.emoji || "✨"} {suggestion.title}
                         </button>
                       </li>
                     );
@@ -692,9 +750,16 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
             {viewMode === "day" ? (
               <div className="p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-body text-sm font-semibold" style={{ color: UI.ink }}>
-                    {dayEntries.length} post{dayEntries.length === 1 ? "" : "s"} planned
-                  </h3>
+                  <div>
+                    <h3 className="font-body text-sm font-semibold" style={{ color: UI.ink }}>
+                      {dayEntries.length} post{dayEntries.length === 1 ? "" : "s"} planned
+                    </h3>
+                    {dayHoliday && (
+                      <p className="font-body text-xs font-semibold mt-0.5" style={{ color: "#C0392B" }}>
+                        {dayHoliday.emoji} {dayHoliday.name}
+                      </p>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => openNewEntry(dayKey)}
@@ -740,7 +805,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                       className="text-left rounded-xl p-3 transition"
                       style={{ border: `1px dashed ${UI.line}`, color: UI.inkSoft }}
                     >
-                      <span className="block italic">✨ {daySuggestion.title}</span>
+                      <span className="block italic">{daySuggestion.emoji || "✨"} {daySuggestion.title}</span>
                       <span className="block font-mono mt-0.5" style={{ fontSize: "0.68rem", letterSpacing: "0.03em" }}>SUGGESTED</span>
                     </button>
                   )}
