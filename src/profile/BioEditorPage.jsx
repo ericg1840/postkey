@@ -28,7 +28,7 @@ function newLinkId() {
 function Section({ number, title, subtitle, children }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="rounded-2xl border overflow-hidden" style={{ background: UI.card, borderColor: UI.line }}>
+    <div className="rounded-2xl border" style={{ background: UI.card, borderColor: UI.line, overflow: open ? "visible" : "hidden" }}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
