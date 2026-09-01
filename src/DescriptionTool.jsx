@@ -310,6 +310,15 @@ function joinList(items) {
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
+// LOT SIZE only ever needs the number — "acre lot" is implied, so it's
+// stripped if someone types it anyway (whole or as "acres") and always
+// reappended as "-acre lot", preserving whatever they typed for the
+// number itself (".50" stays ".50", not normalized to "0.5").
+function formatLotSize(raw) {
+  const cleaned = (raw || "").trim().replace(/\s*acres?(\s*lot)?\s*$/i, "").trim();
+  return cleaned ? `${cleaned}-acre lot` : "";
+}
+
 // Splits a long feature list into a few sentences of up to 3 items each,
 // cycling through the tone's lead phrases — mirrors how real listings walk
 // through several items per sentence rather than dumping them all in one.
@@ -356,7 +365,7 @@ function buildDescription(form, variant) {
   if (form.parking) outroSentences.push(pick(PARKING_LEADS[tone], variant)(form.parking));
 
   const extraStats = [];
-  if (form.lotSize) extraStats.push(`a ${form.lotSize} lot`);
+  if (form.lotSize) extraStats.push(`a ${formatLotSize(form.lotSize)}`);
   if (form.yearBuilt) extraStats.push(`built in ${form.yearBuilt}`);
   if (extraStats.length) outroSentences.push(`The property sits on ${joinList(extraStats)}.`);
 
@@ -489,7 +498,7 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
               <div className="grid grid-cols-3 gap-2 mt-3">
                 <label className="block">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LOT SIZE</span>
-                  <input className="input" value={form.lotSize} onChange={update("lotSize")} placeholder="0.25 acre" />
+                  <input className="input" value={form.lotSize} onChange={update("lotSize")} placeholder="0.25" />
                 </label>
                 <label className="block">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>YEAR BUILT</span>
