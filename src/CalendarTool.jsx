@@ -64,6 +64,55 @@ const TARGET_MIX = { listing: 0.4, community: 0.4, other: 0.2 };
 // single day. "Spread out" means a post every couple of days, not one a day.
 const FILL_WEEKDAYS = [1, 3, 5];
 
+// nth weekday of a month, e.g. nthWeekday(2026, 0, 1, 3) => 3rd Monday of January.
+function nthWeekday(year, month, weekday, n) {
+  const first = new Date(year, month, 1);
+  const offset = (weekday - first.getDay() + 7) % 7;
+  return new Date(year, month, 1 + offset + (n - 1) * 7);
+}
+// Last occurrence of a weekday in a month, e.g. last Monday of May.
+function lastWeekday(year, month, weekday) {
+  const last = new Date(year, month + 1, 0);
+  const offset = (last.getDay() - weekday + 7) % 7;
+  return new Date(year, month, last.getDate() - offset);
+}
+
+// Common, well-known holidays worth planning a post around — computed for
+// any given year rather than hardcoded, so next year's planner works too.
+// Skips Easter and other movable religious dates that need a heavier
+// algorithm than this app needs.
+function holidaysForYear(year) {
+  return [
+    { date: new Date(year, 0, 1), title: "New Year's Day" },
+    { date: nthWeekday(year, 0, 1, 3), title: "MLK Day" },
+    { date: new Date(year, 1, 14), title: "Valentine's Day" },
+    { date: nthWeekday(year, 1, 1, 3), title: "Presidents Day" },
+    { date: new Date(year, 2, 17), title: "St. Patrick's Day" },
+    { date: nthWeekday(year, 4, 0, 2), title: "Mother's Day" },
+    { date: lastWeekday(year, 4, 1), title: "Memorial Day" },
+    { date: new Date(year, 5, 19), title: "Juneteenth" },
+    { date: nthWeekday(year, 5, 0, 3), title: "Father's Day" },
+    { date: new Date(year, 6, 4), title: "Independence Day" },
+    { date: nthWeekday(year, 8, 1, 1), title: "Labor Day" },
+    { date: new Date(year, 9, 31), title: "Halloween" },
+    { date: new Date(year, 10, 11), title: "Veterans Day" },
+    { date: nthWeekday(year, 10, 4, 4), title: "Thanksgiving" },
+    { date: new Date(year, 11, 24), title: "Christmas Eve" },
+    { date: new Date(year, 11, 25), title: "Christmas" },
+    { date: new Date(year, 11, 31), title: "New Year's Eve" },
+  ];
+}
+
+// Keyed by date so a cell lookup is O(1); spans the year(s) actually
+// touched by whatever's in view (Dec/Jan month & week views straddle two).
+function holidaysByDateForYears(years) {
+  const map = {};
+  years.forEach((y) => {
+    holidaysForYear(y).forEach((h) => { map[toDateKey(h.date)] = h.title; });
+  });
+  return map;
+}
+
 const VIEW_MODES = ["month", "week", "day"];
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -115,6 +164,15 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   const viewWeekStart = addDays(focusDate, -focusDate.getDay());
   const viewWeekDays = Array.from({ length: 7 }, (_, i) => addDays(viewWeekStart, i));
 
+  // Every year actually touched by the cells currently on screen — a
+  // December/January month or week view can straddle two.
+  const yearsInView = new Set([
+    ...monthCells.map((c) => c.date.getFullYear()),
+    ...viewWeekDays.map((d) => d.getFullYear()),
+    focusDate.getFullYear(),
+  ]);
+  const holidaysByDate = holidaysByDateForYears([...yearsInView]);
+
   const entriesByDate = {};
   entries.forEach((e) => { (entriesByDate[e.date] ||= []).push(e); });
 
@@ -153,6 +211,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   // date is just editing that default like any other field.
   const openEditEntry = (entry) => setEditing({ time: "", ...entry, date: entry.date || todayKey });
   const openSuggestion = (dateKey, suggestion) => openNewEntry(dateKey, { title: suggestion.title, type: suggestion.type });
+  const openHoliday = (dateKey, holidayName) => openNewEntry(dateKey, { title: `${holidayName} post`, type: "community" });
 
   const upsert = (prev, entry) => (
     entry.id
@@ -256,6 +315,14 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
     .slice(0, 5);
   const savedIdeas = entries.filter((e) => !e.date);
 
+  // Upcoming holidays worth planning content around, regardless of which
+  // month is currently in view — spans into next year near December.
+  const upcomingHolidays = [...holidaysForYear(today.getFullYear()), ...holidaysForYear(today.getFullYear() + 1)]
+    .map((h) => ({ ...h, dateKey: toDateKey(h.date) }))
+    .filter((h) => h.dateKey >= todayKey)
+    .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+    .slice(0, 5);
+
   // ---- Header label: what the nav row shows for the current mode ----
   let headerLabel;
   if (viewMode === "month") {
@@ -274,6 +341,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   // for the single-row Week strip so it doesn't look cramped.
   const renderCell = (date, inMonth, i, tall) => {
     const dateKey = toDateKey(date);
+    const holiday = holidaysByDate[dateKey];
     const dayEntries = (entriesByDate[dateKey] || []).filter((e) => activeFilters.has(e.type));
     const isToday = dateKey === todayKey;
     const visible = dayEntries.slice(0, tall ? 6 : 3);
@@ -324,6 +392,17 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
             <Plus size={11} />
           </button>
         </div>
+        {holiday && (
+          <button
+            type="button"
+            onClick={() => openHoliday(dateKey, holiday)}
+            className="text-left truncate rounded-full font-body font-semibold transition self-start"
+            style={{ fontSize: "0.62rem", padding: "0.15rem 0.5rem", background: mixWithWhite("#E8792E", 0.85), color: "#8A4415" }}
+            title={`Plan a post for ${holiday}`}
+          >
+            🎉 {holiday}
+          </button>
+        )}
         <div className="flex flex-col gap-1.5">
           {visible.map((entry) => {
             const t = typeInfo(entry.type);
@@ -401,6 +480,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
 
   // ---- Day view data ----
   const dayKey = toDateKey(focusDate);
+  const dayHoliday = holidaysByDate[dayKey];
   const dayEntries = (entriesByDate[dayKey] || []).filter((e) => activeFilters.has(e.type));
   const daySuggestion = dayEntries.length === 0 && dayKey >= todayKey ? suggestionForDate(focusDate) : null;
 
@@ -602,6 +682,34 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
               )}
             </div>
 
+            <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
+              <h3 className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Upcoming holidays</h3>
+              <p className="font-body text-xs mt-0.5 mb-3" style={{ color: UI.inkSoft }}>Get ahead of seasonal content</p>
+              <ul className="grid gap-2.5">
+                {upcomingHolidays.map((h) => {
+                  const label = h.date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                  const hasPost = (entriesByDate[h.dateKey] || []).length > 0;
+                  return (
+                    <li key={h.dateKey}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFocusDate(h.date);
+                          if (!hasPost) openHoliday(h.dateKey, h.title);
+                        }}
+                        className="flex items-center justify-between gap-2 w-full text-left"
+                      >
+                        <span className="font-body text-xs" style={{ color: UI.ink }}>🎉 {h.title}</span>
+                        <span className="font-mono flex-shrink-0" style={{ fontSize: "0.65rem", color: hasPost ? "#0F9D58" : UI.inkSoft }}>
+                          {label}{hasPost ? " ✓" : ""}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
             {savedIdeas.length > 0 && (
               <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
                 <h3 className="font-body text-sm font-semibold mb-1" style={{ color: UI.ink }}>Saved ideas</h3>
@@ -675,6 +783,16 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                     <Plus size={13} /> Add post
                   </button>
                 </div>
+                {dayHoliday && (
+                  <button
+                    type="button"
+                    onClick={() => openHoliday(dayKey, dayHoliday)}
+                    className="inline-flex items-center gap-1.5 mb-3 rounded-full font-body text-xs font-semibold transition"
+                    style={{ padding: "0.35rem 0.75rem", background: mixWithWhite("#E8792E", 0.85), color: "#8A4415" }}
+                  >
+                    🎉 {dayHoliday} — plan a post
+                  </button>
+                )}
                 {dayEntries.length === 0 && !daySuggestion && (
                   <p className="font-body text-sm mb-2" style={{ color: UI.inkSoft }}>Nothing planned for this day yet.</p>
                 )}
