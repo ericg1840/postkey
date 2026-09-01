@@ -60,9 +60,33 @@ function addDays(date, n) {
 // number.
 const TARGET_MIX = { listing: 0.4, community: 0.4, other: 0.2 };
 
-// A realistic posting cadence — Monday/Wednesday/Friday — instead of every
-// single day. "Spread out" means a post every couple of days, not one a day.
-const FILL_WEEKDAYS = [1, 3, 5];
+// A realistic posting cadence — about 3 days a week, spread out (not every
+// single day) — but which 3 weekdays varies week to week instead of always
+// landing on Monday/Wednesday/Friday, so a filled month doesn't look
+// mechanically identical to the last one. Every combo here still keeps its
+// 3 days spread across the work week rather than clustering them (no
+// three-in-a-row); weekends are never candidates — Saturday stays open for
+// real open houses, Sunday is a day off.
+const WEEKDAY_COMBOS = [
+  [1, 3, 5], [1, 2, 4], [1, 2, 5], [1, 3, 4], [1, 4, 5], [2, 3, 5], [2, 4, 5],
+];
+
+// Deterministic per-week pick (not Math.random()) so the same week always
+// shows the same combo across re-renders — no flicker between the "open
+// days" highlight and what "Fill my month" actually fills — while
+// different weeks land on different combos. A Knuth multiplicative hash on
+// the week's index gives a well-mixed spread across consecutive weeks;
+// a plain string hash of the date clumped multiple neighboring weeks onto
+// the same combo.
+function fillWeekdaysFor(date) {
+  const weekStart = addDays(date, -date.getDay());
+  const weekIndex = Math.floor(weekStart.getTime() / (7 * 24 * 60 * 60 * 1000));
+  const mixed = Math.imul(weekIndex, 2654435761) >>> 0;
+  return WEEKDAY_COMBOS[mixed % WEEKDAY_COMBOS.length];
+}
+function isFillWeekday(date) {
+  return fillWeekdaysFor(date).includes(date.getDay());
+}
 
 const VIEW_MODES = ["month", "week", "day"];
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -202,9 +226,9 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   // Only days from today through the end of the viewed month — a day that's
   // already passed can't be "filled".
   const remainingMonthDays = monthCells.filter((c) => c.inMonth && toDateKey(c.date) >= todayKey).map((c) => c.date);
-  // "Open" only counts the Mon/Wed/Fri posting-rhythm days — every other day
-  // is deliberately left blank, so it shouldn't read as something missing.
-  const monthOpenDays = remainingMonthDays.filter((d) => FILL_WEEKDAYS.includes(d.getDay()) && (entriesByDate[toDateKey(d)] || []).length === 0);
+  // "Open" only counts this week's posting-rhythm days — every other day is
+  // deliberately left blank, so it shouldn't read as something missing.
+  const monthOpenDays = remainingMonthDays.filter((d) => isFillWeekday(d) && (entriesByDate[toDateKey(d)] || []).length === 0);
 
   let mixTip = null;
   let mixAddType = null;
@@ -224,19 +248,19 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
 
   // Turns a set of still-empty days into real, saved entries drawn from the
   // community suggestion pool, spread across the month at a realistic
-  // Monday/Wednesday/Friday cadence instead of stacked into one week or
-  // filling every single day. Saturdays are never touched — that's where
-  // real open houses go, and she may not know which listings have one yet,
-  // so this never invents one; it just leaves the day open with a light
-  // "Weekend Open House" suggestion she can fill in once she does know.
-  // Shared by "Fill my month" and "Plan next month".
+  // ~3-day-a-week cadence (see WEEKDAY_COMBOS above) instead of stacked into
+  // one week or filling every single day. Saturdays are never touched —
+  // that's where real open houses go, and she may not know which listings
+  // have one yet, so this never invents one; it just leaves the day open
+  // with a light "Weekend Open House" suggestion she can fill in once she
+  // does know. Shared by "Fill my month" and "Plan next month".
   const fillDaysSpread = (days) => {
     let idx = 0;
     const additions = [];
     days.forEach((d) => {
       const dateKey = toDateKey(d);
       if (dateKey < todayKey) return;
-      if (!FILL_WEEKDAYS.includes(d.getDay())) return;
+      if (!isFillWeekday(d)) return;
       if ((entriesByDate[dateKey] || []).length > 0) return;
       const sugg = SUGGESTIONS[idx % SUGGESTIONS.length];
       idx += 1;
@@ -286,7 +310,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
     const isDragOver = dragOverDate === dateKey;
     const suggestion = inMonth && dayEntries.length === 0 && dateKey >= todayKey ? suggestionForDate(date) : null;
     const isEmpty = inMonth && dayEntries.length === 0 && !suggestion;
-    const isOpenHighlight = highlightOpenDays && inMonth && FILL_WEEKDAYS.includes(date.getDay()) && dayEntries.length === 0 && dateKey >= todayKey;
+    const isOpenHighlight = highlightOpenDays && inMonth && isFillWeekday(date) && dayEntries.length === 0 && dateKey >= todayKey;
     return (
       <div
         key={i}
