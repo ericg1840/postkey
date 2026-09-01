@@ -146,13 +146,18 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
   };
   const goToday = () => setFocusDate(new Date());
 
-  const openNewEntry = (dateKey, overrides = {}) => setEditing({ date: dateKey, title: "", type: "listing", notes: "", time: "", done: false, ...overrides });
+  // `source` tracks how an entry came to exist — "user" for something
+  // someone typed themselves, "suggestion" for a dashed placeholder they
+  // accepted or a "Fill my month" auto-fill. Profile's Planned Posts list
+  // uses this to show only real, user-written posts, not the suggestion
+  // pool's prompts.
+  const openNewEntry = (dateKey, overrides = {}) => setEditing({ date: dateKey, title: "", type: "listing", notes: "", time: "", done: false, source: "user", ...overrides });
   // Ideas saved without a date (e.g. from Community's "Need inspiration"
   // card) get today's date as a default the moment they're opened, so the
   // modal always has something valid to show/save — picking a different
   // date is just editing that default like any other field.
   const openEditEntry = (entry) => setEditing({ time: "", ...entry, date: entry.date || todayKey });
-  const openSuggestion = (dateKey, suggestion) => openNewEntry(dateKey, { title: suggestion.title, type: suggestion.type });
+  const openSuggestion = (dateKey, suggestion) => openNewEntry(dateKey, { title: suggestion.title, type: suggestion.type, source: "suggestion" });
 
   const upsert = (prev, entry) => (
     entry.id
@@ -235,7 +240,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
       if ((entriesByDate[dateKey] || []).length > 0) return;
       const sugg = SUGGESTIONS[idx % SUGGESTIONS.length];
       idx += 1;
-      additions.push({ id: genCalendarEntryId(), date: dateKey, title: sugg.title, type: sugg.type, notes: "", time: "", done: false });
+      additions.push({ id: genCalendarEntryId(), date: dateKey, title: sugg.title, type: sugg.type, notes: "", time: "", done: false, source: "suggestion" });
     });
     if (additions.length) commitEntries([...entries, ...additions]);
   };

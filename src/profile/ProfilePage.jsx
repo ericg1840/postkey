@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { User, Building2, Check, Download, Trash2, ImageOff, Loader2 } from "lucide-react";
+import { User, Building2, Check, Download, Trash2, ImageOff, Loader2, CalendarClock } from "lucide-react";
 import {
   UI, ACCENT, WHITE, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, mixWithWhite,
   useAgentAsset, UploadBox, TopNav,
+  loadCalendarEntries, saveCalendarEntries,
 } from "../shared.jsx";
 import { useAuth, api } from "../auth/AuthContext.jsx";
 
@@ -143,6 +144,101 @@ function PostsSection() {
           <PostThumb key={post.id} post={post} onDelete={deletePost} />
         ))}
       </div>
+    </div>
+  );
+}
+
+const PLANNED_POST_TYPES = {
+  listing: { label: "Listing", color: "#0043FF" },
+  community: { label: "Community", color: "#0F9D58" },
+  other: { label: "Other", color: "#697386" },
+};
+
+function formatPlannedDate(dateKey) {
+  return new Date(`${dateKey}T00:00:00`).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
+// Posts saved from the Content Planner — but only the ones a person actually
+// wrote themselves. The Planner also seeds days with suggestion-pool prompts
+// ("Fill my month") and Community's "Need inspiration" ideas can land here
+// too; those aren't real posts someone made, so they're left out of this
+// list entirely rather than mixed in with genuine plans.
+function PlannedPostsSection() {
+  const [entries, setEntries] = useState(() => loadCalendarEntries());
+
+  const plannedPosts = entries
+    .filter((e) => e.date && e.source !== "suggestion" && e.source !== "community")
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const togglePosted = (id) => {
+    const next = entries.map((e) => (e.id === id ? { ...e, done: !e.done } : e));
+    setEntries(next);
+    saveCalendarEntries(next);
+  };
+
+  const deletePost = (id) => {
+    const next = entries.filter((e) => e.id !== id);
+    setEntries(next);
+    saveCalendarEntries(next);
+  };
+
+  if (plannedPosts.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-16">
+        <CalendarClock size={28} style={{ color: UI.inkSoft }} />
+        <p className="font-body text-sm mt-3" style={{ color: UI.inkSoft }}>
+          Posts you plan with a date on the Content Planner will show up here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="font-body text-xs mb-5" style={{ color: UI.inkSoft }}>
+        Every post you've scheduled on the Content Planner, earliest first.
+      </p>
+      <ul className="grid gap-2">
+        {plannedPosts.map((post) => {
+          const t = PLANNED_POST_TYPES[post.type] || PLANNED_POST_TYPES.other;
+          return (
+            <li
+              key={post.id}
+              className="flex items-center gap-3 rounded-xl border px-3.5 py-3"
+              style={{ borderColor: UI.line, background: UI.card }}
+            >
+              <span className="rounded-full flex-shrink-0" style={{ width: 8, height: 8, background: t.color }} />
+              <div className="min-w-0 flex-1">
+                <span
+                  className="block font-body text-sm font-semibold truncate"
+                  style={{ color: post.done ? UI.inkSoft : UI.ink, textDecoration: post.done ? "line-through" : "none" }}
+                >
+                  {post.title}
+                </span>
+                <span className="block font-body text-xs" style={{ color: UI.inkSoft }}>
+                  {formatPlannedDate(post.date)}{post.time ? ` · ${post.time}` : ""} · {t.label}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => togglePosted(post.id)}
+                className="font-body text-xs font-semibold rounded-full px-3 py-1.5 flex-shrink-0 transition"
+                style={{ background: post.done ? UI.stone : mixWithWhite(ACCENT, 0.88), color: post.done ? UI.inkSoft : ACCENT }}
+              >
+                {post.done ? "Posted" : "Mark posted"}
+              </button>
+              <button
+                aria-label="Delete"
+                onClick={() => deletePost(post.id)}
+                className="flex items-center justify-center rounded-full flex-shrink-0 transition hover:opacity-70"
+                style={{ width: 28, height: 28, color: "#C0392B" }}
+              >
+                <Trash2 size={14} />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -354,7 +450,7 @@ function AccountSection() {
 
 export function ProfilePage({ onSwitchTool, onGoHome }) {
   const { user, brandKit, logout, saveBrandKit } = useAuth();
-  const [tab, setTab] = useState("brand"); // brand | posts | account
+  const [tab, setTab] = useState("brand"); // brand | planned | posts | account
 
   return (
     <div className="min-h-screen" style={{ background: UI.page }}>
@@ -376,6 +472,17 @@ export function ProfilePage({ onSwitchTool, onGoHome }) {
             }}
           >
             Brand
+          </button>
+          <button
+            onClick={() => setTab("planned")}
+            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
+            style={{
+              background: tab === "planned" ? UI.card : "transparent",
+              color: tab === "planned" ? UI.ink : UI.inkSoft,
+              boxShadow: tab === "planned" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+            }}
+          >
+            Planned Posts
           </button>
           <button
             onClick={() => setTab("posts")}
@@ -403,6 +510,7 @@ export function ProfilePage({ onSwitchTool, onGoHome }) {
 
         <div className="rounded-2xl border p-5 sm:p-8" style={{ background: UI.card, borderColor: UI.line }}>
           {tab === "brand" && <BrandSection brandKit={brandKit} saveBrandKit={saveBrandKit} />}
+          {tab === "planned" && <PlannedPostsSection />}
           {tab === "posts" && <PostsSection />}
           {tab === "account" && <AccountSection />}
         </div>
