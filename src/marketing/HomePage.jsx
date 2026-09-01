@@ -26,18 +26,22 @@ const EXAMPLES = [
   {
     category: "LISTING", headline: "Just Listed!", sub: "419 Tall Oaks Dr",
     caption: "Stunning 4 bed, 3 bath home with modern updates and a backyard oasis.", cta: "View more details →",
+    color: PRIMARY, houseStyle: "cottage",
   },
   {
     category: "SOLD", headline: "Sold Fast!", sub: "Another happy client",
     caption: "Multiple offers and a smooth closing from start to finish.", cta: "#SoldByPostKeyRealty",
+    color: ACCENT_PRESETS[2], houseStyle: "modern",
   },
   {
     category: "EDUCATION", headline: "3 Things Buyers Should Know", sub: "Before making an offer",
     caption: "A little knowledge now can save time, stress, and money later.", cta: "Read more →",
+    color: ACCENT_PRESETS[3], houseStyle: "bungalow",
   },
   {
     category: "LOCAL", headline: "Local Favorite!", sub: "The Kettle & Vine",
     caption: "Great coffee, friendly faces, and the perfect spot to start your day.", cta: "#SupportLocal",
+    color: ACCENT_PRESETS[4], houseStyle: "shop",
   },
 ];
 
@@ -80,19 +84,75 @@ export function PostCard({ category, headline, color = PRIMARY, rotate = 0, top,
 export function FloatingDot() { return null; }
 export function FloatingSparkle() { return null; }
 
+// A flat, single-color house illustration — gives each example post a bit
+// of real color and a sense of a real listing behind it, without pulling in
+// a photo library or breaking the page's plain, hand-drawn feel.
+function HouseArt({ color, style = "cottage" }) {
+  return (
+    <svg viewBox="0 0 400 260" width="100%" height="100%" preserveAspectRatio="xMidYMax slice">
+      <rect width="400" height="260" fill={`${color}15`} />
+      <circle cx="336" cy="46" r="24" fill={`${color}40`} />
+      <rect x="0" y="196" width="400" height="64" fill={`${color}22`} />
+
+      {style === "modern" && (
+        <g>
+          <rect x="110" y="130" width="180" height="80" fill="#FFFFFF" stroke={color} strokeWidth="3" />
+          <rect x="110" y="108" width="180" height="24" fill={color} />
+          <rect x="130" y="150" width="40" height="40" fill={`${color}33`} stroke={color} strokeWidth="2" />
+          <rect x="230" y="150" width="40" height="40" fill={`${color}33`} stroke={color} strokeWidth="2" />
+          <rect x="192" y="160" width="16" height="50" fill={color} />
+        </g>
+      )}
+
+      {style === "bungalow" && (
+        <g>
+          <polygon points="100,130 200,86 300,130" fill={color} />
+          <rect x="118" y="130" width="164" height="80" fill="#FFFFFF" stroke={color} strokeWidth="3" />
+          <rect x="184" y="162" width="32" height="48" fill={color} />
+          <circle cx="140" cy="160" r="14" fill={`${color}33`} stroke={color} strokeWidth="2" />
+          <circle cx="260" cy="160" r="14" fill={`${color}33`} stroke={color} strokeWidth="2" />
+        </g>
+      )}
+
+      {style === "shop" && (
+        <g>
+          <rect x="120" y="118" width="160" height="92" fill="#FFFFFF" stroke={color} strokeWidth="3" />
+          <rect x="112" y="102" width="176" height="24" rx="4" fill={color} />
+          <rect x="136" y="150" width="128" height="34" fill={`${color}2A`} stroke={color} strokeWidth="2" />
+          <rect x="188" y="184" width="24" height="26" fill={color} />
+        </g>
+      )}
+
+      {style === "cottage" && (
+        <g>
+          <polygon points="118,128 200,76 282,128" fill={color} />
+          <rect x="130" y="128" width="140" height="82" fill="#FFFFFF" stroke={color} strokeWidth="3" />
+          <rect x="176" y="160" width="28" height="50" fill={color} />
+          <rect x="144" y="144" width="26" height="26" fill={`${color}33`} stroke={color} strokeWidth="2" />
+          <rect x="230" y="144" width="26" height="26" fill={`${color}33`} stroke={color} strokeWidth="2" />
+        </g>
+      )}
+    </svg>
+  );
+}
+
 // A finished-looking example post — used in the "See what you can create" gallery.
-function ExampleCard({ category, headline, sub, caption, cta }) {
+function ExampleCard({ category, headline, sub, caption, cta, color = PRIMARY, houseStyle = "cottage" }) {
   return (
     <div className="rounded-2xl overflow-hidden border" style={{ background: "#FFFFFF", borderColor: AUTH.border }}>
-      <div className="relative flex flex-col justify-end p-6" style={{ height: 260, background: "#F1EFE8" }}>
+      <div className="relative flex flex-col justify-end p-6 overflow-hidden" style={{ height: 260 }}>
+        <div className="absolute inset-0">
+          <HouseArt color={color} style={houseStyle} />
+        </div>
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0) 38%, rgba(255,255,255,0.94) 96%)" }} />
         <span
-          className="absolute rounded-full font-mono font-bold"
-          style={{ top: 16, left: 16, background: "#FFFFFF", color: AUTH.ink, fontSize: "0.6rem", letterSpacing: "0.05em", padding: "5px 12px", border: `1px solid ${AUTH.border}` }}
+          className="relative rounded-full font-mono font-bold self-start mb-auto"
+          style={{ background: "#FFFFFF", color, fontSize: "0.6rem", letterSpacing: "0.05em", padding: "5px 12px", border: `1px solid ${AUTH.border}` }}
         >
           {category}
         </span>
-        <h4 className="font-display font-bold" style={{ color: AUTH.ink, fontSize: "1.5rem", lineHeight: 1.15 }}>{headline}</h4>
-        <p className="font-body text-sm mt-1" style={{ color: AUTH.muted }}>{sub}</p>
+        <h4 className="relative font-display font-bold" style={{ color: AUTH.ink, fontSize: "1.5rem", lineHeight: 1.15 }}>{headline}</h4>
+        <p className="relative font-body text-sm mt-1" style={{ color: AUTH.muted }}>{sub}</p>
       </div>
       <div className="flex items-center gap-3 px-4 pt-3" style={{ color: AUTH.muted }}>
         <Heart size={16} />
@@ -103,7 +163,7 @@ function ExampleCard({ category, headline, sub, caption, cta }) {
       <div className="flex items-start gap-2 px-4 pt-2.5 pb-4">
         <div className="rounded-full flex-shrink-0 mt-0.5" style={{ width: 20, height: 20, background: AUTH.border }} />
         <p className="font-body text-xs" style={{ color: AUTH.muted, lineHeight: 1.55 }}>
-          {caption} <span className="font-semibold" style={{ color: PRIMARY }}>{cta}</span>
+          {caption} <span className="font-semibold" style={{ color }}>{cta}</span>
         </p>
       </div>
     </div>
@@ -248,21 +308,23 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
         </div>
       </section>
 
-      {/* WHY REAL ESTATE */}
-      <section className="max-w-3xl mx-auto px-6 sm:px-10 py-14 sm:py-16 text-center border-t" style={{ borderColor: AUTH.border }}>
-        <h2 className="font-display font-bold" style={{ color: AUTH.ink, fontSize: "1.5rem" }}>
-          Built specifically for busy real estate agents.
-        </h2>
-        <p className="font-body text-sm mt-3 mx-auto" style={{ color: AUTH.muted, maxWidth: 480 }}>
-          Not a generic caption generator — every idea, template, and headline is built around what agents actually post.
-        </p>
+      {/* WHY REAL ESTATE — full-bleed color band to break up the page */}
+      <section style={{ background: `${PRIMARY}0F` }}>
+        <div className="max-w-3xl mx-auto px-6 sm:px-10 py-14 sm:py-16 text-center">
+          <h2 className="font-display font-bold" style={{ color: AUTH.ink, fontSize: "1.5rem" }}>
+            Built specifically for busy real estate agents.
+          </h2>
+          <p className="font-body text-sm mt-3 mx-auto" style={{ color: AUTH.muted, maxWidth: 480 }}>
+            Not a generic caption generator — every idea, template, and headline is built around what agents actually post.
+          </p>
 
-        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2.5 mt-8">
-          {CONTENT_TYPES.map((label) => (
-            <span key={label} className="font-body text-sm" style={{ color: AUTH.ink }}>
-              {label}
-            </span>
-          ))}
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2.5 mt-8">
+            {CONTENT_TYPES.map((label) => (
+              <span key={label} className="font-body text-sm font-semibold" style={{ color: PRIMARY }}>
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -328,22 +390,22 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
         </div>
       </section>
 
-      {/* BRAND KIT */}
-      <section className="border-t" style={{ borderColor: AUTH.border }}>
+      {/* BRAND KIT — bold full-bleed color band */}
+      <section style={{ background: AUTH.ink }}>
         <div className="max-w-4xl mx-auto px-6 sm:px-10 py-16 sm:py-20 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
           <div className="text-center lg:text-left">
-            <span className="font-mono font-bold" style={{ color: AUTH.muted, letterSpacing: "0.06em", fontSize: "0.7rem" }}>
+            <span className="font-mono font-bold" style={{ color: PRIMARY, letterSpacing: "0.06em", fontSize: "0.7rem" }}>
               SET YOUR BRAND ONCE
             </span>
-            <h2 className="font-display font-bold mt-3" style={{ color: AUTH.ink, fontSize: "1.7rem", lineHeight: 1.2 }}>
+            <h2 className="font-display font-bold mt-3" style={{ color: "#FFFFFF", fontSize: "1.7rem", lineHeight: 1.2 }}>
               Set your brand once. PostKey remembers the rest.
             </h2>
-            <p className="font-body text-sm mt-4 mx-auto lg:mx-0" style={{ color: AUTH.muted, maxWidth: 360 }}>
+            <p className="font-body text-sm mt-4 mx-auto lg:mx-0" style={{ color: "rgba(255,255,255,0.65)", maxWidth: 360 }}>
               Add your branding and contact info once and we'll apply it to every post you create.
             </p>
             <div className="flex flex-wrap justify-center lg:justify-start gap-x-5 gap-y-2 mt-6">
               {["Logo", "Colors", "Fonts", "Headshot", "Contact Info"].map((label) => (
-                <span key={label} className="font-body text-xs" style={{ color: AUTH.muted }}>
+                <span key={label} className="font-body text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>
                   {label}
                 </span>
               ))}
@@ -351,7 +413,7 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
             <button
               onClick={onGetStarted}
               className="font-body font-semibold rounded-full px-6 py-3.5 mt-8 transition hover:opacity-85"
-              style={{ background: AUTH.ink, color: "#FFFFFF", fontSize: "0.95rem" }}
+              style={{ background: PRIMARY, color: "#FFFFFF", fontSize: "0.95rem" }}
             >
               Set Up My Brand
             </button>
@@ -382,8 +444,8 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
         </div>
       </section>
 
-      {/* FINAL CTA */}
-      <section className="border-t" style={{ borderColor: AUTH.border }}>
+      {/* FINAL CTA — light full-bleed color band, echoes the strip above */}
+      <section style={{ background: `${ACCENT_PRESETS[3]}12` }}>
         <div className="max-w-2xl mx-auto px-6 py-16 sm:py-20 text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Logo size={22} />
