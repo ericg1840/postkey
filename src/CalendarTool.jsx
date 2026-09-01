@@ -790,16 +790,17 @@ function EntryModal({ editing, setEditing, onSave, onDelete, onCreatePost, onClo
           </label>
 
           <div className="grid grid-cols-2 gap-3">
-            <label className="block">
+            <label className="block min-w-0">
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>DATE</span>
               <input
                 type="date"
                 className="input"
+                style={{ minWidth: 0 }}
                 value={editing.date}
                 onChange={(e) => setEditing((f) => ({ ...f, date: e.target.value }))}
               />
             </label>
-            <label className="block">
+            <label className="block min-w-0">
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>TIME (optional)</span>
               <input
                 className="input"
