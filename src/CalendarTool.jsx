@@ -734,8 +734,9 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                     const label = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
                     return (
                       <li key={dateKey}>
-                        <button type="button" onClick={() => openSuggestion(dateKey, suggestion)} className="text-left w-full font-body text-xs" style={{ color: UI.inkSoft }}>
-                          <span className="font-mono font-semibold">{label}</span>{" — "}{suggestion.emoji || "✨"} {suggestion.title}
+                        <button type="button" onClick={() => openSuggestion(dateKey, suggestion)} className="flex items-baseline gap-2 text-left w-full font-body text-xs" style={{ color: UI.inkSoft }}>
+                          <span className="font-mono font-semibold flex-shrink-0" style={{ minWidth: "3.25rem" }}>{label}</span>
+                          <span className="truncate">— {suggestion.emoji || "✨"} {suggestion.title}</span>
                         </button>
                       </li>
                     );
