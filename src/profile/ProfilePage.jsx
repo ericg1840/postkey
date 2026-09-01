@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { User, Building2, Check, Download, Trash2, ImageOff, Loader2, CalendarDays } from "lucide-react";
+import { User, Building2, Check, Download, Trash2, ImageOff, Loader2, CalendarDays, X } from "lucide-react";
 import {
   UI, ACCENT, WHITE, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, mixWithWhite,
-  useAgentAsset, UploadBox, TopNav, loadCalendarEntries,
+  useAgentAsset, UploadBox, TopNav, loadCalendarEntries, saveCalendarEntries, writePostHandoff,
 } from "../shared.jsx";
 import { useAuth, api } from "../auth/AuthContext.jsx";
 
@@ -173,6 +173,24 @@ function PlannedPostsSection({ onSwitchTool }) {
     return () => window.removeEventListener("focus", onFocus);
   }, []);
 
+  // Removes it here AND from the Planner — they share the same saved list,
+  // so there's only one copy to delete.
+  const removeEntry = (id) => {
+    const next = entries.filter((e) => e.id !== id);
+    setEntries(next);
+    saveCalendarEntries(next);
+  };
+
+  // The idea stays saved (so it's still here to come back to) — this just
+  // jumps straight into whichever tool builds that kind of post, prefilled
+  // with its title, same as "Create this post" does inside the Planner.
+  const createFromEntry = (entry) => {
+    const targetTool = entry.type === "listing" ? "listings" : "community";
+    const field = entry.type === "listing" ? "address" : "subject";
+    writePostHandoff({ tool: targetTool, field, value: entry.title });
+    onSwitchTool(targetTool);
+  };
+
   const upcoming = entries
     .filter((e) => e.date && e.date >= todayKey && !e.done)
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -200,7 +218,7 @@ function PlannedPostsSection({ onSwitchTool }) {
   return (
     <div>
       <p className="font-body text-xs mb-5" style={{ color: UI.inkSoft }}>
-        Saved from the Content Planner. Click one to jump back in and finish it.
+        Saved from the Content Planner. Click one to start building that post — it stays saved here either way. Hover for the × to remove it.
       </p>
       {upcoming.length > 0 && (
         <ul className="grid gap-2 mb-5">
@@ -208,11 +226,11 @@ function PlannedPostsSection({ onSwitchTool }) {
             const t = plannedTypeInfo(entry.type);
             const label = new Date(`${entry.date}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
             return (
-              <li key={entry.id}>
+              <li key={entry.id} className="relative group">
                 <button
                   type="button"
-                  onClick={() => onSwitchTool("calendar")}
-                  className="flex items-center justify-between gap-3 w-full text-left px-3 py-2.5 rounded-lg border transition hover:opacity-90"
+                  onClick={() => createFromEntry(entry)}
+                  className="flex items-center justify-between gap-3 w-full text-left pl-3 pr-8 py-2.5 rounded-lg border transition hover:opacity-90"
                   style={{ borderColor: UI.line, background: mixWithWhite(t.color, 0.94) }}
                 >
                   <span className="min-w-0">
@@ -223,6 +241,15 @@ function PlannedPostsSection({ onSwitchTool }) {
                     <span className="block font-body text-xs mt-0.5" style={{ marginLeft: "0.9rem", color: UI.inkSoft }}>{t.label} post</span>
                   </span>
                   <span className="font-mono flex-shrink-0" style={{ fontSize: "0.68rem", color: UI.inkSoft }}>{label}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeEntry(entry.id)}
+                  aria-label={`Remove ${entry.title}`}
+                  className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 focus:opacity-100 transition flex items-center justify-center rounded-full"
+                  style={{ right: 8, width: 18, height: 18, color: UI.inkSoft }}
+                >
+                  <X size={14} />
                 </button>
               </li>
             );
@@ -236,14 +263,23 @@ function PlannedPostsSection({ onSwitchTool }) {
             {undated.map((entry) => {
               const t = plannedTypeInfo(entry.type);
               return (
-                <li key={entry.id}>
+                <li key={entry.id} className="relative group">
                   <button
                     type="button"
-                    onClick={() => onSwitchTool("calendar")}
-                    className="w-full text-left px-3 py-2.5 rounded-lg border font-body text-sm transition hover:opacity-90"
+                    onClick={() => createFromEntry(entry)}
+                    className="w-full text-left pl-3 pr-8 py-2.5 rounded-lg border font-body text-sm transition hover:opacity-90"
                     style={{ borderColor: UI.line, color: UI.ink }}
                   >
                     {t.emoji} {entry.title}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeEntry(entry.id)}
+                    aria-label={`Remove ${entry.title}`}
+                    className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 focus:opacity-100 transition flex items-center justify-center rounded-full"
+                    style={{ right: 8, width: 18, height: 18, color: UI.inkSoft }}
+                  >
+                    <X size={14} />
                   </button>
                 </li>
               );
