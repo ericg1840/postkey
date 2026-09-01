@@ -8,6 +8,7 @@ import {
   Accordion, PrivacyBadge, splitHeadlineLastWord, drawHouseBackdrop, useDefaultImage, firstNameOf,
   peekPostHandoff, clearPostHandoff, shareImageToFacebook,
   loadCalendarEntries, saveCalendarEntries, genCalendarEntryId,
+  peekDraftHandoff, clearDraftHandoff, loadPostDrafts, SaveForLaterButton,
 } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 
@@ -218,9 +219,19 @@ const DEFAULTS = {
 
 export function CommunityTool({ onSwitchTool, onGoHome }) {
   const { user, brandKit, logout } = useAuth();
+  // See ListingTool for why a draft handoff takes priority over a plain
+  // field handoff when restoring the form on mount.
+  const [draftId, setDraftId] = useState(() => {
+    const id = peekDraftHandoff();
+    if (!id) return null;
+    const draft = loadPostDrafts().find((d) => d.id === id && d.tool === "community");
+    return draft ? id : null;
+  });
   const [form, setForm] = useState(() => {
     const agentName = brandKit?.agentName ?? DEFAULTS.agentName;
-    const handoff = peekPostHandoff("community");
+    const draftHandoffId = peekDraftHandoff();
+    const draft = draftHandoffId ? loadPostDrafts().find((d) => d.id === draftHandoffId && d.tool === "community") : null;
+    const handoff = draft ? null : peekPostHandoff("community");
     return {
       ...DEFAULTS,
       agentName,
@@ -235,6 +246,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
       scriptFont: brandKit?.scriptFont || DEFAULTS.scriptFont,
       badgeText: DEFAULTS.badgeText.replace("{agent}", firstNameOf(agentName)),
       ...(handoff ? { [handoff.field]: handoff.value } : null),
+      ...(draft ? draft.form : null),
     };
   });
   const [fontsReady, setFontsReady] = useState(false);
@@ -246,7 +258,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
 
   const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  useEffect(() => { clearPostHandoff(); }, []);
+  useEffect(() => { clearPostHandoff(); clearDraftHandoff(); }, []);
 
   useEffect(() => {
     Promise.all([
@@ -1678,6 +1690,17 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                       )}
                     </div>
                   )}
+                </div>
+
+                <div className="flex justify-center mt-1">
+                  <SaveForLaterButton
+                    tool="community"
+                    label={form.subject}
+                    typeLabel={activeTemplate?.label}
+                    form={form}
+                    draftId={draftId}
+                    setDraftId={setDraftId}
+                  />
                 </div>
               </div>
 

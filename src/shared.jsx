@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { X, ChevronDown, Lock } from "lucide-react";
+import { X, ChevronDown, Lock, Bookmark } from "lucide-react";
 
 // The Web Share API is also implemented by some desktop browsers now, which
 // makes the "share instead of download" trick misfire on laptops — gate it
@@ -823,6 +823,128 @@ export function saveCalendarEntries(entries) {
 
 export function genCalendarEntryId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// Post drafts — a "Save for later" snapshot of a Listing/Community post's
+// full form (everything except the uploaded photos, which live only in
+// memory and never get persisted) so someone can sit down, rough out a
+// week or month of posts, and pick each one back up later from Profile
+// instead of finishing it in one sitting.
+export const POST_DRAFTS_STORAGE_KEY = "postkey_post_drafts";
+
+export function loadPostDrafts() {
+  try {
+    const raw = localStorage.getItem(POST_DRAFTS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function savePostDrafts(drafts) {
+  try {
+    localStorage.setItem(POST_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+  } catch {
+    // localStorage unavailable (private browsing, etc) — drafts just won't persist across refreshes.
+  }
+}
+
+export function genPostDraftId() {
+  return `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// One-shot handback from Profile's Drafts list — like POST_HANDOFF_KEY
+// above, but carries a whole saved draft's id instead of a single field,
+// so Listing/Community can restore every field of a post someone saved
+// for later instead of just prefilling one.
+const DRAFT_HANDOFF_KEY = "postkey_draft_handoff";
+
+export function writeDraftHandoff(draftId) {
+  try {
+    sessionStorage.setItem(DRAFT_HANDOFF_KEY, draftId);
+  } catch {
+    // ignore
+  }
+}
+
+export function peekDraftHandoff() {
+  try {
+    return sessionStorage.getItem(DRAFT_HANDOFF_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function clearDraftHandoff() {
+  try {
+    sessionStorage.removeItem(DRAFT_HANDOFF_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+// Shared "Save for later" control for Listing/Community's create-a-post
+// tools — a small popover so someone can optionally pin a target date
+// before stashing the current form as a draft, without leaving the tool
+// or losing their place. Photos aren't included (they only ever live in
+// memory as blobs), so re-adding them is the one thing "quick edit" can't
+// skip.
+export function SaveForLaterButton({ tool, label, typeLabel, form, draftId, setDraftId }) {
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  const save = () => {
+    const drafts = loadPostDrafts();
+    const id = draftId || genPostDraftId();
+    const record = {
+      id,
+      tool,
+      label: (label || "").trim() || "Untitled post",
+      typeLabel: typeLabel || "",
+      date: date || null,
+      form,
+      updatedAt: new Date().toISOString(),
+    };
+    const exists = drafts.some((d) => d.id === id);
+    savePostDrafts(exists ? drafts.map((d) => (d.id === id ? record : d)) : [...drafts, record]);
+    setDraftId(id);
+    setSaved(true);
+    setOpen(false);
+  };
+
+  return (
+    <div className="relative inline-block">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="font-body text-xs font-semibold underline underline-offset-2 flex items-center gap-1.5 transition"
+        style={{ color: saved ? ACCENT : UI.inkSoft }}
+      >
+        <Bookmark size={13} /> {saved ? "Saved for later ✓" : "Save for later"}
+      </button>
+      {open && (
+        <div
+          className="absolute z-20 mt-2 rounded-lg border p-3.5"
+          style={{ background: UI.card, borderColor: UI.line, boxShadow: "0 8px 24px rgba(27,36,48,0.18)", minWidth: 230 }}
+        >
+          <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>DATE (optional)</span>
+          <input type="date" className="input" style={{ minWidth: 0 }} value={date} onChange={(e) => setDate(e.target.value)} />
+          <p className="font-body text-xs mt-2 mb-3" style={{ color: UI.inkSoft }}>
+            Saves everything except your photos — you'll re-add those when you finish it.
+          </p>
+          <button
+            type="button"
+            onClick={save}
+            className="w-full py-2 rounded-lg font-body font-semibold text-xs transition"
+            style={{ background: ACCENT, color: WHITE }}
+          >
+            Save draft
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // "Just SOLD!" -> { lead: "Just", emphasis: "SOLD!" } and back — lets the

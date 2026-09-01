@@ -10,6 +10,7 @@ import {
   useUploadedImage, useAgentAsset, UploadBox, PhotoReposition, TopNav, isMobileDevice,
   Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord, firstNameOf,
   peekPostHandoff, clearPostHandoff, shareImageToFacebook,
+  peekDraftHandoff, clearDraftHandoff, loadPostDrafts, SaveForLaterButton,
 } from "./shared.jsx";
 import { useAuth, api } from "./auth/AuthContext.jsx";
 
@@ -102,9 +103,21 @@ function StepHeading({ n, title, subtitle }) {
 
 export function ListingTool({ onSwitchTool, onGoHome }) {
   const { user, brandKit, logout } = useAuth();
+  // A draft handoff (from Profile's "Edit" on a saved-for-later post)
+  // restores the whole form as it was saved; a plain field handoff (from
+  // the Planner's "Create this post") only ever prefills one field, so
+  // the draft takes priority when both are somehow present.
+  const [draftId, setDraftId] = useState(() => {
+    const id = peekDraftHandoff();
+    if (!id) return null;
+    const draft = loadPostDrafts().find((d) => d.id === id && d.tool === "listings");
+    return draft ? id : null;
+  });
   const [form, setForm] = useState(() => {
     const agentName = brandKit?.agentName ?? DEFAULTS.agentName;
-    const handoff = peekPostHandoff("listings");
+    const draftHandoffId = peekDraftHandoff();
+    const draft = draftHandoffId ? loadPostDrafts().find((d) => d.id === draftHandoffId && d.tool === "listings") : null;
+    const handoff = draft ? null : peekPostHandoff("listings");
     return {
       ...DEFAULTS,
       agentName,
@@ -119,6 +132,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       scriptFont: brandKit?.scriptFont || DEFAULTS.scriptFont,
       badgeText: DEFAULTS.badgeText.replace("{agent}", firstNameOf(agentName)),
       ...(handoff ? { [handoff.field]: handoff.value } : null),
+      ...(draft ? draft.form : null),
     };
   });
   const [fontsReady, setFontsReady] = useState(false);
@@ -132,7 +146,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
   const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  useEffect(() => { clearPostHandoff(); }, []);
+  useEffect(() => { clearPostHandoff(); clearDraftHandoff(); }, []);
 
   useEffect(() => {
     Promise.all([
@@ -1183,6 +1197,16 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               {downloadError && (
                 <p className="font-body text-xs mt-2" style={{ color: ERROR }}>{downloadError}</p>
               )}
+              <div className="flex justify-center mt-3">
+                <SaveForLaterButton
+                  tool="listings"
+                  label={form.address}
+                  typeLabel={TEMPLATES[form.template]?.label}
+                  form={form}
+                  draftId={draftId}
+                  setDraftId={setDraftId}
+                />
+              </div>
             </div>
           </div>
         </div>

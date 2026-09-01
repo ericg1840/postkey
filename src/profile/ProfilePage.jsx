@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { User, Building2, Check, Download, Trash2, ImageOff, Loader2, CalendarClock } from "lucide-react";
+import { User, Building2, Check, Download, Trash2, ImageOff, Loader2, CalendarClock, FileEdit, Pencil } from "lucide-react";
 import {
   UI, ACCENT, WHITE, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, mixWithWhite,
   useAgentAsset, UploadBox, TopNav,
   loadCalendarEntries, saveCalendarEntries,
+  loadPostDrafts, savePostDrafts, writeDraftHandoff,
 } from "../shared.jsx";
 import { useAuth, api } from "../auth/AuthContext.jsx";
 
@@ -243,6 +244,88 @@ function PlannedPostsSection() {
   );
 }
 
+const DRAFT_TOOL_LABELS = { listings: "Listing", community: "Community" };
+
+// Posts saved with "Save for later" from the Listing/Community tools —
+// the full form someone filled in, minus photos (which only ever live in
+// memory), so a person can rough out a batch of posts in one sitting and
+// come back to finish each one instead of starting from scratch.
+function DraftsSection({ onSwitchTool }) {
+  const [drafts, setDrafts] = useState(() => loadPostDrafts());
+
+  const sorted = [...drafts].sort((a, b) => {
+    if (a.date && b.date) return a.date.localeCompare(b.date);
+    if (a.date) return -1;
+    if (b.date) return 1;
+    return (b.updatedAt || "").localeCompare(a.updatedAt || "");
+  });
+
+  const editDraft = (draft) => {
+    writeDraftHandoff(draft.id);
+    onSwitchTool(draft.tool);
+  };
+
+  const deleteDraft = (id) => {
+    const next = drafts.filter((d) => d.id !== id);
+    setDrafts(next);
+    savePostDrafts(next);
+  };
+
+  if (drafts.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-16">
+        <FileEdit size={28} style={{ color: UI.inkSoft }} />
+        <p className="font-body text-sm mt-3" style={{ color: UI.inkSoft }}>
+          Posts you save for later from Listings or Community will show up here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="font-body text-xs mb-5" style={{ color: UI.inkSoft }}>
+        Rough out a batch of posts, then come back and finish each one — photos aren't saved, so you'll re-add those.
+      </p>
+      <ul className="grid gap-2">
+        {sorted.map((draft) => (
+          <li
+            key={draft.id}
+            className="flex items-center gap-3 rounded-xl border px-3.5 py-3"
+            style={{ borderColor: UI.line, background: UI.card }}
+          >
+            <div className="min-w-0 flex-1">
+              <span className="block font-body text-sm font-semibold truncate" style={{ color: UI.ink }}>
+                {draft.label || "Untitled post"}
+              </span>
+              <span className="block font-body text-xs" style={{ color: UI.inkSoft }}>
+                {DRAFT_TOOL_LABELS[draft.tool] || draft.tool}{draft.typeLabel ? ` · ${draft.typeLabel}` : ""}
+                {draft.date ? ` · ${formatPlannedDate(draft.date)}` : " · No date set"}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => editDraft(draft)}
+              className="font-body text-xs font-semibold rounded-full px-3 py-1.5 flex-shrink-0 flex items-center gap-1.5 transition"
+              style={{ background: mixWithWhite(ACCENT, 0.88), color: ACCENT }}
+            >
+              <Pencil size={12} /> Edit
+            </button>
+            <button
+              aria-label="Delete"
+              onClick={() => deleteDraft(draft.id)}
+              className="flex items-center justify-center rounded-full flex-shrink-0 transition hover:opacity-70"
+              style={{ width: 28, height: 28, color: "#C0392B" }}
+            >
+              <Trash2 size={14} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 // A small, non-canvas mockup of the contact band every post carries — lets
 // an agent see the effect of a brand-kit change (color, font, logo) without
 // switching tools and rebuilding a real post.
@@ -450,7 +533,7 @@ function AccountSection() {
 
 export function ProfilePage({ onSwitchTool, onGoHome }) {
   const { user, brandKit, logout, saveBrandKit } = useAuth();
-  const [tab, setTab] = useState("brand"); // brand | planned | posts | account
+  const [tab, setTab] = useState("brand"); // brand | drafts | planned | posts | account
 
   return (
     <div className="min-h-screen" style={{ background: UI.page }}>
@@ -472,6 +555,17 @@ export function ProfilePage({ onSwitchTool, onGoHome }) {
             }}
           >
             Brand
+          </button>
+          <button
+            onClick={() => setTab("drafts")}
+            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
+            style={{
+              background: tab === "drafts" ? UI.card : "transparent",
+              color: tab === "drafts" ? UI.ink : UI.inkSoft,
+              boxShadow: tab === "drafts" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+            }}
+          >
+            Drafts
           </button>
           <button
             onClick={() => setTab("planned")}
@@ -510,6 +604,7 @@ export function ProfilePage({ onSwitchTool, onGoHome }) {
 
         <div className="rounded-2xl border p-5 sm:p-8" style={{ background: UI.card, borderColor: UI.line }}>
           {tab === "brand" && <BrandSection brandKit={brandKit} saveBrandKit={saveBrandKit} />}
+          {tab === "drafts" && <DraftsSection onSwitchTool={onSwitchTool} />}
           {tab === "planned" && <PlannedPostsSection />}
           {tab === "posts" && <PostsSection />}
           {tab === "account" && <AccountSection />}
