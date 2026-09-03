@@ -226,12 +226,12 @@ function drawRibbonIcon(ctx, icon, cx, topY, d, bg) {
 // sections on desktop read as a sequence at a glance, matching the badges
 // in the step indicator at the top of the page instead of relying on a
 // small "N." prefix in the heading text alone.
-function StepHeading({ n, title, subtitle }) {
+function StepHeading({ n, title, subtitle, color = ACCENT }) {
   return (
     <div className="flex items-start gap-2.5 mb-2.5">
       <span
-        className="flex items-center justify-center rounded-full font-body text-xs font-semibold flex-shrink-0"
-        style={{ width: 22, height: 22, background: ACCENT, color: WHITE, marginTop: 1 }}
+        className="flex items-center justify-center rounded-full font-body text-xs font-bold flex-shrink-0"
+        style={{ width: 22, height: 22, background: color, color: WHITE, marginTop: 1 }}
       >
         {n}
       </span>
@@ -1279,21 +1279,28 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         {/* STEP 1 — full page width, no preview alongside it */}
         <div className={`${mobileStep === 1 ? "" : "hidden"} lg:block mb-8 lg:mb-10`}>
           <section ref={(el) => { sectionRefs.current[1] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
-            <StepHeading n={1} title="What are you creating?" subtitle="Choose the type of post — this decides which fields you'll fill in next." />
+            <StepHeading n={1} title="What are you creating?" subtitle="Choose the type of post — this decides which fields you'll fill in next." color={ACCENT_PRESETS[0]} />
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {Object.entries(TEMPLATES).map(([key, t]) => {
                 const selected = form.template === key;
                 const Icon = t.icon;
                 return (
                   <button key={key} onClick={() => chooseTemplate(key)}
-                    className="relative text-left p-4 rounded-xl border-2 transition"
-                    style={{ borderColor: selected ? ACCENT : UI.line, background: selected ? mixWithWhite(ACCENT, 0.92) : UI.card }}>
+                    className="relative text-left p-4 rounded-xl transition"
+                    style={{
+                      borderWidth: selected ? 2.5 : 2,
+                      borderStyle: "solid",
+                      borderColor: selected ? t.color : UI.line,
+                      background: selected ? mixWithWhite(t.color, 0.92) : UI.card,
+                    }}>
                     {selected && (
-                      <span className="absolute top-2.5 right-2.5 flex items-center justify-center rounded-full" style={{ width: 20, height: 20, background: ACCENT }}>
+                      <span className="absolute top-2.5 right-2.5 flex items-center justify-center rounded-full" style={{ width: 20, height: 20, background: t.color }}>
                         <Check size={13} color={WHITE} strokeWidth={3} />
                       </span>
                     )}
-                    <Icon size={26} color={t.color} strokeWidth={1.75} />
+                    <span className="flex items-center justify-center rounded-lg" style={{ width: 38, height: 38, background: selected ? t.color : mixWithWhite(t.color, 0.87) }}>
+                      <Icon size={19} color={selected ? WHITE : t.color} strokeWidth={2} />
+                    </span>
                     <div className="font-body text-sm font-bold mt-2.5" style={{ color: UI.ink }}>{t.label}</div>
                     <div className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>{t.description}</div>
                   </button>
@@ -1315,7 +1322,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         {/* MAIN GRID: controls + preview */}
         <div className="grid lg:grid-cols-[55fr_45fr] gap-8 items-start">
           {/* LEFT: CONTROLS */}
-          <div className={mobileStep === 1 || mobileStep === 3 ? "hidden lg:grid lg:gap-6" : "grid gap-6"}>
+          <div className={mobileStep === 1 || mobileStep === 3 ? "hidden lg:grid lg:gap-6 lg:col-start-1" : "grid gap-6 lg:col-start-1"}>
             <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section ref={(el) => { sectionRefs.current[2] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
               <StepHeading n={2} title="Add your listing & choose a design" subtitle="Pick a look first — it decides how many photos you'll need — then fill in the rest." />
@@ -1325,8 +1332,13 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 {STYLE_OPTIONS.map(({ key, label, description }) => (
                   <button key={key} type="button" onClick={() => setForm((f) => ({ ...f, layout: key }))}
                     aria-label={`${label} — ${description}`}
-                    className="text-left rounded-lg border-2 overflow-hidden transition"
-                    style={{ borderColor: form.layout === key ? ACCENT : UI.line, background: UI.card }}>
+                    className="text-left rounded-lg overflow-hidden transition"
+                    style={{
+                      borderWidth: form.layout === key ? 2.5 : 2,
+                      borderStyle: "solid",
+                      borderColor: form.layout === key ? ACCENT : UI.line,
+                      background: UI.card,
+                    }}>
                     <div style={{ background: UI.stone }}>
                       <canvas
                         ref={(el) => { styleThumbRefs.current[key] = el; }}
@@ -1364,7 +1376,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 </div>
               )}
 
-              <div className="rounded-2xl border p-4 sm:p-5 mt-5" style={{ background: UI.card, borderColor: UI.line }}>
+              <div className="rounded-2xl p-4 sm:p-5 mt-5" style={{ background: UI.card, border: `2px solid ${UI.ink}` }}>
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LISTING DETAILS</span>
                 {form.layout !== "modern" && form.layout !== "signature" && (
                   <label className="block">
@@ -1588,7 +1600,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           </div>
 
           {/* RIGHT: PREVIEW */}
-          <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "1.5rem", scrollMarginTop: "1.5rem" }}>
+          <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "lg:sticky lg:col-start-2 lg:row-span-full" : "hidden lg:block lg:sticky lg:col-start-2 lg:row-span-full"} style={{ top: "calc(82px + 1.5rem)", scrollMarginTop: "calc(82px + 1.5rem)" }}>
             {mobileStep === 3 && (
               <button type="button" onClick={() => goToStep(2)}
                 className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2"
@@ -1596,7 +1608,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 ← Back to Details &amp; Design
               </button>
             )}
-            <div className="rounded-2xl border p-2.5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
+            <div className="rounded-2xl p-2.5 sm:p-6" style={{ background: UI.card, border: `2.5px solid ${UI.ink}` }}>
               <div className="flex items-center justify-between mb-2.5 sm:mb-4 flex-wrap gap-2">
                 <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Preview</span>
                 <div className="grid grid-cols-2 sm:flex sm:items-center gap-1 p-1 rounded-xl" style={{ background: UI.stone }}>
@@ -1632,16 +1644,16 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 <button
                   onClick={downloadImage}
                   disabled={downloading}
-                  className="py-3 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
-                  style={{ background: ACCENT, color: WHITE }}
+                  className="py-3 rounded-lg font-body font-bold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                  style={{ background: ACCENT, color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
                 >
                   <Download size={16} /> {downloading ? "Preparing…" : "Download"}
                 </button>
                 <button
                   onClick={shareToFacebook}
                   disabled={sharingFacebook}
-                  className="py-3 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
-                  style={{ background: "#1877F2", color: WHITE }}
+                  className="py-3 rounded-lg font-body font-bold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                  style={{ background: "#1877F2", color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
                 >
                   <Facebook size={16} /> {sharingFacebook ? "Preparing…" : "Share to Facebook"}
                 </button>
@@ -1661,9 +1673,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-start gap-3 mt-6 p-4 rounded-xl" style={{ background: UI.stone }}>
+        <div className="flex items-start gap-3 mt-6 p-4 rounded-xl lg:col-start-1" style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}>
           <Lightbulb size={18} color={UI.inkSoft} className="flex-shrink-0 mt-0.5" />
           <div>
             <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Tip: {tip.lead} </span>
@@ -1671,7 +1682,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           </div>
         </div>
 
-        <div className="hidden lg:block">
+        <div className="hidden lg:block lg:col-start-1">
         <div className="mt-8">
           <PrivacyBadge />
         </div>
@@ -1721,6 +1732,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               ))}
             </div>
           </div>
+        </div>
         </div>
         </div>
       </main>

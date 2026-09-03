@@ -1574,7 +1574,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
           </div>
 
           {/* RIGHT: PREVIEW */}
-          <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "1.5rem", scrollMarginTop: "1.5rem" }}>
+          <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "calc(82px + 1.5rem)", scrollMarginTop: "calc(82px + 1.5rem)" }}>
             {mobileStep === 3 && (
               <button type="button" onClick={() => setMobileStep(2)}
                 className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2"

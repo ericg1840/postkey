@@ -440,8 +440,10 @@ export function UploadBox({ label, icon: Icon, state, hint, large = false, requi
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); state.load(e.dataTransfer.files[0]); }}
         onClick={() => inputRef.current?.click()}
-        className={`rounded-xl border-2 border-dashed cursor-pointer transition ${large ? "flex flex-col items-center justify-center text-center gap-2" : "flex items-center gap-2.5"}`}
+        className={`rounded-xl border-dashed cursor-pointer transition ${large ? "flex flex-col items-center justify-center text-center gap-2" : "flex items-center gap-2.5"}`}
         style={{
+          borderWidth: 3,
+          borderStyle: "dashed",
           borderColor: dragOver ? ACCENT : "#B9C1CC",
           background: dragOver ? mixWithWhite(ACCENT, 0.93) : UI.card,
           padding: large ? "1.75rem 1rem" : "0.9rem 1rem",
@@ -597,7 +599,7 @@ export function GlobalStyles() {
 // Shared top bar: brand mark + the tab switcher between the two tools.
 export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
   return (
-    <header className="sticky top-0 z-50 border-b" style={{ borderColor: UI.line, background: UI.page, paddingTop: "env(safe-area-inset-top)" }}>
+    <header className="sticky top-0 z-50" style={{ borderBottom: `2px solid ${UI.ink}`, background: UI.page, paddingTop: "env(safe-area-inset-top)" }}>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-5 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         {onLogoClick ? (
           <button type="button" onClick={onLogoClick} className="flex items-center gap-2">
@@ -610,58 +612,53 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
             <span className="font-display font-bold text-xl" style={{ color: UI.ink }}>PostKey</span>
           </div>
         )}
-        <nav className="flex items-center gap-1 p-1 rounded-full" style={{ background: UI.stone }}>
+        <nav className="flex items-center gap-1 p-1 rounded-full" style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}>
           <button
             onClick={() => onSwitch("listings")}
-            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
+            className="px-4 py-1.5 rounded-full font-body text-xs font-bold transition"
             style={{
-              background: active === "listings" ? UI.card : "transparent",
-              color: active === "listings" ? UI.ink : UI.inkSoft,
-              boxShadow: active === "listings" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+              background: active === "listings" ? ACCENT : "transparent",
+              color: active === "listings" ? WHITE : UI.inkSoft,
             }}
           >
             Listings
           </button>
           <button
             onClick={() => onSwitch("community")}
-            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
+            className="px-4 py-1.5 rounded-full font-body text-xs font-bold transition"
             style={{
-              background: active === "community" ? UI.card : "transparent",
-              color: active === "community" ? UI.ink : UI.inkSoft,
-              boxShadow: active === "community" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+              background: active === "community" ? ACCENT : "transparent",
+              color: active === "community" ? WHITE : UI.inkSoft,
             }}
           >
             Community
           </button>
           <button
             onClick={() => onSwitch("calendar")}
-            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
+            className="px-4 py-1.5 rounded-full font-body text-xs font-bold transition"
             style={{
-              background: active === "calendar" ? UI.card : "transparent",
-              color: active === "calendar" ? UI.ink : UI.inkSoft,
-              boxShadow: active === "calendar" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+              background: active === "calendar" ? ACCENT : "transparent",
+              color: active === "calendar" ? WHITE : UI.inkSoft,
             }}
           >
             Planner
           </button>
           <button
             onClick={() => onSwitch("description")}
-            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
+            className="px-4 py-1.5 rounded-full font-body text-xs font-bold transition"
             style={{
-              background: active === "description" ? UI.card : "transparent",
-              color: active === "description" ? UI.ink : UI.inkSoft,
-              boxShadow: active === "description" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+              background: active === "description" ? ACCENT : "transparent",
+              color: active === "description" ? WHITE : UI.inkSoft,
             }}
           >
             Description
           </button>
           <button
             onClick={() => onSwitch("bio")}
-            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
+            className="px-4 py-1.5 rounded-full font-body text-xs font-bold transition"
             style={{
-              background: active === "bio" ? UI.card : "transparent",
-              color: active === "bio" ? UI.ink : UI.inkSoft,
-              boxShadow: active === "bio" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+              background: active === "bio" ? ACCENT : "transparent",
+              color: active === "bio" ? WHITE : UI.inkSoft,
             }}
           >
             Bio Link
@@ -711,7 +708,7 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
 export function Accordion({ title, subtitle, children, defaultOpen = false, icon: Icon }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="md:col-span-2 rounded border" style={{ borderColor: UI.line, background: UI.card }}>
+    <div className="md:col-span-2 rounded-xl" style={{ border: `2px solid ${UI.ink}`, background: UI.card }}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -731,7 +728,7 @@ export function Accordion({ title, subtitle, children, defaultOpen = false, icon
         <ChevronDown size={18} style={{ color: UI.inkSoft, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s", flexShrink: 0 }} />
       </button>
       {open && (
-        <div className="px-4 pb-4 grid md:grid-cols-2 gap-x-8 gap-y-4 border-t" style={{ borderColor: UI.line }}>
+        <div className="px-4 pb-4 grid md:grid-cols-2 gap-x-8 gap-y-4" style={{ borderTop: `2px solid ${UI.line}` }}>
           <div className="pt-4 md:col-span-2 grid md:grid-cols-2 gap-x-8 gap-y-4">
             {children}
           </div>
