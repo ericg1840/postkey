@@ -21,6 +21,7 @@ const STYLE_OPTIONS = [
   { key: "editorial", label: "Editorial", description: "Hero photo, stats row, photo strip" },
   { key: "collage", label: "Collage", description: "Offset photos with signature" },
   { key: "modern", label: "Modern", description: "Script headline with photo strip" },
+  { key: "signature", label: "Signature", description: "Full photo, script overlay, CTA bar" },
 ];
 
 // "What are you posting?" — the event, independent of which visual Style
@@ -642,6 +643,120 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     }
   };
 
+  // ---- Signature layout: full-bleed photo with a stacked script headline
+  // overlay, and a bottom bar with a centered headshot straddling the
+  // photo/bar boundary, agent info on the left, and a CTA + phone/website
+  // on the right. ----
+  const drawSignatureLayout = (ctx, w, h) => {
+    const contactH = Math.min(w, h) * 0.155;
+    const photoH = h - contactH;
+
+    // ---- Photo ----
+    if (photo.img) {
+      drawCover(ctx, photo.img, 0, 0, w, photoH, photo.focus.x, photo.focus.y, photo.zoom);
+    } else {
+      ctx.fillStyle = "#D8CFC9";
+      ctx.fillRect(0, 0, w, photoH);
+      ctx.fillStyle = UI.inkSoft;
+      ctx.font = `600 ${w * 0.03}px "Public Sans", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillText("Upload the property photo", w / 2, photoH / 2);
+      ctx.textAlign = "left";
+    }
+
+    // ---- Stacked script headline, centered over the photo ----
+    let word1Size = photoH * 0.15;
+    let scriptSize = photoH * 0.21;
+    const maxW = w * 0.7;
+
+    ctx.font = scriptFontCss(form.scriptFont, word1Size);
+    const word1W = ctx.measureText(form.word1).width;
+    if (word1W > maxW) word1Size *= maxW / word1W;
+
+    const scriptWord = form.script.replace(/!+$/, "");
+    ctx.font = scriptFontCss(form.scriptFont, scriptSize);
+    const scriptW = ctx.measureText(scriptWord).width;
+    if (scriptW > maxW) scriptSize *= maxW / scriptW;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.4)";
+    ctx.shadowBlur = w * 0.012;
+    ctx.fillStyle = WHITE;
+    ctx.textBaseline = "alphabetic";
+
+    ctx.textAlign = "center";
+    ctx.font = scriptFontCss(form.scriptFont, word1Size);
+    ctx.fillText(form.word1, w * 0.36, photoH * 0.42);
+
+    ctx.font = scriptFontCss(form.scriptFont, scriptSize);
+    ctx.fillText(scriptWord, w * 0.62, photoH * 0.63);
+    ctx.restore();
+    ctx.textAlign = "left";
+
+    // ---- Contact bar ----
+    const isDark = form.contactBg === "black";
+    const bandY = photoH;
+    ctx.fillStyle = isDark ? BLACK : WHITE;
+    ctx.fillRect(0, bandY, w, contactH);
+    const textColor = isDark ? WHITE : BLACK;
+    const mutedColor = isDark ? "rgba(255,255,255,0.65)" : UI.inkSoft;
+
+    // Headshot circle, centered, straddling the photo/bar boundary
+    if (headshot.img) {
+      const circleD = contactH * 1.1;
+      const circleCX = w / 2;
+      const circleCY = bandY;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      const img = headshot.img;
+      const shortSide = Math.min(img.width, img.height);
+      const cropSize = shortSide * 0.9;
+      const sx = (img.width - cropSize) / 2;
+      const sy = (img.height - cropSize) / 2;
+      ctx.drawImage(img, sx, sy, cropSize, cropSize, circleCX - circleD / 2, circleCY - circleD / 2, circleD, circleD);
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
+      ctx.strokeStyle = WHITE;
+      ctx.lineWidth = Math.max(3, w * 0.006);
+      ctx.stroke();
+    }
+
+    // Left block: agent name + brokerage
+    const leftX = w * 0.045;
+    const nameSize = contactH * 0.2;
+    ctx.font = `700 ${nameSize}px "Playfair Display", serif`;
+    ctx.fillStyle = textColor;
+    ctx.fillText(form.agentName.toUpperCase(), leftX, bandY + contactH * 0.4);
+
+    const subSize = contactH * 0.135;
+    ctx.font = `600 ${subSize}px "Montserrat", sans-serif`;
+    ctx.fillStyle = mutedColor;
+    ctx.fillText("Real Estate Agent", leftX, bandY + contactH * 0.63);
+    ctx.fillText(form.brokerageName, leftX, bandY + contactH * 0.85);
+
+    // Right block: CTA line + phone/website
+    const rightX = w * 0.955;
+    ctx.textAlign = "right";
+    const ctaSize = contactH * 0.14;
+    ctx.font = `italic 600 ${ctaSize}px "Playfair Display", serif`;
+    ctx.fillStyle = textColor;
+    ctx.fillText("Let's talk about", rightX, bandY + contactH * 0.32);
+    ctx.fillText("your home goals!", rightX, bandY + contactH * 0.5);
+
+    const contactSize = contactH * 0.17;
+    ctx.font = `800 ${contactSize}px "Montserrat", sans-serif`;
+    ctx.fillStyle = form.accentColor;
+    ctx.fillText(form.agentPhone, rightX, bandY + contactH * 0.73);
+    ctx.font = `600 ${contactSize * 0.82}px "Montserrat", sans-serif`;
+    ctx.fillStyle = mutedColor;
+    ctx.fillText(form.website, rightX, bandY + contactH * 0.9);
+    ctx.textAlign = "left";
+  };
+
   const drawToCanvas = (canvas, aspectKey) => {
     const { w, h } = ASPECTS[aspectKey];
     canvas.width = w; canvas.height = h;
@@ -651,6 +766,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     if (form.layout === "editorial") drawEditorialLayout(ctx, w, h);
     else if (form.layout === "collage") drawCollageLayout(ctx, w, h);
     else if (form.layout === "modern") drawModernLayout(ctx, w, h);
+    else if (form.layout === "signature") drawSignatureLayout(ctx, w, h);
     else drawBoldLayout(ctx, w, h);
   };
 
@@ -673,6 +789,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     if (layoutKey === "editorial") drawEditorialLayout(ctx, w, h);
     else if (layoutKey === "collage") drawCollageLayout(ctx, w, h);
     else if (layoutKey === "modern") drawModernLayout(ctx, w, h);
+    else if (layoutKey === "signature") drawSignatureLayout(ctx, w, h);
     else drawBoldLayout(ctx, w, h);
     // A real listing photo is busy/dark at full opacity and, shrunk to
     // thumbnail size, drowns out the very layout differences (band
@@ -941,7 +1058,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   className="font-mono font-semibold rounded-full px-2.5 py-1 whitespace-nowrap"
                   style={{ fontSize: "0.65rem", letterSpacing: "0.02em", background: BLACK, color: WHITE }}
                 >
-                  {form.layout === "bold" ? "1 photo" : "3 photos"} required for {STYLE_OPTIONS.find((s) => s.key === form.layout)?.label}
+                  {form.layout === "bold" || form.layout === "signature" ? "1 photo" : "3 photos"} required for {STYLE_OPTIONS.find((s) => s.key === form.layout)?.label}
                 </span>
               </div>
               <UploadBox
@@ -954,7 +1071,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 required
               />
               <PhotoReposition state={photo} aspect={form.aspect} />
-              {form.layout !== "bold" && (
+              {form.layout !== "bold" && form.layout !== "signature" && (
                 <div className="grid grid-cols-2 gap-3 mt-3">
                   <UploadBox label={form.layout === "collage" ? "PHOTO 2 (top right)" : "PHOTO 2 (strip)"} icon={ImageIcon} state={photo2} hint="Second photo" />
                   <UploadBox label={form.layout === "collage" ? "PHOTO 3 (bottom right)" : "PHOTO 3 (strip)"} icon={ImageIcon} state={photo3} hint="Third photo" />
@@ -963,7 +1080,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
               <div className="rounded-2xl border p-4 sm:p-5 mt-5" style={{ background: UI.card, borderColor: UI.line }}>
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LISTING DETAILS</span>
-                {form.layout !== "modern" && (
+                {form.layout !== "modern" && form.layout !== "signature" && (
                   <label className="block">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
                     <input className="input" value={form.address} onChange={update("address")} />
@@ -1030,7 +1147,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 </select>
               </label>
 
-              {form.layout === "bold" && (
+              {(form.layout === "bold" || form.layout === "signature") && (
                 <label className="block md:col-span-2">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
                   <input className="input" value={`${form.word1} ${form.script}`.trim()}
