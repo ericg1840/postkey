@@ -3,7 +3,7 @@ import {
   Plus, X, Loader2, CheckCircle2, RefreshCw, Copy, Check, ExternalLink,
   ChevronDown, ChevronUp, GripVertical, Smartphone, Monitor, RotateCcw, Eye, ImagePlus,
 } from "lucide-react";
-import { UI, ACCENT, ERROR, WHITE, TopNav, SCRIPT_FONTS, scriptFontCss, DEFAULT_HEADSHOT_URL } from "../shared.jsx";
+import { UI, ACCENT, ACCENT_PRESETS, ERROR, WHITE, TopNav, SCRIPT_FONTS, scriptFontCss, DEFAULT_HEADSHOT_URL } from "../shared.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import {
   LINK_TYPES, SOCIAL_TYPES, BioLinksList, textOn, relativeLuminance,
@@ -25,10 +25,10 @@ function newLinkId() {
   return `new-${Date.now()}-${linkIdSeq++}`;
 }
 
-function Section({ number, title, subtitle, children }) {
+function Section({ number, title, subtitle, children, accent = UI.ink }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="rounded-2xl border" style={{ background: UI.card, borderColor: UI.line, overflow: open ? "visible" : "hidden" }}>
+    <div className="rounded-2xl" style={{ background: UI.card, border: `2px solid ${accent}`, overflow: open ? "visible" : "hidden" }}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -246,7 +246,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                     href={publicUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="font-body text-sm font-semibold rounded-lg px-4 py-2 transition flex items-center gap-1.5"
+                    className="font-body text-sm font-bold rounded-lg px-4 py-2 transition flex items-center gap-1.5"
                     style={{ background: UI.ink, color: WHITE }}
                   >
                     View Live Link <ExternalLink size={13} />
@@ -426,7 +426,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                 </div>
               </Section>
 
-              <Section number={3} title="Content / Links">
+              <Section number={3} title="Content / Links" accent={ACCENT_PRESETS[4]}>
                 {contentLinks.length === 0 && (
                   <div className="rounded-xl py-6 px-4 text-center mb-3 border border-dashed" style={{ borderColor: UI.line }}>
                     <p className="font-body text-sm" style={{ color: UI.inkSoft }}>No content links yet.</p>
@@ -450,8 +450,8 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   <button
                     onClick={() => setContentMenuOpen((o) => !o)}
                     disabled={availableContentTypes.length === 0}
-                    className="font-body w-full flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    style={{ borderColor: ACCENT, color: ACCENT }}
+                    className="font-body w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    style={{ background: WHITE, color: ACCENT_PRESETS[4], border: `2.5px solid ${ACCENT_PRESETS[4]}`, boxShadow: `3px 3px 0 ${ACCENT_PRESETS[4]}` }}
                   >
                     <Plus size={16} /> Add Content
                   </button>
@@ -461,7 +461,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                 </div>
               </Section>
 
-              <Section number={4} title="Social Links">
+              <Section number={4} title="Social Links" accent={ACCENT_PRESETS[0]}>
                 {socialLinks.length === 0 && (
                   <div className="rounded-xl py-6 px-4 text-center mb-3 border border-dashed" style={{ borderColor: UI.line }}>
                     <p className="font-body text-sm" style={{ color: UI.inkSoft }}>No social links yet.</p>
@@ -493,8 +493,8 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   <button
                     onClick={() => setSocialMenuOpen((o) => !o)}
                     disabled={availableSocialTypes.length === 0}
-                    className="font-body w-full flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    style={{ borderColor: ACCENT, color: ACCENT }}
+                    className="font-body w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    style={{ background: WHITE, color: ACCENT_PRESETS[0], border: `2.5px solid ${ACCENT_PRESETS[0]}`, boxShadow: `3px 3px 0 ${ACCENT_PRESETS[0]}` }}
                   >
                     <Plus size={16} /> Add Social Link
                   </button>
@@ -508,8 +508,8 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                 <button
                   onClick={save}
                   disabled={saveStatus === "saving"}
-                  className="font-body text-sm font-semibold rounded-lg px-5 py-2.5 transition disabled:opacity-60 flex items-center gap-2"
-                  style={{ background: ACCENT, color: WHITE }}
+                  className="font-body text-sm font-bold rounded-lg px-5 py-2.5 transition disabled:opacity-60 flex items-center gap-2"
+                  style={{ background: "#0F9D58", color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
                 >
                   <Check size={16} /> {saveStatus === "saving" ? "Saving…" : "Save Changes"}
                 </button>
@@ -540,22 +540,22 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
             <div className="lg:sticky lg:top-[calc(82px+1.5rem)]">
               <div className="flex items-center justify-between mb-3">
                 <p className="font-mono text-xs tracking-[0.1em] uppercase" style={{ color: UI.inkSoft }}>Live preview</p>
-                <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: UI.stone }}>
+                <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}>
                   <button
                     onClick={() => setPreviewMode("mobile")}
                     aria-label="Mobile preview"
                     className="p-1.5 rounded-full transition"
-                    style={{ background: previewMode === "mobile" ? UI.card : "transparent", boxShadow: previewMode === "mobile" ? "0 1px 3px rgba(27,36,48,0.15)" : "none" }}
+                    style={{ background: previewMode === "mobile" ? ACCENT : "transparent" }}
                   >
-                    <Smartphone size={14} style={{ color: previewMode === "mobile" ? UI.ink : UI.inkSoft }} />
+                    <Smartphone size={14} style={{ color: previewMode === "mobile" ? WHITE : UI.inkSoft }} />
                   </button>
                   <button
                     onClick={() => setPreviewMode("desktop")}
                     aria-label="Desktop preview"
                     className="p-1.5 rounded-full transition"
-                    style={{ background: previewMode === "desktop" ? UI.card : "transparent", boxShadow: previewMode === "desktop" ? "0 1px 3px rgba(27,36,48,0.15)" : "none" }}
+                    style={{ background: previewMode === "desktop" ? ACCENT : "transparent" }}
                   >
-                    <Monitor size={14} style={{ color: previewMode === "desktop" ? UI.ink : UI.inkSoft }} />
+                    <Monitor size={14} style={{ color: previewMode === "desktop" ? WHITE : UI.inkSoft }} />
                   </button>
                 </div>
               </div>

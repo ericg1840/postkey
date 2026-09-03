@@ -1150,14 +1150,14 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
             evenly across the full width instead of bunching together at
             the left edge on wide screens. */}
         <div className="flex items-center mb-5 sm:mb-8 lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}>
-          {[{ n: 1, label: "Choose a Post Idea" }, { n: 2, label: "Make It Yours" }, { n: 3, label: "Post It" }].map((s, i, arr) => (
+          {[{ n: 1, label: "Choose a Post Idea", color: ACCENT_PRESETS[0] }, { n: 2, label: "Make It Yours", color: ACCENT_PRESETS[1] }, { n: 3, label: "Post It", color: ACCENT_PRESETS[2] }].map((s, i, arr) => (
             <div key={s.n} className={`flex items-center min-w-0 ${i < arr.length - 1 ? "flex-1" : "flex-shrink-0"}`}>
               <button type="button" onClick={() => goToStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-0">
                 <span
-                  className="flex items-center justify-center rounded-full font-body text-xs font-semibold flex-shrink-0"
+                  className="flex items-center justify-center rounded-full font-body text-xs font-bold flex-shrink-0"
                   style={{
                     width: 24, height: 24,
-                    background: mobileStep >= s.n ? ACCENT : "transparent",
+                    background: mobileStep >= s.n ? s.color : "transparent",
                     color: mobileStep >= s.n ? WHITE : UI.inkSoft,
                     border: mobileStep >= s.n ? "none" : `1.5px solid ${UI.line}`,
                   }}
@@ -1179,13 +1179,13 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
         {/* NEED INSPIRATION */}
         <div
           className={`${mobileStep === 1 ? "flex" : "hidden lg:flex"} rounded-2xl p-4 sm:p-6 mb-2 sm:mb-3 flex-col sm:flex-row sm:items-center gap-4`}
-          style={{ background: UI.card, border: `1px solid ${UI.line}`, borderLeft: `4px solid ${ACCENT}`, boxShadow: "0 1px 3px rgba(27,36,48,0.04)" }}
+          style={{ background: UI.card, border: `2.5px solid ${ACCENT_PRESETS[4]}` }}
         >
-          <div className="flex items-center justify-center rounded-full flex-shrink-0" style={{ width: 48, height: 48, background: mixWithWhite(ACCENT, 0.9) }}>
-            <Sparkles size={22} color={ACCENT} />
+          <div className="flex items-center justify-center rounded-2xl flex-shrink-0" style={{ width: 48, height: 48, background: ACCENT_PRESETS[4], transform: "rotate(-6deg)" }}>
+            <Sparkles size={22} color={WHITE} />
           </div>
           <div className="flex-1">
-            <p className="font-mono text-xs font-bold" style={{ color: ACCENT, letterSpacing: "0.06em" }}>
+            <p className="font-mono text-xs font-bold" style={{ color: ACCENT_PRESETS[4], letterSpacing: "0.06em" }}>
               {idea ? "RECOMMENDED FOR YOU" : "NEED INSPIRATION?"}
             </p>
             <p className="font-body text-base font-semibold mt-1" style={{ color: UI.ink, lineHeight: 1.35 }}>
@@ -1196,8 +1196,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
             {idea && (
               <button
                 onClick={createFromIdea}
-                className="py-2.5 px-5 rounded-lg font-body text-sm font-semibold transition whitespace-nowrap"
-                style={{ background: ACCENT, color: WHITE }}
+                className="py-2.5 px-5 rounded-lg font-body font-bold text-sm transition whitespace-nowrap"
+                style={{ background: ACCENT, color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
               >
                 Create this post →
               </button>
@@ -1206,8 +1206,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               <button
                 onClick={saveIdeaForLater}
                 disabled={ideaSaved}
-                className="flex items-center gap-1.5 py-2.5 px-4 rounded-lg border font-body text-sm font-semibold transition whitespace-nowrap disabled:opacity-70"
-                style={{ borderColor: UI.line, color: UI.ink, background: UI.card }}
+                className="flex items-center gap-1.5 py-2.5 px-4 rounded-lg font-body text-sm font-semibold transition whitespace-nowrap disabled:opacity-70"
+                style={{ border: `1.5px solid ${UI.line}`, color: UI.ink, background: UI.card }}
               >
                 <CalendarPlus size={15} />
                 {ideaSaved ? "Saved to Planner" : "Save for later"}
@@ -1215,8 +1215,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
             )}
             <button
               onClick={giveIdea}
-              className="flex items-center gap-1.5 py-2.5 px-5 rounded-lg font-body text-sm font-semibold transition whitespace-nowrap"
-              style={idea ? { borderColor: UI.line, color: UI.ink, background: UI.card, border: `1px solid ${UI.line}` } : { background: ACCENT, color: WHITE }}
+              className="flex items-center gap-1.5 py-2.5 px-5 rounded-lg font-body font-bold text-sm transition whitespace-nowrap"
+              style={idea ? { color: UI.ink, background: UI.card, border: `1.5px solid ${UI.line}` } : { background: ACCENT_PRESETS[4], color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
             >
               {idea ? "Give Me Another →" : "Give Me an Idea →"}
             </button>
@@ -1233,11 +1233,11 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {Object.entries(STYLES).map(([key, s]) => (
                   <button key={key} onClick={() => setForm((f) => ({ ...f, style: key }))}
-                    className="relative text-left rounded-2xl border-2 overflow-hidden transition font-body flex flex-col"
+                    className="relative text-left rounded-2xl overflow-hidden transition font-body flex flex-col"
                     style={{
+                      borderStyle: "solid",
                       borderColor: form.style === key ? ACCENT : UI.line,
-                      borderWidth: form.style === key ? 2.5 : 1.5,
-                      boxShadow: form.style === key ? `0 0 0 3px ${ACCENT}22, 0 4px 14px rgba(27,36,48,0.06)` : "0 1px 3px rgba(27,36,48,0.04)",
+                      borderWidth: form.style === key ? 2.5 : 2,
                     }}>
                     {form.style === key && (
                       <span className="absolute flex items-center justify-center rounded-full" style={{ top: 8, right: 8, width: 20, height: 20, background: ACCENT, boxShadow: "0 1px 3px rgba(27,36,48,0.25)", zIndex: 1 }}>
@@ -1271,7 +1271,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
             <section
               ref={(el) => { sectionRefs.current[2] = el; }}
               className="rounded-2xl p-4 sm:p-5"
-              style={{ scrollMarginTop: "1.5rem", background: mixWithWhite(ACCENT, 0.96), border: `1.5px solid ${mixWithWhite(ACCENT, 0.8)}` }}
+              style={{ scrollMarginTop: "1.5rem", background: UI.card, border: `2px solid ${UI.ink}` }}
             >
               <h3 className="font-body text-base font-bold mb-3" style={{ color: UI.ink }}>Add the details</h3>
               <div className="grid gap-3">
@@ -1582,7 +1582,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                 ← Back to Make It Yours
               </button>
             )}
-            <div className="rounded-2xl border p-2.5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
+            <div className="rounded-2xl p-2.5 sm:p-6" style={{ background: UI.card, border: `2.5px solid ${UI.ink}` }}>
               <div className="flex items-center justify-between mb-2.5 sm:mb-4 flex-wrap gap-2">
                 <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Preview</span>
                 <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -1619,10 +1619,10 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
             </div>
 
             {/* CONSOLIDATED DOWNLOAD CARD — everything needed to finish and post lives here, next to the preview it belongs with */}
-            <div className="rounded-2xl border p-3.5 sm:p-6 mt-3 sm:mt-4" style={{ background: UI.card, borderColor: UI.line }}>
+            <div className="rounded-2xl p-3.5 sm:p-6 mt-3 sm:mt-4" style={{ background: UI.card, border: `2.5px solid ${UI.ink}` }}>
               {/* Caption first — the most-used feature, so it shouldn't be
                   buried under three buttons an agent has to scroll past. */}
-              <div className="rounded-xl p-3.5" style={{ background: mixWithWhite(ACCENT, 0.94), border: `1px solid ${mixWithWhite(ACCENT, 0.75)}` }}>
+              <div className="rounded-xl p-3.5" style={{ background: mixWithWhite(ACCENT, 0.94), border: `1.5px solid ${ACCENT}` }}>
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <span className="font-mono text-xs font-bold" style={{ color: ACCENT, letterSpacing: "0.04em" }}>SUGGESTED CAPTION</span>
                   <button
@@ -1636,8 +1636,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                 <p className="font-body text-sm whitespace-pre-line" style={{ color: UI.ink, lineHeight: 1.6 }}>{buildCaption(captionVariant)}</p>
                 <button
                   onClick={copyCaption}
-                  className="w-full mt-3 py-2 rounded-lg font-body font-semibold text-xs flex items-center justify-center gap-2 transition"
-                  style={{ background: captionCopied ? UI.card : ACCENT, color: captionCopied ? UI.ink : WHITE, border: captionCopied ? `1px solid ${UI.line}` : "none" }}
+                  className="w-full mt-3 py-2 rounded-lg font-body font-bold text-xs flex items-center justify-center gap-2 transition"
+                  style={{ background: captionCopied ? UI.card : ACCENT, color: captionCopied ? UI.ink : WHITE, border: captionCopied ? `1.5px solid ${UI.line}` : `2px solid ${UI.ink}`, boxShadow: captionCopied ? "none" : `2px 2px 0 ${UI.ink}` }}
                 >
                   {captionCopied ? <Check size={14} /> : <Copy size={14} />} {captionCopied ? "Caption copied!" : "Copy caption"}
                 </button>
@@ -1647,8 +1647,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                 <button
                   onClick={shareToFacebook}
                   disabled={sharingFacebook}
-                  className="w-full py-3.5 rounded-lg font-body font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
-                  style={{ background: "#1877F2", color: WHITE }}
+                  className="w-full py-3.5 rounded-lg font-body font-bold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                  style={{ background: "#1877F2", color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
                 >
                   <Facebook size={16} /> {sharingFacebook ? "Preparing…" : "Share to Facebook"}
                 </button>
