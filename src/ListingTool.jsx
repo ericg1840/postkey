@@ -828,13 +828,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.save();
     ctx.shadowColor = "rgba(0,0,0,0.4)";
     ctx.shadowBlur = w * 0.012;
-    ctx.fillStyle = WHITE;
     ctx.textBaseline = "alphabetic";
-
     ctx.textAlign = "center";
+
+    ctx.fillStyle = WHITE;
     ctx.font = scriptFontCss(form.scriptFont, word1Size);
     ctx.fillText(form.word1, w * 0.36, photoH * 0.42);
 
+    ctx.fillStyle = form.accentColor;
     ctx.font = scriptFontCss(form.scriptFont, scriptSize);
     ctx.fillText(scriptWord, w * 0.62, photoH * 0.63);
     ctx.restore();
