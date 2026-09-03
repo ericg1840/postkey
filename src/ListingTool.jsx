@@ -99,6 +99,7 @@ const DEFAULTS = {
   ctaMessage: "Let's talk about your home goals!",
   ribbonLabel: "SOLD",
   ribbonIcon: "key",
+  photoTint: 0,
   agentName: "Your Name, Realtor",
   agentPhone: "(555) 123-4567",
   agentEmail: "you@example.com",
@@ -801,6 +802,15 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.fillRect(0, 0, w, photoH);
     }
 
+    // ---- Optional brand-color wash over the photo ----
+    if (form.photoTint > 0) {
+      ctx.save();
+      ctx.globalAlpha = form.photoTint / 100;
+      ctx.fillStyle = form.accentColor;
+      ctx.fillRect(0, 0, w, photoH);
+      ctx.restore();
+    }
+
     // ---- Stacked script headline, centered over the photo ----
     let word1Size = photoH * 0.15;
     let scriptSize = photoH * 0.21;
@@ -1409,6 +1419,25 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   </label>
                 </div>
               </div>
+
+              {form.layout === "signature" && (
+                <div className="md:col-span-2">
+                  <label className="font-mono text-xs uppercase tracking-wide flex items-center justify-between mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
+                    <span>PHOTO TINT</span>
+                    <span>{form.photoTint}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="90"
+                    value={form.photoTint}
+                    onChange={(e) => setForm((f) => ({ ...f, photoTint: Number(e.target.value) }))}
+                    className="w-full"
+                    style={{ accentColor: ACCENT }}
+                  />
+                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Washes the photo with your brand color, from 0 (none) to 90%.</span>
+                </div>
+              )}
 
               <label className="block md:col-span-2">
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT FONT</span>
