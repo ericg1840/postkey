@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Users, CreditCard, DollarSign, UserPlus, Download, MoreVertical, X, ArrowLeft } from "lucide-react";
 import { UI, ACCENT, WHITE, ERROR } from "../shared.jsx";
 import { api } from "../auth/AuthContext.jsx";
@@ -73,13 +74,28 @@ function StatCard({ icon: Icon, label, value }) {
 
 function ActionsMenu({ user, onAction }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const [pos, setPos] = useState(null);
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
-    const onDocClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onDocClick = (e) => {
+      if (menuRef.current?.contains(e.target) || buttonRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    // Any ancestor scrolling (the table's own horizontal scroll included)
+    // would leave a portaled menu pointing at empty space — closing it is
+    // simpler and safer than tracking the button's position live.
+    const onScrollOrResize = () => setOpen(false);
     document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
   }, [open]);
 
   const choose = (action, extra) => {
@@ -87,20 +103,37 @@ function ActionsMenu({ user, onAction }) {
     onAction(user, action, extra);
   };
 
+  const toggleOpen = () => {
+    if (!open) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const menuWidth = 200;
+      setPos({
+        top: rect.bottom + 4,
+        left: Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8),
+      });
+    }
+    setOpen((v) => !v);
+  };
+
   return (
-    <div className="relative" ref={ref}>
+    <>
       <button
+        ref={buttonRef}
         aria-label="Actions"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleOpen}
         className="flex items-center justify-center rounded-lg transition hover:opacity-70"
-        style={{ width: 30, height: 30, color: UI.ink }}
+        style={{ width: 40, height: 40, color: UI.ink }}
       >
         <MoreVertical size={16} />
       </button>
-      {open && (
+      {open && pos && createPortal(
         <div
-          className="absolute right-0 top-9 z-20 rounded-xl border overflow-hidden py-1 font-body text-sm"
-          style={{ background: WHITE, borderColor: UI.line, minWidth: 200, boxShadow: "0 8px 24px rgba(27,36,48,0.18)" }}
+          ref={menuRef}
+          className="rounded-xl border overflow-hidden py-1 font-body text-sm"
+          style={{
+            position: "fixed", top: pos.top, left: pos.left, zIndex: 50,
+            background: WHITE, borderColor: UI.line, minWidth: 200, boxShadow: "0 8px 24px rgba(27,36,48,0.18)",
+          }}
         >
           <div className="px-3 py-1.5 font-mono text-[0.6rem] uppercase tracking-wide" style={{ color: UI.inkSoft }}>Set tier</div>
           {["free", "paid"].map((t) => (
@@ -144,9 +177,10 @@ function ActionsMenu({ user, onAction }) {
             onMouseEnter={(e) => (e.currentTarget.style.background = UI.stone)} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
             View activity
           </button>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
 
