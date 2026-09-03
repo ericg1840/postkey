@@ -22,7 +22,11 @@ const STYLE_OPTIONS = [
   { key: "collage", label: "Collage", description: "Offset photos with signature" },
   { key: "modern", label: "Modern", description: "Script headline with photo strip" },
   { key: "signature", label: "Signature", description: "Full photo, script overlay, CTA bar" },
+  { key: "ribbon", label: "Ribbon", description: "Corner ribbon banner with full photo" },
 ];
+
+// Layouts built around a single hero photo instead of a 3-photo strip/collage.
+const SINGLE_PHOTO_LAYOUTS = ["bold", "signature", "ribbon"];
 
 // "What are you posting?" — the event, independent of which visual Style
 // draws it. Applying one fills in every layout's headline representation
@@ -31,12 +35,12 @@ const STYLE_OPTIONS = [
 // per-occasion accent, kept separate from ACCENT (the app's own blue
 // highlight) so the cards read as a varied set rather than a form.
 const TEMPLATES = {
-  sold: { label: "Just Sold", description: "Celebrate a successful closing.", icon: HandCoins, color: "#E0298C", word1: "Just", script: "SOLD!", badge: "Another Home\nSold by\n{agent}" },
-  just_listed: { label: "Just Listed", description: "Show off a beautiful new listing.", icon: Home, color: "#0043FF", word1: "Just", script: "Listed!", badge: "New on the\nMarket with\n{agent}" },
-  open_house: { label: "Open House", description: "Invite buyers to an upcoming open.", icon: DoorOpen, color: "#0F9D58", word1: "Open", script: "House!", badge: "See You\nThere with\n{agent}" },
-  price_improvement: { label: "New Price", description: "Announce a price improvement.", icon: Tag, color: "#E8792E", word1: "New", script: "Price!", badge: "Priced to\nMove with\n{agent}" },
-  under_contract: { label: "Under Contract", description: "Let everyone know it's under contract.", icon: Handshake, color: "#7B3FE4", word1: "Under", script: "Contract!", badge: "Another One\nUnder Contract" },
-  coming_soon: { label: "Coming Soon", description: "Generate excitement for what's next.", icon: Calendar, color: "#0043FF", word1: "Coming", script: "Soon!", badge: "Coming Soon\nwith\n{agent}" },
+  sold: { label: "Just Sold", description: "Celebrate a successful closing.", icon: HandCoins, color: "#E0298C", word1: "Just", script: "SOLD!", badge: "Another Home\nSold by\n{agent}", ribbon: "SOLD" },
+  just_listed: { label: "Just Listed", description: "Show off a beautiful new listing.", icon: Home, color: "#0043FF", word1: "Just", script: "Listed!", badge: "New on the\nMarket with\n{agent}", ribbon: "FOR\nSALE" },
+  open_house: { label: "Open House", description: "Invite buyers to an upcoming open.", icon: DoorOpen, color: "#0F9D58", word1: "Open", script: "House!", badge: "See You\nThere with\n{agent}", ribbon: "OPEN\nHOUSE" },
+  price_improvement: { label: "New Price", description: "Announce a price improvement.", icon: Tag, color: "#E8792E", word1: "New", script: "Price!", badge: "Priced to\nMove with\n{agent}", ribbon: "NEW\nPRICE" },
+  under_contract: { label: "Under Contract", description: "Let everyone know it's under contract.", icon: Handshake, color: "#7B3FE4", word1: "Under", script: "Contract!", badge: "Another One\nUnder Contract", ribbon: "UNDER\nCONTRACT" },
+  coming_soon: { label: "Coming Soon", description: "Generate excitement for what's next.", icon: Calendar, color: "#0043FF", word1: "Coming", script: "Soon!", badge: "Coming Soon\nwith\n{agent}", ribbon: "COMING\nSOON" },
 };
 
 // A rotating pool for the footer tip strip — one is picked at random per
@@ -71,6 +75,7 @@ const DEFAULTS = {
   modernHeadline: "Listed",
   bottomMessage: "Message for more details",
   ctaMessage: "Let's talk about your home goals!",
+  ribbonLabel: "SOLD",
   agentName: "Your Name, Realtor",
   agentPhone: "(555) 123-4567",
   agentEmail: "you@example.com",
@@ -170,6 +175,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       bigHeadline: `${t.word1} ${t.script}`.toUpperCase(),
       modernScript: t.word1.toLowerCase(),
       modernHeadline: t.script.replace(/!+$/, ""),
+      ribbonLabel: t.ribbon,
     }));
   };
 
@@ -782,6 +788,111 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.textAlign = "left";
   };
 
+  // ---- Ribbon layout: full-bleed photo with a colored corner ribbon
+  // banner (text + color driven by the chosen post type / accent color),
+  // plus the standard brand contact band shared with the other layouts. ----
+  const drawRibbonLayout = (ctx, w, h) => {
+    const contactH = Math.min(w, h) * 0.165;
+    const photoH = h - contactH;
+
+    // ---- Photo ----
+    if (photo.img) {
+      drawCover(ctx, photo.img, 0, 0, w, photoH, photo.focus.x, photo.focus.y, photo.zoom);
+    } else {
+      ctx.fillStyle = "#D8CFC9";
+      ctx.fillRect(0, 0, w, photoH);
+      ctx.fillStyle = UI.inkSoft;
+      ctx.font = `600 ${w * 0.03}px "Public Sans", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillText("Upload the property photo", w / 2, photoH / 2);
+      ctx.textAlign = "left";
+    }
+
+    // ---- Corner ribbon banner (color + text follow the chosen post type) ----
+    const ribbonW = w * 0.2;
+    const ribbonX = w * 0.05;
+    const ribbonLines = (form.ribbonLabel || "").split("\n").filter(Boolean);
+    const iconD = ribbonW * 0.34;
+    const lineSize = ribbonW * 0.19;
+    const lineGap = lineSize * 1.15;
+    const padTop = ribbonW * 0.22;
+    const padBottom = ribbonW * 0.22;
+    const ribbonH = padTop + iconD + ribbonW * 0.16 + ribbonLines.length * lineGap + padBottom;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.22)";
+    ctx.shadowBlur = w * 0.01;
+    ctx.fillStyle = form.accentColor;
+    ctx.fillRect(ribbonX, 0, ribbonW, ribbonH);
+    ctx.restore();
+    ctx.strokeStyle = "rgba(255,255,255,0.9)";
+    ctx.lineWidth = Math.max(1.5, w * 0.0025);
+    ctx.beginPath();
+    ctx.moveTo(ribbonX + ribbonW * 0.1, ribbonW * 0.08);
+    ctx.lineTo(ribbonX + ribbonW * 0.1, ribbonH - ribbonW * 0.08);
+    ctx.moveTo(ribbonX + ribbonW * 0.9, ribbonW * 0.08);
+    ctx.lineTo(ribbonX + ribbonW * 0.9, ribbonH - ribbonW * 0.08);
+    ctx.stroke();
+
+    // Simple house glyph (roof + body) centered near the top of the ribbon
+    const iconCX = ribbonX + ribbonW / 2;
+    const iconTopY = padTop;
+    ctx.fillStyle = WHITE;
+    ctx.beginPath();
+    ctx.moveTo(iconCX - iconD / 2, iconTopY + iconD * 0.45);
+    ctx.lineTo(iconCX, iconTopY);
+    ctx.lineTo(iconCX + iconD / 2, iconTopY + iconD * 0.45);
+    ctx.lineTo(iconCX + iconD * 0.35, iconTopY + iconD * 0.45);
+    ctx.lineTo(iconCX + iconD * 0.35, iconTopY + iconD);
+    ctx.lineTo(iconCX - iconD * 0.35, iconTopY + iconD);
+    ctx.lineTo(iconCX - iconD * 0.35, iconTopY + iconD * 0.45);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.textAlign = "center";
+    ctx.font = `800 ${lineSize}px "Montserrat", sans-serif`;
+    const textY0 = iconTopY + iconD + ribbonW * 0.16 + lineSize * 0.8;
+    ribbonLines.forEach((line, i) => ctx.fillText(line.toUpperCase(), iconCX, textY0 + i * lineGap));
+    ctx.textAlign = "left";
+
+    // ---- Address + price/beds/baths pill, bottom-left of the photo ----
+    const statParts = [form.price, form.beds && `${form.beds} bd`, form.baths && `${form.baths} ba`].filter(Boolean);
+    let pillBottomY = photoH - photoH * 0.05;
+    if (statParts.length) {
+      const statText = statParts.join("   ·   ");
+      const statSize = photoH * 0.034;
+      ctx.font = `700 ${statSize}px "Montserrat", sans-serif`;
+      const statPadX = statSize * 0.7, statPadY = statSize * 0.55;
+      const statW = ctx.measureText(statText).width + statPadX * 2;
+      const statH = statSize + statPadY * 2;
+      const statY = pillBottomY - statH;
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.25)";
+      ctx.shadowBlur = w * 0.01;
+      ctx.fillStyle = form.accentColor;
+      roundRect(ctx, w * 0.06, statY, statW, statH, statH * 0.18);
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = WHITE;
+      ctx.textBaseline = "middle";
+      ctx.fillText(statText, w * 0.06 + statPadX, statY + statH / 2 + statSize * 0.03);
+      ctx.textBaseline = "alphabetic";
+      pillBottomY = statY - photoH * 0.02;
+    }
+    if (form.address) {
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowBlur = w * 0.008;
+      ctx.font = `700 ${photoH * 0.032}px "Montserrat", sans-serif`;
+      ctx.fillStyle = WHITE;
+      ctx.fillText(form.address, w * 0.06, pillBottomY);
+      ctx.restore();
+    }
+
+    // ---- Contact band (brokerage-required, shared across every layout) ----
+    drawContactBand(ctx, w, photoH, contactH, form, headshot, logo);
+  };
+
   const drawToCanvas = (canvas, aspectKey) => {
     const { w, h } = ASPECTS[aspectKey];
     canvas.width = w; canvas.height = h;
@@ -792,6 +903,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     else if (form.layout === "collage") drawCollageLayout(ctx, w, h);
     else if (form.layout === "modern") drawModernLayout(ctx, w, h);
     else if (form.layout === "signature") drawSignatureLayout(ctx, w, h);
+    else if (form.layout === "ribbon") drawRibbonLayout(ctx, w, h);
     else drawBoldLayout(ctx, w, h);
   };
 
@@ -815,6 +927,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     else if (layoutKey === "collage") drawCollageLayout(ctx, w, h);
     else if (layoutKey === "modern") drawModernLayout(ctx, w, h);
     else if (layoutKey === "signature") drawSignatureLayout(ctx, w, h);
+    else if (layoutKey === "ribbon") drawRibbonLayout(ctx, w, h);
     else drawBoldLayout(ctx, w, h);
     // A real listing photo is busy/dark at full opacity and, shrunk to
     // thumbnail size, drowns out the very layout differences (band
@@ -1083,7 +1196,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   className="font-mono font-semibold rounded-full px-2.5 py-1 whitespace-nowrap"
                   style={{ fontSize: "0.65rem", letterSpacing: "0.02em", background: BLACK, color: WHITE }}
                 >
-                  {form.layout === "bold" || form.layout === "signature" ? "1 photo" : "3 photos"} required for {STYLE_OPTIONS.find((s) => s.key === form.layout)?.label}
+                  {SINGLE_PHOTO_LAYOUTS.includes(form.layout) ? "1 photo" : "3 photos"} required for {STYLE_OPTIONS.find((s) => s.key === form.layout)?.label}
                 </span>
               </div>
               <UploadBox
@@ -1096,7 +1209,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 required
               />
               <PhotoReposition state={photo} aspect={form.aspect} />
-              {form.layout !== "bold" && form.layout !== "signature" && (
+              {!SINGLE_PHOTO_LAYOUTS.includes(form.layout) && (
                 <div className="grid grid-cols-2 gap-3 mt-3">
                   <UploadBox label={form.layout === "collage" ? "PHOTO 2 (top right)" : "PHOTO 2 (strip)"} icon={ImageIcon} state={photo2} hint="Second photo" />
                   <UploadBox label={form.layout === "collage" ? "PHOTO 3 (bottom right)" : "PHOTO 3 (strip)"} icon={ImageIcon} state={photo3} hint="Third photo" />
@@ -1214,6 +1327,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 <label className="block md:col-span-2">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CALL-TO-ACTION MESSAGE</span>
                   <input className="input" value={form.ctaMessage} onChange={update("ctaMessage")} placeholder="Let's talk about your home goals!" />
+                </label>
+              )}
+
+              {form.layout === "ribbon" && (
+                <label className="block md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>RIBBON TEXT</span>
+                  <textarea className="input" rows={2} value={form.ribbonLabel} onChange={update("ribbonLabel")} placeholder={"FOR\nSALE"} />
+                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Filled in automatically from your post type. Use a line break to wrap onto two lines; the ribbon uses your brand color.</span>
                 </label>
               )}
 
