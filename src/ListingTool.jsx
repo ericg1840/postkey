@@ -709,9 +709,12 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const mutedColor = isDark ? "rgba(255,255,255,0.65)" : UI.inkSoft;
 
     // Headshot circle, centered, straddling the photo/bar boundary
-    if (headshot.img) {
-      const circleD = contactH * 1.1;
-      const circleCX = w / 2;
+    const hasHeadshot = !!headshot.img;
+    const circleD = hasHeadshot ? contactH * 1.1 : 0;
+    const circleCX = w / 2;
+    const headshotLeftEdge = circleCX - circleD / 2;
+    const headshotRightEdge = circleCX + circleD / 2;
+    if (hasHeadshot) {
       const circleCY = bandY;
       ctx.save();
       ctx.beginPath();
@@ -732,7 +735,19 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.stroke();
     }
 
-    // Left block: brokerage logo, then agent name + brokerage
+    // Shrink `text` (already set as ctx.font) down to fit maxW, never growing it.
+    const shrinkToFit = (text, maxW) => {
+      const measured = ctx.measureText(text).width;
+      const sizeMatch = ctx.font.match(/([\d.]+)px/);
+      if (measured > maxW && measured > 0 && sizeMatch) {
+        const newSize = parseFloat(sizeMatch[1]) * (maxW / measured);
+        ctx.font = ctx.font.replace(/[\d.]+px/, `${newSize}px`);
+      }
+    };
+
+    // Left block: brokerage logo, then agent name + brokerage — all kept
+    // clear of the headshot circle so a long name/brokerage never runs
+    // into it.
     let leftX = w * 0.045;
     if (logo.img) {
       const logoSize = contactH * 0.6;
@@ -742,35 +757,41 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.drawImage(logo.img, leftX, logoY, logoW, logoSize);
       leftX += logoW + w * 0.03;
     }
-    const nameSize = contactH * 0.2;
-    ctx.font = `700 ${nameSize}px "Playfair Display", serif`;
-    ctx.fillStyle = textColor;
-    ctx.fillText(form.agentName.toUpperCase(), leftX, bandY + contactH * 0.4);
+    const leftMaxW = (hasHeadshot ? headshotLeftEdge : w) - leftX - w * 0.025;
 
-    const subSize = contactH * 0.135;
-    ctx.font = `600 ${subSize}px "Montserrat", sans-serif`;
+    ctx.font = `700 ${contactH * 0.2}px "Playfair Display", serif`;
+    const nameText = form.agentName.toUpperCase();
+    shrinkToFit(nameText, leftMaxW);
+    ctx.fillStyle = textColor;
+    ctx.fillText(nameText, leftX, bandY + contactH * 0.4);
+
+    ctx.font = `600 ${contactH * 0.135}px "Montserrat", sans-serif`;
+    shrinkToFit("Real Estate Agent", leftMaxW);
     ctx.fillStyle = mutedColor;
     ctx.fillText("Real Estate Agent", leftX, bandY + contactH * 0.63);
+    ctx.font = `600 ${contactH * 0.135}px "Montserrat", sans-serif`;
+    shrinkToFit(form.brokerageName, leftMaxW);
     ctx.fillText(form.brokerageName, leftX, bandY + contactH * 0.85);
 
-    // Right block: user-editable CTA line + phone/website
+    // Right block: user-editable CTA line + phone/website — likewise kept
+    // clear of the headshot circle.
     const rightX = w * 0.955;
     ctx.textAlign = "right";
+    const rightMaxW = Math.min(w * 0.4, rightX - (hasHeadshot ? headshotRightEdge : 0) - w * 0.025);
     let ctaSize = contactH * 0.14;
-    const ctaMaxW = w * 0.4;
     ctx.font = `italic 600 ${ctaSize}px "Playfair Display", serif`;
-    let ctaLines = wrapText(ctx, form.ctaMessage, ctaMaxW);
+    let ctaLines = wrapText(ctx, form.ctaMessage, rightMaxW);
     let attempts = 0;
     while (ctaLines.length > 2 && attempts < 8) {
       ctaSize *= 0.92;
       ctx.font = `italic 600 ${ctaSize}px "Playfair Display", serif`;
-      ctaLines = wrapText(ctx, form.ctaMessage, ctaMaxW);
+      ctaLines = wrapText(ctx, form.ctaMessage, rightMaxW);
       attempts += 1;
     }
     ctaLines = ctaLines.slice(0, 2);
     const ctaWidest = Math.max(...ctaLines.map((l) => ctx.measureText(l).width));
-    if (ctaWidest > ctaMaxW) {
-      ctaSize *= ctaMaxW / ctaWidest;
+    if (ctaWidest > rightMaxW) {
+      ctaSize *= rightMaxW / ctaWidest;
       ctx.font = `italic 600 ${ctaSize}px "Playfair Display", serif`;
     }
     ctx.fillStyle = textColor;
@@ -778,11 +799,12 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const ctaY0 = bandY + contactH * 0.32 - (ctaLines.length - 1) * ctaLineH * 0.5;
     ctaLines.forEach((line, i) => ctx.fillText(line, rightX, ctaY0 + i * ctaLineH));
 
-    const contactSize = contactH * 0.17;
-    ctx.font = `800 ${contactSize}px "Montserrat", sans-serif`;
+    ctx.font = `800 ${contactH * 0.17}px "Montserrat", sans-serif`;
+    shrinkToFit(form.agentPhone, rightMaxW);
     ctx.fillStyle = form.accentColor;
     ctx.fillText(form.agentPhone, rightX, bandY + contactH * 0.73);
-    ctx.font = `600 ${contactSize * 0.82}px "Montserrat", sans-serif`;
+    ctx.font = `600 ${contactH * 0.17 * 0.82}px "Montserrat", sans-serif`;
+    shrinkToFit(form.website, rightMaxW);
     ctx.fillStyle = mutedColor;
     ctx.fillText(form.website, rightX, bandY + contactH * 0.9);
     ctx.textAlign = "left";
