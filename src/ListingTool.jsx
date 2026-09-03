@@ -43,6 +43,28 @@ const TEMPLATES = {
   coming_soon: { label: "Coming Soon", description: "Generate excitement for what's next.", icon: Calendar, color: "#0043FF", word1: "Coming", script: "Soon!", badge: "Coming Soon\nwith\n{agent}", ribbon: "COMING\nSOON" },
 };
 
+// Icon choices for the Ribbon layout's corner glyph. Kept as a standalone
+// pick (form.ribbonIcon) rather than locked to the post type, so any icon
+// can be paired with any ribbon text — but applying a post type still
+// seeds a sensible default via TEMPLATE_RIBBON_ICON below.
+const RIBBON_ICONS = [
+  { key: "house", label: "House" },
+  { key: "key", label: "Key" },
+  { key: "door", label: "Door" },
+  { key: "tag", label: "Price Tag" },
+  { key: "check", label: "Checkmark" },
+  { key: "calendar", label: "Calendar" },
+];
+
+const TEMPLATE_RIBBON_ICON = {
+  sold: "key",
+  just_listed: "house",
+  open_house: "door",
+  price_improvement: "tag",
+  under_contract: "check",
+  coming_soon: "calendar",
+};
+
 // A rotating pool for the footer tip strip — one is picked at random per
 // visit so returning users see something new instead of the same line
 // every time.
@@ -76,6 +98,7 @@ const DEFAULTS = {
   bottomMessage: "Message for more details",
   ctaMessage: "Let's talk about your home goals!",
   ribbonLabel: "SOLD",
+  ribbonIcon: "key",
   agentName: "Your Name, Realtor",
   agentPhone: "(555) 123-4567",
   agentEmail: "you@example.com",
@@ -87,19 +110,18 @@ const DEFAULTS = {
   scriptFont: "Dancing Script",
 };
 
-// The Ribbon layout's corner glyph — a small vector icon that matches the
-// chosen post type (mirrors the icon each TEMPLATES entry uses on the
-// Step 1 cards), drawn directly on canvas since those are lucide-react
-// components and can't be painted into a 2D context as-is. Falls back to
-// the house glyph for any unrecognized/missing template key. Drawn into a
+// The Ribbon layout's corner glyph — one of RIBBON_ICONS, drawn directly
+// on canvas since those are just plain shapes (not the lucide-react icons
+// used elsewhere, which can't be painted into a 2D context as-is). Falls
+// back to the house glyph for any unrecognized/missing key. Drawn into a
 // `d`-sized box centered on `cx`, top edge at `topY`; `bg` is the ribbon's
 // fill color, used to punch contrasting cutouts (key bow, tag hole, etc.)
 // that read correctly against any accent color.
-function drawRibbonIcon(ctx, template, cx, topY, d, bg) {
+function drawRibbonIcon(ctx, icon, cx, topY, d, bg) {
   ctx.save();
   ctx.fillStyle = WHITE;
-  switch (template) {
-    case "sold": {
+  switch (icon) {
+    case "key": {
       // Key: ringed bow + shaft + two teeth.
       const bowR = d * 0.2;
       const bowCX = cx - d * 0.28, bowCY = topY + bowR + d * 0.02;
@@ -116,7 +138,7 @@ function drawRibbonIcon(ctx, template, cx, topY, d, bg) {
       ctx.fillRect(shaftEndX - d * 0.25, shaftY + shaftH, d * 0.09, d * 0.1);
       break;
     }
-    case "open_house": {
+    case "door": {
       // Doorway frame edge + a door panel swung open on a hinge at its foot.
       const hingeX = cx - d * 0.34, hingeY = topY + d;
       ctx.fillRect(hingeX - d * 0.05, topY, d * 0.1, d);
@@ -131,7 +153,7 @@ function drawRibbonIcon(ctx, template, cx, topY, d, bg) {
       ctx.restore();
       break;
     }
-    case "price_improvement": {
+    case "tag": {
       // Price tag: pointed body with a punched hole near the tip.
       const tagCX = cx - d * 0.06;
       ctx.beginPath();
@@ -148,7 +170,7 @@ function drawRibbonIcon(ctx, template, cx, topY, d, bg) {
       ctx.fill();
       break;
     }
-    case "under_contract": {
+    case "check": {
       // Signed contract: circle badge with a checkmark cut out.
       ctx.beginPath();
       ctx.arc(cx, topY + d * 0.5, d * 0.5, 0, Math.PI * 2);
@@ -164,7 +186,7 @@ function drawRibbonIcon(ctx, template, cx, topY, d, bg) {
       ctx.stroke();
       break;
     }
-    case "coming_soon": {
+    case "calendar": {
       // Calendar: body with a header band and two hanging rings.
       const bx = cx - d * 0.42, bw = d * 0.84, by = topY + d * 0.12, bh = d * 0.82;
       roundRect(ctx, bx, by, bw, bh, d * 0.08);
@@ -177,7 +199,7 @@ function drawRibbonIcon(ctx, template, cx, topY, d, bg) {
       ctx.fillRect(bx + bw - d * 0.26, topY, d * 0.1, by - topY);
       break;
     }
-    case "just_listed":
+    case "house":
     default: {
       // House: roof + body, the same silhouette used as the fallback.
       ctx.beginPath();
@@ -285,6 +307,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       modernScript: t.word1.toLowerCase(),
       modernHeadline: t.script.replace(/!+$/, ""),
       ribbonLabel: t.ribbon,
+      ribbonIcon: TEMPLATE_RIBBON_ICON[key] || "house",
     }));
   };
 
@@ -956,11 +979,10 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.lineTo(ribbonX + ribbonW * 0.9, ribbonH - ribbonW * 0.08);
     ctx.stroke();
 
-    // Glyph centered near the top of the ribbon — shape follows the chosen
-    // post type (house, key, door, tag, etc.), same as the Step 1 cards.
+    // Glyph centered near the top of the ribbon — user's choice of icon.
     const iconCX = ribbonX + ribbonW / 2;
     const iconTopY = padTop;
-    drawRibbonIcon(ctx, form.template, iconCX, iconTopY, iconD, form.accentColor);
+    drawRibbonIcon(ctx, form.ribbonIcon, iconCX, iconTopY, iconD, form.accentColor);
 
     ctx.textAlign = "center";
     ctx.font = `800 ${lineSize}px "Montserrat", sans-serif`;
@@ -1448,6 +1470,21 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>RIBBON TEXT</span>
                   <textarea className="input" rows={2} value={form.ribbonLabel} onChange={update("ribbonLabel")} placeholder={"FOR\nSALE"} />
                   <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Filled in automatically from your post type. Use a line break to wrap onto two lines; the ribbon uses your brand color.</span>
+                </label>
+              )}
+
+              {form.layout === "ribbon" && (
+                <label className="block md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>RIBBON ICON</span>
+                  <select
+                    className="input"
+                    value={form.ribbonIcon}
+                    onChange={(e) => setForm((f) => ({ ...f, ribbonIcon: e.target.value }))}
+                  >
+                    {RIBBON_ICONS.map((i) => (
+                      <option key={i.key} value={i.key}>{i.label}</option>
+                    ))}
+                  </select>
                 </label>
               )}
 
