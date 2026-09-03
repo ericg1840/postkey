@@ -1322,7 +1322,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         {/* MAIN GRID: controls + preview */}
         <div className="grid lg:grid-cols-[55fr_45fr] gap-8 items-start">
           {/* LEFT: CONTROLS */}
-          <div className={mobileStep === 1 || mobileStep === 3 ? "hidden lg:grid lg:gap-6" : "grid gap-6"}>
+          <div className={mobileStep === 1 || mobileStep === 3 ? "hidden lg:grid lg:gap-6 lg:col-start-1" : "grid gap-6 lg:col-start-1"}>
             <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
             <section ref={(el) => { sectionRefs.current[2] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
               <StepHeading n={2} title="Add your listing & choose a design" subtitle="Pick a look first — it decides how many photos you'll need — then fill in the rest." />
@@ -1600,7 +1600,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           </div>
 
           {/* RIGHT: PREVIEW */}
-          <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "1.5rem", scrollMarginTop: "1.5rem" }}>
+          <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "lg:sticky lg:col-start-2 lg:row-span-full" : "hidden lg:block lg:sticky lg:col-start-2 lg:row-span-full"} style={{ top: "calc(82px + 1.5rem)", scrollMarginTop: "calc(82px + 1.5rem)" }}>
             {mobileStep === 3 && (
               <button type="button" onClick={() => goToStep(2)}
                 className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2"
@@ -1673,9 +1673,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-start gap-3 mt-6 p-4 rounded-xl" style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}>
+        <div className="flex items-start gap-3 mt-6 p-4 rounded-xl lg:col-start-1" style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}>
           <Lightbulb size={18} color={UI.inkSoft} className="flex-shrink-0 mt-0.5" />
           <div>
             <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Tip: {tip.lead} </span>
@@ -1683,7 +1682,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           </div>
         </div>
 
-        <div className="hidden lg:block">
+        <div className="hidden lg:block lg:col-start-1">
         <div className="mt-8">
           <PrivacyBadge />
         </div>
@@ -1733,6 +1732,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               ))}
             </div>
           </div>
+        </div>
         </div>
         </div>
       </main>
