@@ -15,6 +15,12 @@ import * as bio from "../functions/api/bio.mjs";
 import * as bioPublic from "../functions/api/bio-public.mjs";
 import * as listingsFetch from "../functions/api/listings-fetch.mjs";
 import * as posts from "../functions/api/posts.mjs";
+import * as adminStats from "../functions/api/admin/stats.mjs";
+import * as adminUsers from "../functions/api/admin/users.mjs";
+import * as adminUsersExport from "../functions/api/admin/users-export.mjs";
+import * as adminUserAction from "../functions/api/admin/user-action.mjs";
+import * as adminUserActivity from "../functions/api/admin/user-activity.mjs";
+import * as adminActivityLog from "../functions/api/admin/activity-log.mjs";
 
 const ROUTES = {
   "/api/auth/login": { POST: login.onRequestPost },
@@ -29,6 +35,12 @@ const ROUTES = {
   "/api/bio-public": { GET: bioPublic.onRequestGet },
   "/api/listings-fetch": { POST: listingsFetch.onRequestPost },
   "/api/posts": { GET: posts.onRequestGet, POST: posts.onRequestPost, DELETE: posts.onRequestDelete },
+  "/api/admin/stats": { GET: adminStats.onRequestGet },
+  "/api/admin/users": { GET: adminUsers.onRequestGet },
+  "/api/admin/users-export": { GET: adminUsersExport.onRequestGet },
+  "/api/admin/user-action": { POST: adminUserAction.onRequestPost },
+  "/api/admin/user-activity": { GET: adminUserActivity.onRequestGet },
+  "/api/admin/activity-log": { GET: adminActivityLog.onRequestGet },
 };
 
 export default {

@@ -7,10 +7,15 @@ export async function onRequestPost({ request, env }) {
   const password = body?.password || "";
 
   const db = getDb(env);
-  const [user] = await db.sql`SELECT id, email, full_name, password_hash FROM users WHERE email = ${email}`;
+  const [user] = await db.sql`SELECT id, email, full_name, password_hash, account_status FROM users WHERE email = ${email}`;
   if (!user || !verifyPassword(password, user.password_hash)) {
     return json({ error: "Incorrect email or password." }, { status: 401 });
   }
+  if (user.account_status && user.account_status !== "active") {
+    return json({ error: "This account has been disabled. Contact support if you think this is a mistake." }, { status: 403 });
+  }
+
+  await db.sql`UPDATE users SET last_login_at = NOW() WHERE id = ${user.id}`;
 
   const token = createSessionToken(user.id, env);
   return json(

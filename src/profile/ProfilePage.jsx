@@ -511,6 +511,16 @@ function AccountSection() {
         </div>
       )}
 
+      {user?.isAdmin && (
+        <a
+          href="/admin"
+          className="font-body text-sm font-semibold rounded px-5 py-2.5 transition justify-self-start"
+          style={{ background: UI.stone, color: UI.ink }}
+        >
+          Open admin dashboard →
+        </a>
+      )}
+
       <form onSubmit={submit} className="grid gap-4">
         <h3 className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Change password</h3>
         <Field label="CURRENT PASSWORD" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />

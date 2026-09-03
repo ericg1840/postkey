@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Key } from "lucide-react";
 import { GlobalStyles } from "./shared.jsx";
 import { ListingTool } from "./ListingTool.jsx";
@@ -14,6 +14,7 @@ import { HelpPage } from "./HelpPage.jsx";
 import { BioEditorPage } from "./profile/BioEditorPage.jsx";
 import { PublicBioPage } from "./profile/PublicBioPage.jsx";
 import { AUTH } from "./auth/AuthShell.jsx";
+import { AdminDashboard } from "./admin/AdminDashboard.jsx";
 import { HomePage } from "./marketing/HomePage.jsx";
 import { AboutPage } from "./marketing/AboutPage.jsx";
 import { LegalPage } from "./marketing/LegalPage.jsx";
@@ -51,6 +52,10 @@ function getBioHandle() {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
+function isAdminPath() {
+  return window.location.pathname.replace(/\/+$/, "") === "/admin";
+}
+
 function AppShell() {
   const [activeTool, setActiveTool] = useState("listings");
   const [resetParams, setResetParams] = useState(getResetParams);
@@ -59,7 +64,24 @@ function AppShell() {
   const [showHome, setShowHome] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [legalView, setLegalView] = useState(null); // null | "privacy" | "terms"
+  const [adminRoute, setAdminRoute] = useState(isAdminPath);
   const { user, brandKit, loading } = useAuth();
+
+  // A non-admin (or logged-out) visitor never sees the admin panel — once
+  // we know who's signed in, silently bounce them off the URL instead of
+  // rendering anything admin-shaped.
+  useEffect(() => {
+    if (!adminRoute || loading) return;
+    if (!user?.isAdmin) {
+      window.history.replaceState({}, "", "/");
+      setAdminRoute(false);
+    }
+  }, [adminRoute, loading, user]);
+
+  const exitAdmin = () => {
+    window.history.replaceState({}, "", "/");
+    setAdminRoute(false);
+  };
 
   // Shared by every entry point (logged-out homepage, standalone "go home"
   // link, the About page itself) so "Get Started"/"Log in" always resolve
@@ -88,6 +110,10 @@ function AppShell() {
   }
 
   if (loading) return <LoadingScreen />;
+
+  if (adminRoute && user?.isAdmin) {
+    return <AdminDashboard onExit={exitAdmin} />;
+  }
 
   if (showAbout) {
     return <AboutPage onBack={() => setShowAbout(false)} onGetStarted={goGetStarted} onLogIn={goLogIn} />;

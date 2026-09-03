@@ -1,4 +1,5 @@
 import { getUserIdFromRequest, json } from "../_lib/auth.mjs";
+import { getDb } from "../_lib/db.mjs";
 
 // Server-side fetch + parse of a Zillow listing page so the link-in-bio
 // editor can show a live address/price/beds/baths without the agent typing
@@ -79,6 +80,9 @@ export async function onRequestPost({ request, env }) {
   if (!address) {
     return json({ error: "Couldn't read that listing. Enter the details manually." }, { status: 422 });
   }
+
+  const db = getDb(env);
+  await db.sql`UPDATE users SET zillow_pulls_count = zillow_pulls_count + 1 WHERE id = ${userId}`;
 
   return json({
     address,
