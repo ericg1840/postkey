@@ -829,9 +829,13 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     // ---- Corner ribbon banner (color + text follow the chosen post type) ----
     const ribbonW = w * 0.2;
     const ribbonX = w * 0.05;
-    const ribbonLines = (form.ribbonLabel || "").split("\n").filter(Boolean);
+    const ribbonLines = (form.ribbonLabel || "").split("\n").filter(Boolean).map((l) => l.toUpperCase());
     const iconD = ribbonW * 0.34;
-    const lineSize = ribbonW * 0.19;
+    const textMaxW = ribbonW * 0.82;
+    let lineSize = ribbonW * 0.19;
+    ctx.font = `800 ${lineSize}px "Montserrat", sans-serif`;
+    const widestLine = Math.max(1, ...ribbonLines.map((l) => ctx.measureText(l).width));
+    if (widestLine > textMaxW) lineSize *= textMaxW / widestLine;
     const lineGap = lineSize * 1.15;
     const padTop = ribbonW * 0.22;
     const padBottom = ribbonW * 0.22;
@@ -870,7 +874,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.textAlign = "center";
     ctx.font = `800 ${lineSize}px "Montserrat", sans-serif`;
     const textY0 = iconTopY + iconD + ribbonW * 0.16 + lineSize * 0.8;
-    ribbonLines.forEach((line, i) => ctx.fillText(line.toUpperCase(), iconCX, textY0 + i * lineGap));
+    ribbonLines.forEach((line, i) => ctx.fillText(line, iconCX, textY0 + i * lineGap));
     ctx.textAlign = "left";
 
     // ---- Address + price/beds/baths pill, bottom-left of the photo ----
