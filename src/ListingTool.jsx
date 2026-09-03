@@ -759,19 +759,15 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     }
     const leftMaxW = (hasHeadshot ? headshotLeftEdge : w) - leftX - w * 0.025;
 
-    ctx.font = `700 ${contactH * 0.2}px "Playfair Display", serif`;
+    // The logo already carries the brokerage, so the name is the only text
+    // here and can run large, vertically centered in the bar.
+    ctx.font = `700 ${contactH * 0.3}px "Playfair Display", serif`;
     const nameText = form.agentName.toUpperCase();
     shrinkToFit(nameText, leftMaxW);
     ctx.fillStyle = textColor;
-    ctx.fillText(nameText, leftX, bandY + contactH * 0.4);
-
-    ctx.font = `600 ${contactH * 0.135}px "Montserrat", sans-serif`;
-    shrinkToFit("Real Estate Agent", leftMaxW);
-    ctx.fillStyle = mutedColor;
-    ctx.fillText("Real Estate Agent", leftX, bandY + contactH * 0.63);
-    ctx.font = `600 ${contactH * 0.135}px "Montserrat", sans-serif`;
-    shrinkToFit(form.brokerageName, leftMaxW);
-    ctx.fillText(form.brokerageName, leftX, bandY + contactH * 0.85);
+    ctx.textBaseline = "middle";
+    ctx.fillText(nameText, leftX, bandY + contactH * 0.5);
+    ctx.textBaseline = "alphabetic";
 
     // Right block: user-editable CTA line + phone/website — likewise kept
     // clear of the headshot circle.
