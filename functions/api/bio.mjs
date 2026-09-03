@@ -1,5 +1,6 @@
 import { getDb } from "../_lib/db.mjs";
 import { getUserIdFromRequest, json } from "../_lib/auth.mjs";
+import { logEvent } from "../_lib/activity.mjs";
 
 const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 
@@ -96,6 +97,13 @@ export async function onRequestPut({ request, env }) {
     throw err;
   }
 
+  // Diffed against the pre-save set so a fresh zillow-type link (an agent
+  // adding a listing to their public page) gets its own event, distinct
+  // from the general "links were saved" one fired below.
+  const existingZillowUrls = new Set(
+    (await db.sql`SELECT url FROM bio_links WHERE user_id = ${userId} AND type = 'zillow'`).map((r) => r.url)
+  );
+
   await db.sql`DELETE FROM bio_links WHERE user_id = ${userId}`;
   for (let i = 0; i < links.length; i++) {
     const l = links[i];
@@ -111,6 +119,12 @@ export async function onRequestPut({ request, env }) {
       )
     `;
   }
+
+  const newListings = links.filter((l) => l.type === "zillow" && !existingZillowUrls.has(String(l.url || "").slice(0, 2000)));
+  for (const listing of newListings) {
+    await logEvent(db, userId, "listing_created", { address: listing.address || "", url: listing.url || "" });
+  }
+  await logEvent(db, userId, "link_updated", { linkCount: links.length });
 
   return json({ ok: true });
 }

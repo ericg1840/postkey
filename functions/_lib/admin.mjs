@@ -15,7 +15,3 @@ export async function requireAdmin(request, env) {
 
   return { db, adminId: user.id };
 }
-
-export async function logActivity(db, { userId = null, eventType, detail = "" }) {
-  await db.sql`INSERT INTO activity_log (user_id, event_type, detail) VALUES (${userId}, ${eventType}, ${detail})`;
-}

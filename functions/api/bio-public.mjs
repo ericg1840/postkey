@@ -1,5 +1,6 @@
 import { getDb } from "../_lib/db.mjs";
 import { json } from "../_lib/auth.mjs";
+import { logEvent } from "../_lib/activity.mjs";
 
 // Unauthenticated — this is what the public /u/:handle page fetches, so it
 // only ever returns what's meant to be publicly visible (no email, phone,
@@ -14,6 +15,8 @@ export async function onRequestGet({ request, env }) {
     FROM brand_kits WHERE bio_handle = ${handle}
   `;
   if (!kit) return json({ error: "Page not found." }, { status: 404 });
+
+  await logEvent(db, kit.user_id, "page_view", { handle });
 
   const links = await db.sql`
     SELECT type, label, url, address, price, beds, baths, photo_url

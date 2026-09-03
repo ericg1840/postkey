@@ -29,6 +29,24 @@ function formatCents(cents) {
   return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
+// Turns an event_type + its JSON details blob into one short, readable
+// line — every event type logged by functions/_lib/activity.mjs's
+// logEvent() has a case here.
+function describeEvent(eventType, details) {
+  const d = details || {};
+  switch (eventType) {
+    case "signup": return "created their account";
+    case "login": return "logged in";
+    case "link_updated": return `saved ${d.linkCount ?? 0} bio link${d.linkCount === 1 ? "" : "s"}`;
+    case "listing_created": return `added a listing${d.address ? ` — ${d.address}` : ""}`;
+    case "subscription_changed": return `${d.change || "changed plan"}: ${d.fromTier || "?"} → ${d.toTier || "?"}`;
+    case "status_change": return `account status: ${d.from || "?"} → ${d.to || "?"}`;
+    case "password_reset_triggered": return "password reset email sent";
+    case "page_view": return `viewed their public bio page${d.handle ? ` (/u/${d.handle})` : ""}`;
+    default: return "";
+  }
+}
+
 const STATUS_COLORS = {
   active: { bg: "#E4F5E9", fg: "#1E7A44" },
   disabled: { bg: "#F5E4E4", fg: "#B23A3A" },
@@ -250,7 +268,10 @@ function UserActivityModal({ userId, onClose }) {
               <ul className="grid gap-1.5">
                 {data.recentEvents.map((e, i) => (
                   <li key={i} className="font-body text-xs flex justify-between gap-2" style={{ color: UI.ink }}>
-                    <span className="capitalize truncate">{e.eventType.replace(/_/g, " ")}</span>
+                    <span className="truncate">
+                      <span className="font-semibold capitalize">{e.eventType.replace(/_/g, " ")}</span>
+                      {" — "}{describeEvent(e.eventType, e.details)}
+                    </span>
                     <span className="flex-shrink-0" style={{ color: UI.inkSoft }}>{formatDate(e.createdAt)}</span>
                   </li>
                 ))}
@@ -288,7 +309,7 @@ function ActivityFeed({ refreshKey }) {
               <span style={{ color: UI.ink }}>
                 <span className="font-semibold capitalize">{e.eventType.replace(/_/g, " ")}</span>
                 {e.email && <span style={{ color: UI.inkSoft }}> — {e.email}</span>}
-                {e.detail && <span style={{ color: UI.inkSoft }}> ({e.detail})</span>}
+                <span style={{ color: UI.inkSoft }}> ({describeEvent(e.eventType, e.details)})</span>
               </span>
               <span className="flex-shrink-0 font-mono text-xs" style={{ color: UI.inkSoft }}>{timeAgo(e.createdAt)}</span>
             </li>
