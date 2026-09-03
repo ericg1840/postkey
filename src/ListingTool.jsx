@@ -139,18 +139,21 @@ function drawRibbonIcon(ctx, icon, cx, topY, d, bg) {
       break;
     }
     case "door": {
-      // Doorway frame edge + a door panel swung open on a hinge at its foot.
-      const hingeX = cx - d * 0.34, hingeY = topY + d;
-      ctx.fillRect(hingeX - d * 0.05, topY, d * 0.1, d);
-      ctx.save();
-      ctx.translate(hingeX, hingeY);
-      ctx.rotate(-0.6);
-      ctx.fillRect(0, -d * 0.82, d * 0.16, d * 0.82);
-      ctx.fillStyle = bg;
+      // Closed door: outer frame + inset door panel, both outlined, with
+      // a round knob — a plain, instantly-readable door pictogram.
+      const outerW = d * 0.7, outerX = cx - outerW / 2, outerY = topY;
+      const lw = d * 0.09;
+      ctx.strokeStyle = WHITE;
+      ctx.lineWidth = lw;
+      ctx.strokeRect(outerX + lw / 2, outerY + lw / 2, outerW - lw, d - lw);
+      const inset = d * 0.16;
+      const innerW = outerW - inset * 2, innerH = d - inset * 2;
+      const innerX = outerX + inset, innerY = outerY + inset;
+      ctx.strokeRect(innerX + lw / 2, innerY + lw / 2, innerW - lw, innerH - lw);
+      ctx.fillStyle = WHITE;
       ctx.beginPath();
-      ctx.arc(d * 0.08, -d * 0.26, d * 0.055, 0, Math.PI * 2);
+      ctx.arc(innerX + innerW * 0.22, innerY + innerH * 0.55, d * 0.06, 0, Math.PI * 2);
       ctx.fill();
-      ctx.restore();
       break;
     }
     case "tag": {
