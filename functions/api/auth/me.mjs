@@ -6,12 +6,15 @@ export async function onRequestGet({ request, env }) {
   if (!userId) return json({ user: null }, { status: 200 });
 
   const db = getDb(env);
-  const [user] = await db.sql`SELECT id, email, full_name FROM users WHERE id = ${userId}`;
+  const [user] = await db.sql`SELECT id, email, full_name, is_admin, account_status FROM users WHERE id = ${userId}`;
   if (!user) return json({ user: null }, { status: 200 });
+
+  // A disabled/suspended account is logged out immediately, even mid-session.
+  if (user.account_status && user.account_status !== "active") return json({ user: null }, { status: 200 });
 
   const [kit] = await db.sql`SELECT * FROM brand_kits WHERE user_id = ${userId}`;
   return json({
-    user: { id: user.id, email: user.email, fullName: user.full_name },
+    user: { id: user.id, email: user.email, fullName: user.full_name, isAdmin: user.is_admin },
     brandKit: kit
       ? {
           agentName: kit.agent_name,

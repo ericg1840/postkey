@@ -9,8 +9,33 @@ CREATE TABLE users (
   full_name TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT NOW(),
   reset_token_hash TEXT,
-  reset_token_expires TIMESTAMP
+  reset_token_expires TIMESTAMP,
+  is_admin BOOLEAN NOT NULL DEFAULT false,
+  account_status TEXT NOT NULL DEFAULT 'active', -- active | disabled | suspended
+  last_login_at TIMESTAMP,
+  zillow_pulls_count INTEGER NOT NULL DEFAULT 0
 );
+
+-- One row per user; the admin dashboard's source of truth for tier and MRR.
+CREATE TABLE subscriptions (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  tier TEXT NOT NULL DEFAULT 'free', -- free | paid
+  status TEXT NOT NULL DEFAULT 'active', -- active | canceled
+  monthly_amount_cents INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Recent-events feed for the admin dashboard (signups, upgrades, etc).
+CREATE TABLE activity_log (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  event_type TEXT NOT NULL,
+  detail TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX activity_log_created_at_idx ON activity_log(created_at DESC);
 
 CREATE TABLE brand_kits (
   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

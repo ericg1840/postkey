@@ -95,6 +95,8 @@ export async function onRequestPost({ request, env }) {
     RETURNING id, email, full_name
   `;
   await db.sql`INSERT INTO brand_kits (user_id, agent_name) VALUES (${user.id}, ${fullName})`;
+  await db.sql`INSERT INTO subscriptions (user_id, tier, status, monthly_amount_cents) VALUES (${user.id}, 'free', 'active', 0)`;
+  await db.sql`INSERT INTO activity_log (user_id, event_type, detail) VALUES (${user.id}, 'signup', ${user.email})`;
 
   const token = createSessionToken(user.id, env);
 
