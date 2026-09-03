@@ -1,6 +1,7 @@
-import { requireAdmin, logActivity } from "../../_lib/admin.mjs";
+import { requireAdmin } from "../../_lib/admin.mjs";
 import { createResetToken, json } from "../../_lib/auth.mjs";
 import { sendEmail, preheader } from "../../_lib/email.mjs";
+import { logEvent } from "../../_lib/activity.mjs";
 
 const VALID_TIERS = new Set(["free", "paid"]);
 const TIER_MONTHLY_CENTS = { free: 0, paid: 1900 };
@@ -52,12 +53,17 @@ export async function onRequestPost({ request, env }) {
   if (action === "set_tier") {
     const tier = body?.tier;
     if (!VALID_TIERS.has(tier)) return json({ error: "Invalid tier." }, { status: 400 });
+    const [existingSub] = await db.sql`SELECT tier FROM subscriptions WHERE user_id = ${userId}`;
+    const fromTier = existingSub?.tier || "free";
     await db.sql`
       INSERT INTO subscriptions (user_id, tier, status, monthly_amount_cents, updated_at)
       VALUES (${userId}, ${tier}, 'active', ${TIER_MONTHLY_CENTS[tier]}, NOW())
       ON CONFLICT (user_id) DO UPDATE SET tier = ${tier}, monthly_amount_cents = ${TIER_MONTHLY_CENTS[tier]}, updated_at = NOW()
     `;
-    await logActivity(db, { userId, eventType: tier === "free" ? "downgrade" : "upgrade", detail: `${targetUser.email} moved to ${tier}` });
+    if (fromTier !== tier) {
+      const change = fromTier === "free" ? "upgrade" : tier === "free" ? "cancellation" : "upgrade";
+      await logEvent(db, userId, "subscription_changed", { change, fromTier, toTier: tier, email: targetUser.email });
+    }
     return json({ ok: true });
   }
 
@@ -65,7 +71,7 @@ export async function onRequestPost({ request, env }) {
     const status = body?.status;
     if (!VALID_STATUSES.has(status)) return json({ error: "Invalid status." }, { status: 400 });
     await db.sql`UPDATE users SET account_status = ${status} WHERE id = ${userId}`;
-    await logActivity(db, { userId, eventType: "status_change", detail: `${targetUser.email}: ${targetUser.account_status} -> ${status}` });
+    await logEvent(db, userId, "status_change", { from: targetUser.account_status, to: status, email: targetUser.email });
     return json({ ok: true });
   }
 
@@ -81,7 +87,7 @@ export async function onRequestPost({ request, env }) {
     } catch {
       return json({ error: "Couldn't send the reset email. Please try again shortly." }, { status: 502 });
     }
-    await logActivity(db, { userId, eventType: "password_reset_triggered", detail: `Admin triggered a password reset for ${targetUser.email}` });
+    await logEvent(db, userId, "password_reset_triggered", { email: targetUser.email, triggeredByAdmin: true });
     return json({ ok: true });
   }
 

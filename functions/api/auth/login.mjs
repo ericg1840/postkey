@@ -1,5 +1,6 @@
 import { getDb } from "../../_lib/db.mjs";
 import { verifyPassword, createSessionToken, sessionCookie, json } from "../../_lib/auth.mjs";
+import { logEvent } from "../../_lib/activity.mjs";
 
 export async function onRequestPost({ request, env }) {
   const body = await request.json().catch(() => null);
@@ -16,6 +17,7 @@ export async function onRequestPost({ request, env }) {
   }
 
   await db.sql`UPDATE users SET last_login_at = NOW() WHERE id = ${user.id}`;
+  await logEvent(db, user.id, "login", { email: user.email });
 
   const token = createSessionToken(user.id, env);
   return json(

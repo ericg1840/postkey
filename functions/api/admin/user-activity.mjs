@@ -22,7 +22,7 @@ export async function onRequestGet({ request, env }) {
     SELECT category, headline, created_at FROM posts WHERE user_id = ${userId} ORDER BY created_at DESC LIMIT 10
   `;
   const recentEvents = await db.sql`
-    SELECT event_type, detail, created_at FROM activity_log WHERE user_id = ${userId} ORDER BY created_at DESC LIMIT 10
+    SELECT event_type, details, created_at FROM activity_events WHERE user_id = ${userId} ORDER BY created_at DESC LIMIT 10
   `;
 
   return json({
@@ -38,6 +38,6 @@ export async function onRequestGet({ request, env }) {
     listingsCreated: posts_count,
     zillowPullsUsed: user.zillow_pulls_count,
     recentPosts: recentPosts.map((p) => ({ category: p.category, headline: p.headline, createdAt: p.created_at })),
-    recentEvents: recentEvents.map((e) => ({ eventType: e.event_type, detail: e.detail, createdAt: e.created_at })),
+    recentEvents: recentEvents.map((e) => ({ eventType: e.event_type, details: e.details, createdAt: e.created_at })),
   });
 }

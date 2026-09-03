@@ -1,6 +1,7 @@
 import { getDb } from "../../_lib/db.mjs";
 import { hashPassword, createSessionToken, sessionCookie, json } from "../../_lib/auth.mjs";
 import { sendEmail, preheader } from "../../_lib/email.mjs";
+import { logEvent } from "../../_lib/activity.mjs";
 
 async function sendWelcomeEmail(toEmail, firstName, appUrl, env) {
   await sendEmail(
@@ -96,7 +97,7 @@ export async function onRequestPost({ request, env }) {
   `;
   await db.sql`INSERT INTO brand_kits (user_id, agent_name) VALUES (${user.id}, ${fullName})`;
   await db.sql`INSERT INTO subscriptions (user_id, tier, status, monthly_amount_cents) VALUES (${user.id}, 'free', 'active', 0)`;
-  await db.sql`INSERT INTO activity_log (user_id, event_type, detail) VALUES (${user.id}, 'signup', ${user.email})`;
+  await logEvent(db, user.id, "signup", { email: user.email });
 
   const token = createSessionToken(user.id, env);
 

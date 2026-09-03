@@ -26,16 +26,20 @@ CREATE TABLE subscriptions (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Recent-events feed for the admin dashboard (signups, upgrades, etc).
-CREATE TABLE activity_log (
+-- Every trackable user action (signups, logins, bio-page saves,
+-- subscription changes, public page views, ...) — powers the admin feed
+-- and, later, usage analytics. `details` carries event-specific context
+-- as JSON so it stays queryable without a schema change per event type.
+CREATE TABLE activity_events (
   id SERIAL PRIMARY KEY,
   user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   event_type TEXT NOT NULL,
-  detail TEXT NOT NULL DEFAULT '',
+  details JSONB,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX activity_log_created_at_idx ON activity_log(created_at DESC);
+CREATE INDEX activity_events_created_at_idx ON activity_events(created_at DESC);
+CREATE INDEX activity_events_event_type_idx ON activity_events(event_type);
 
 CREATE TABLE brand_kits (
   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
