@@ -745,28 +745,28 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       }
     };
 
-    // Left block: brokerage logo, then agent name + brokerage — all kept
-    // clear of the headshot circle so a long name/brokerage never runs
-    // into it.
-    let leftX = w * 0.045;
+    // Left block: brokerage logo only — the agent's name runs large,
+    // centered under the headshot instead of sitting next to the logo.
     if (logo.img) {
       const logoSize = contactH * 0.6;
+      const logoX = w * 0.045;
       const logoY = bandY + (contactH - logoSize) / 2;
       const ratio = logo.img.width / logo.img.height;
       const logoW = logoSize * ratio;
-      ctx.drawImage(logo.img, leftX, logoY, logoW, logoSize);
-      leftX += logoW + w * 0.03;
+      ctx.drawImage(logo.img, logoX, logoY, logoW, logoSize);
     }
-    const leftMaxW = (hasHeadshot ? headshotLeftEdge : w) - leftX - w * 0.025;
 
-    // The logo already carries the brokerage, so the name is the only text
-    // here and can run large, vertically centered in the bar.
-    ctx.font = `700 ${contactH * 0.3}px "Playfair Display", serif`;
+    // Agent name, centered beneath the headshot circle
+    const nameMaxW = Math.min(circleD * 1.6, w * 0.5) || w * 0.5;
+    ctx.font = `700 ${contactH * 0.26}px "Playfair Display", serif`;
     const nameText = form.agentName.toUpperCase();
-    shrinkToFit(nameText, leftMaxW);
+    shrinkToFit(nameText, nameMaxW);
     ctx.fillStyle = textColor;
+    ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(nameText, leftX, bandY + contactH * 0.5);
+    const nameY = hasHeadshot ? bandY + circleD / 2 + (contactH - circleD / 2) / 2 : bandY + contactH / 2;
+    ctx.fillText(nameText, circleCX, nameY);
+    ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
 
     // Right block: user-editable CTA line + phone/website — likewise kept
