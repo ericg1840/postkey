@@ -537,7 +537,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
             </div>
 
             {/* ---------------- LIVE PREVIEW ---------------- */}
-            <div className="lg:sticky lg:top-8">
+            <div className="lg:sticky lg:top-[calc(82px+1.5rem)]">
               <div className="flex items-center justify-between mb-3">
                 <p className="font-mono text-xs tracking-[0.1em] uppercase" style={{ color: UI.inkSoft }}>Live preview</p>
                 <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: UI.stone }}>

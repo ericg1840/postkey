@@ -565,7 +565,7 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
           </div>
 
           {/* RIGHT: OUTPUT */}
-          <div className="lg:sticky" style={{ top: "1.5rem" }}>
+          <div className="lg:sticky" style={{ top: "calc(82px + 1.5rem)" }}>
             <div className="rounded-2xl border p-3.5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
               <div className="rounded-xl p-3.5" style={{ background: mixWithWhite(ACCENT, 0.94), border: `1px solid ${mixWithWhite(ACCENT, 0.75)}` }}>
                 <div className="flex items-center justify-between gap-2 mb-1.5">
