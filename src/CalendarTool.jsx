@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, X, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, Trash2, Sparkles } from "lucide-react";
 import {
-  UI, ACCENT, WHITE, mixWithWhite, TopNav, writePostHandoff,
+  UI, ACCENT, ACCENT_PRESETS, WHITE, mixWithWhite, TopNav, writePostHandoff,
   loadCalendarEntries, saveCalendarEntries, genCalendarEntryId,
 } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
@@ -504,8 +504,8 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
           <button
             type="button"
             onClick={() => openNewEntry(todayKey)}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-body font-semibold text-sm transition flex-shrink-0"
-            style={{ background: ACCENT, color: WHITE }}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-body font-bold text-sm transition flex-shrink-0"
+            style={{ background: ACCENT, color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
           >
             <Plus size={15} /> Plan a post
           </button>
@@ -513,7 +513,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
 
         {/* MONTH-AT-A-GLANCE + CONTENT MIX */}
         <div className="grid sm:grid-cols-2 gap-4 mb-5">
-          <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
+          <div className="rounded-2xl p-4" style={{ border: `2px solid ${UI.ink}`, background: UI.card }}>
             <h3 className="font-body text-sm font-semibold mb-2" style={{ color: UI.ink }}>Your month</h3>
             <ul className="font-body text-sm grid gap-1" style={{ color: UI.inkSoft }}>
               <li>{mixTotal} post{mixTotal === 1 ? "" : "s"} planned</li>
@@ -552,15 +552,15 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
               type="button"
               onClick={fillMonth}
               disabled={monthOpenDays.length === 0}
-              className="mt-3 flex items-center gap-1.5 px-4 py-2 rounded-lg font-body text-sm font-semibold transition disabled:opacity-40"
-              style={{ background: ACCENT, color: WHITE }}
+              className="mt-3 flex items-center gap-1.5 px-4 py-2 rounded-lg font-body font-bold text-sm transition disabled:opacity-40"
+              style={{ background: "#0F9D58", color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
             >
-              ✨ Fill my month
+              <Sparkles size={14} /> Fill my month
             </button>
             <p className="font-body text-xs mt-2" style={{ color: UI.inkSoft }}>Mon/Wed/Fri, not every day — Saturdays stay open for your open houses.</p>
           </div>
 
-          <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
+          <div className="rounded-2xl p-4" style={{ border: `2px solid ${UI.ink}`, background: UI.card }}>
             <h3 className="font-body text-sm font-semibold mb-2" style={{ color: UI.ink }}>{MONTH_NAMES[month]} content mix</h3>
             {mixTotal === 0 ? (
               <p className="font-body text-sm" style={{ color: UI.inkSoft }}>No posts logged yet this month.</p>
@@ -598,17 +598,16 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
         {/* NAV + VIEW SWITCHER + FILTERS */}
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: UI.stone }}>
+            <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}>
               {VIEW_MODES.map((m) => (
                 <button
                   key={m}
                   type="button"
                   onClick={() => setViewMode(m)}
-                  className="px-3 py-1.5 rounded-full font-body text-xs font-semibold capitalize transition"
+                  className="px-3 py-1.5 rounded-full font-body text-xs font-bold capitalize transition"
                   style={{
-                    background: viewMode === m ? UI.card : "transparent",
-                    color: viewMode === m ? UI.ink : UI.inkSoft,
-                    boxShadow: viewMode === m ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+                    background: viewMode === m ? ACCENT : "transparent",
+                    color: viewMode === m ? WHITE : UI.inkSoft,
                   }}
                 >
                   {m}
@@ -616,16 +615,16 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={goPrev} className="p-2 rounded-lg border transition" style={{ borderColor: UI.line }} aria-label="Previous">
+              <button type="button" onClick={goPrev} className="p-2 rounded-lg transition" style={{ border: `2px solid ${UI.ink}` }} aria-label="Previous">
                 <ChevronLeft size={16} color={UI.ink} />
               </button>
               <h2 className="font-body text-base font-semibold text-center" style={{ color: UI.ink, minWidth: "9rem" }}>
                 {headerLabel}
               </h2>
-              <button type="button" onClick={goNext} className="p-2 rounded-lg border transition" style={{ borderColor: UI.line }} aria-label="Next">
+              <button type="button" onClick={goNext} className="p-2 rounded-lg transition" style={{ border: `2px solid ${UI.ink}` }} aria-label="Next">
                 <ChevronRight size={16} color={UI.ink} />
               </button>
-              <button type="button" onClick={goToday} className="ml-1 px-3 py-1.5 rounded-lg border font-body text-xs font-semibold transition" style={{ borderColor: UI.line, color: UI.ink }}>
+              <button type="button" onClick={goToday} className="ml-1 px-3 py-1.5 rounded-lg font-body text-xs font-bold transition" style={{ border: `2px solid ${UI.ink}`, color: UI.ink }}>
                 Today
               </button>
             </div>
@@ -638,8 +637,10 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
                   key={t.key}
                   type="button"
                   onClick={() => toggleFilter(t.key)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border font-body text-xs font-semibold transition"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full font-body text-xs font-bold transition"
                   style={{
+                    borderStyle: "solid",
+                    borderWidth: active ? 2 : 1.5,
                     borderColor: active ? t.color : UI.line,
                     background: active ? mixWithWhite(t.color, 0.88) : "transparent",
                     color: active ? UI.ink : UI.inkSoft,
@@ -657,7 +658,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
         <div className="grid lg:grid-cols-[300px_1fr] gap-6 items-start">
           {/* LEFT PANEL */}
           <div className="grid gap-4 order-2 lg:order-1">
-            <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
+            <div className="rounded-2xl p-4" style={{ border: `2px solid ${UI.ink}`, background: UI.card }}>
               <h3 className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Upcoming events</h3>
               <p className="font-body text-xs mt-0.5 mb-3" style={{ color: UI.inkSoft }}>Don't miss scheduled posts</p>
               {upNext.length === 0 ? (
@@ -690,7 +691,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
             </div>
 
             {savedIdeas.length > 0 && (
-              <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
+              <div className="rounded-2xl p-4" style={{ border: `2px solid ${ACCENT_PRESETS[4]}`, background: UI.card }}>
                 <h3 className="font-body text-sm font-semibold mb-1" style={{ color: UI.ink }}>Saved ideas</h3>
                 <p className="font-body text-xs mb-3" style={{ color: UI.inkSoft }}>Not scheduled yet — click one to give it a date.</p>
                 <ul className="grid gap-2">
@@ -708,7 +709,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
               </div>
             )}
 
-            <div className="rounded-2xl border p-4" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
+            <div className="rounded-2xl p-4" style={{ border: `2px solid ${UI.ink}`, background: UI.card }}>
               <h3 className="font-body text-sm font-semibold mb-3" style={{ color: UI.ink }}>Ideas for this month</h3>
               {monthIdeas.length === 0 ? (
                 monthOpenDays.length === 0 ? (
@@ -747,7 +748,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
           </div>
 
           {/* CALENDAR */}
-          <div className="rounded-2xl border overflow-hidden order-1 lg:order-2" style={{ borderColor: UI.line, background: UI.card, boxShadow: "0 1px 3px rgba(27,36,48,0.05)" }}>
+          <div className="rounded-2xl overflow-hidden order-1 lg:order-2" style={{ border: `2.5px solid ${UI.ink}`, background: UI.card }}>
             {viewMode === "day" ? (
               <div className="p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -814,7 +815,7 @@ export function CalendarTool({ onSwitchTool, onGoHome }) {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-7" style={{ borderBottom: `1px solid ${UI.line}` }}>
+                <div className="grid grid-cols-7" style={{ borderBottom: `2px solid ${UI.ink}` }}>
                   {WEEKDAYS.map((w) => (
                     <div key={w} className="py-2 text-center font-mono text-xs font-semibold" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
                       {w.slice(0, 3).toUpperCase()}
@@ -855,8 +856,8 @@ function EntryModal({ editing, setEditing, onSave, onDelete, onCreatePost, onClo
       onClick={onClose}
     >
       <div
-        className="rounded-lg w-full"
-        style={{ maxWidth: 420, background: UI.card, boxShadow: "0 20px 50px rgba(27,36,48,0.25)" }}
+        className="rounded-2xl w-full"
+        style={{ maxWidth: 420, background: UI.card, border: `2.5px solid ${UI.ink}`, boxShadow: "0 20px 50px rgba(27,36,48,0.25)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 pt-5">
@@ -909,8 +910,13 @@ function EntryModal({ editing, setEditing, onSave, onDelete, onCreatePost, onClo
                   key={t.key}
                   type="button"
                   onClick={() => setEditing((f) => ({ ...f, type: t.key }))}
-                  className="flex items-center justify-center gap-1.5 p-2 rounded border font-body text-xs font-semibold transition"
-                  style={{ borderColor: editing.type === t.key ? t.color : UI.line, background: editing.type === t.key ? mixWithWhite(t.color, 0.88) : "transparent" }}
+                  className="flex items-center justify-center gap-1.5 p-2 rounded-lg font-body text-xs font-bold transition"
+                  style={{
+                    borderStyle: "solid",
+                    borderWidth: editing.type === t.key ? 2 : 1.5,
+                    borderColor: editing.type === t.key ? t.color : UI.line,
+                    background: editing.type === t.key ? mixWithWhite(t.color, 0.88) : "transparent",
+                  }}
                 >
                   <span className="rounded-full flex-shrink-0" style={{ width: 8, height: 8, background: t.color }} />
                   {t.label}
@@ -948,8 +954,8 @@ function EntryModal({ editing, setEditing, onSave, onDelete, onCreatePost, onClo
             type="button"
             onClick={onCreatePost}
             disabled={!editing.title.trim()}
-            className="w-full py-2.5 rounded-lg border font-body font-semibold text-sm transition disabled:opacity-50"
-            style={{ borderColor: ACCENT, color: ACCENT }}
+            className="w-full py-2.5 rounded-lg font-body font-bold text-sm transition disabled:opacity-50"
+            style={{ border: `2px solid ${ACCENT}`, color: ACCENT }}
           >
             Create this post →
           </button>
@@ -958,8 +964,8 @@ function EntryModal({ editing, setEditing, onSave, onDelete, onCreatePost, onClo
               <button
                 type="button"
                 onClick={onDelete}
-                className="flex items-center gap-1.5 py-2.5 px-3 rounded-lg border font-body text-xs font-semibold transition"
-                style={{ borderColor: UI.line, color: "#C0392B" }}
+                className="flex items-center gap-1.5 py-2.5 px-3 rounded-lg font-body text-xs font-semibold transition"
+                style={{ border: `1.5px solid ${UI.line}`, color: "#C0392B" }}
               >
                 <Trash2 size={14} /> Delete
               </button>
@@ -968,8 +974,8 @@ function EntryModal({ editing, setEditing, onSave, onDelete, onCreatePost, onClo
               type="button"
               onClick={onSave}
               disabled={!editing.title.trim()}
-              className="flex-1 py-2.5 rounded-lg font-body font-semibold text-sm transition disabled:opacity-50"
-              style={{ background: ACCENT, color: WHITE }}
+              className="flex-1 py-2.5 rounded-lg font-body font-bold text-sm transition disabled:opacity-50"
+              style={{ background: ACCENT, color: WHITE, border: `2px solid ${UI.ink}`, boxShadow: `2px 2px 0 ${UI.ink}` }}
             >
               {editing.id ? "Save changes" : "Add to calendar"}
             </button>

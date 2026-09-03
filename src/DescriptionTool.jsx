@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Copy, Check, Shuffle, Home, Building2, Warehouse, Building } from "lucide-react";
-import { UI, ACCENT, WHITE, mixWithWhite, TopNav } from "./shared.jsx";
+import { UI, ACCENT, ACCENT_PRESETS, WHITE, mixWithWhite, TopNav } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 
 // Property type just changes the noun used throughout the copy — kept
@@ -383,12 +383,12 @@ function buildDescription(form, variant) {
   return paragraphs.join("\n\n");
 }
 
-function StepHeading({ n, title, subtitle }) {
+function StepHeading({ n, title, subtitle, color = ACCENT }) {
   return (
     <div className="flex items-start gap-2.5 mb-2.5">
       <span
-        className="flex items-center justify-center rounded-full font-body text-xs font-semibold flex-shrink-0"
-        style={{ width: 22, height: 22, background: ACCENT, color: WHITE, marginTop: 1 }}
+        className="flex items-center justify-center rounded-full font-body text-xs font-bold flex-shrink-0"
+        style={{ width: 22, height: 22, background: color, color: WHITE, marginTop: 1 }}
       >
         {n}
       </span>
@@ -439,13 +439,18 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
           {/* LEFT: FORM */}
           <div className="grid gap-6">
             <section>
-              <StepHeading n={1} title="Property type & tone" subtitle="These shape the wording of every sentence." />
+              <StepHeading n={1} title="Property type & tone" subtitle="These shape the wording of every sentence." color={ACCENT_PRESETS[0]} />
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PROPERTY TYPE</span>
               <div className="grid grid-cols-4 gap-2 mb-4">
                 {PROPERTY_TYPES.map(({ key, label, icon: Icon }) => (
                   <button key={key} type="button" onClick={() => setForm((f) => ({ ...f, propertyType: key }))}
-                    className="flex flex-col items-center gap-1.5 py-3 rounded-lg border-2 transition"
-                    style={{ borderColor: form.propertyType === key ? ACCENT : UI.line, background: form.propertyType === key ? mixWithWhite(ACCENT, 0.92) : UI.card }}>
+                    className="flex flex-col items-center gap-1.5 py-3 rounded-lg transition"
+                    style={{
+                      borderStyle: "solid",
+                      borderWidth: form.propertyType === key ? 2.5 : 2,
+                      borderColor: form.propertyType === key ? ACCENT : UI.line,
+                      background: form.propertyType === key ? mixWithWhite(ACCENT, 0.92) : UI.card,
+                    }}>
                     <Icon size={18} color={form.propertyType === key ? ACCENT : UI.inkSoft} />
                     <span className="font-body text-xs font-semibold" style={{ color: UI.ink }}>{label}</span>
                   </button>
@@ -456,8 +461,13 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
               <div className="grid grid-cols-2 gap-2">
                 {TONE_OPTIONS.map(({ key, label, description: d }) => (
                   <button key={key} type="button" onClick={() => setForm((f) => ({ ...f, tone: key }))}
-                    className="text-left p-3 rounded-lg border-2 transition"
-                    style={{ borderColor: form.tone === key ? ACCENT : UI.line, background: form.tone === key ? mixWithWhite(ACCENT, 0.92) : UI.card }}>
+                    className="text-left p-3 rounded-lg transition"
+                    style={{
+                      borderStyle: "solid",
+                      borderWidth: form.tone === key ? 2.5 : 2,
+                      borderColor: form.tone === key ? ACCENT : UI.line,
+                      background: form.tone === key ? mixWithWhite(ACCENT, 0.92) : UI.card,
+                    }}>
                     <div className="font-body text-xs font-bold" style={{ color: UI.ink }}>{label}</div>
                     <div className="font-body text-xs mt-0.5" style={{ color: UI.inkSoft }}>{d}</div>
                   </button>
@@ -465,7 +475,7 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
               </div>
             </section>
 
-            <section className="rounded-2xl border p-4 sm:p-5" style={{ background: UI.card, borderColor: UI.line }}>
+            <section className="rounded-2xl p-4 sm:p-5" style={{ background: UI.card, border: `2px solid ${UI.ink}` }}>
               <StepHeading n={2} title="Listing details" />
               <label className="block">
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
@@ -566,8 +576,8 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
 
           {/* RIGHT: OUTPUT */}
           <div className="lg:sticky" style={{ top: "calc(82px + 1.5rem)" }}>
-            <div className="rounded-2xl border p-3.5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
-              <div className="rounded-xl p-3.5" style={{ background: mixWithWhite(ACCENT, 0.94), border: `1px solid ${mixWithWhite(ACCENT, 0.75)}` }}>
+            <div className="rounded-2xl p-3.5 sm:p-6" style={{ background: UI.card, border: `2.5px solid ${UI.ink}` }}>
+              <div className="rounded-xl p-3.5" style={{ background: mixWithWhite(ACCENT, 0.94), border: `1.5px solid ${ACCENT}` }}>
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <span className="font-mono text-xs font-bold" style={{ color: ACCENT, letterSpacing: "0.04em" }}>LISTING DESCRIPTION</span>
                   <button
@@ -584,8 +594,8 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
                 </div>
                 <button
                   onClick={copyDescription}
-                  className="w-full mt-3 py-2 rounded-lg font-body font-semibold text-xs flex items-center justify-center gap-2 transition"
-                  style={{ background: copied ? UI.card : ACCENT, color: copied ? UI.ink : WHITE, border: copied ? `1px solid ${UI.line}` : "none" }}
+                  className="w-full mt-3 py-2 rounded-lg font-body font-bold text-xs flex items-center justify-center gap-2 transition"
+                  style={{ background: copied ? UI.card : ACCENT, color: copied ? UI.ink : WHITE, border: copied ? `1.5px solid ${UI.line}` : `2px solid ${UI.ink}`, boxShadow: copied ? "none" : `2px 2px 0 ${UI.ink}` }}
                 >
                   {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? "Copied!" : "Copy description"}
                 </button>
