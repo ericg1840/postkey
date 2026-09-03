@@ -70,6 +70,7 @@ const DEFAULTS = {
   modernScript: "just",
   modernHeadline: "Listed",
   bottomMessage: "Message for more details",
+  ctaMessage: "Let's talk about your home goals!",
   agentName: "Your Name, Realtor",
   agentPhone: "(555) 123-4567",
   agentEmail: "you@example.com",
@@ -725,8 +726,16 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.stroke();
     }
 
-    // Left block: agent name + brokerage
-    const leftX = w * 0.045;
+    // Left block: brokerage logo, then agent name + brokerage
+    let leftX = w * 0.045;
+    if (logo.img) {
+      const logoSize = contactH * 0.6;
+      const logoY = bandY + (contactH - logoSize) / 2;
+      const ratio = logo.img.width / logo.img.height;
+      const logoW = logoSize * ratio;
+      ctx.drawImage(logo.img, leftX, logoY, logoW, logoSize);
+      leftX += logoW + w * 0.03;
+    }
     const nameSize = contactH * 0.2;
     ctx.font = `700 ${nameSize}px "Playfair Display", serif`;
     ctx.fillStyle = textColor;
@@ -738,14 +747,30 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillText("Real Estate Agent", leftX, bandY + contactH * 0.63);
     ctx.fillText(form.brokerageName, leftX, bandY + contactH * 0.85);
 
-    // Right block: CTA line + phone/website
+    // Right block: user-editable CTA line + phone/website
     const rightX = w * 0.955;
     ctx.textAlign = "right";
-    const ctaSize = contactH * 0.14;
+    let ctaSize = contactH * 0.14;
+    const ctaMaxW = w * 0.4;
     ctx.font = `italic 600 ${ctaSize}px "Playfair Display", serif`;
+    let ctaLines = wrapText(ctx, form.ctaMessage, ctaMaxW);
+    let attempts = 0;
+    while (ctaLines.length > 2 && attempts < 8) {
+      ctaSize *= 0.92;
+      ctx.font = `italic 600 ${ctaSize}px "Playfair Display", serif`;
+      ctaLines = wrapText(ctx, form.ctaMessage, ctaMaxW);
+      attempts += 1;
+    }
+    ctaLines = ctaLines.slice(0, 2);
+    const ctaWidest = Math.max(...ctaLines.map((l) => ctx.measureText(l).width));
+    if (ctaWidest > ctaMaxW) {
+      ctaSize *= ctaMaxW / ctaWidest;
+      ctx.font = `italic 600 ${ctaSize}px "Playfair Display", serif`;
+    }
     ctx.fillStyle = textColor;
-    ctx.fillText("Let's talk about", rightX, bandY + contactH * 0.32);
-    ctx.fillText("your home goals!", rightX, bandY + contactH * 0.5);
+    const ctaLineH = ctaSize * 1.15;
+    const ctaY0 = bandY + contactH * 0.32 - (ctaLines.length - 1) * ctaLineH * 0.5;
+    ctaLines.forEach((line, i) => ctx.fillText(line, rightX, ctaY0 + i * ctaLineH));
 
     const contactSize = contactH * 0.17;
     ctx.font = `800 ${contactSize}px "Montserrat", sans-serif`;
@@ -1182,6 +1207,13 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 <label className="block md:col-span-2">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BOTTOM BAR MESSAGE</span>
                   <input className="input" value={form.bottomMessage} onChange={update("bottomMessage")} placeholder="Message for more details" />
+                </label>
+              )}
+
+              {form.layout === "signature" && (
+                <label className="block md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CALL-TO-ACTION MESSAGE</span>
+                  <input className="input" value={form.ctaMessage} onChange={update("ctaMessage")} placeholder="Let's talk about your home goals!" />
                 </label>
               )}
 
