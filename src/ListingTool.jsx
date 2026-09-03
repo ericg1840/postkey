@@ -802,11 +802,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.fillRect(0, 0, w, photoH);
     }
 
-    // ---- Optional brand-color wash over the photo ----
+    // ---- Optional black wash over the photo ----
     if (form.photoTint > 0) {
       ctx.save();
       ctx.globalAlpha = form.photoTint / 100;
-      ctx.fillStyle = form.accentColor;
+      ctx.fillStyle = BLACK;
       ctx.fillRect(0, 0, w, photoH);
       ctx.restore();
     }
@@ -1435,7 +1435,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                     className="w-full"
                     style={{ accentColor: ACCENT }}
                   />
-                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Washes the photo with your brand color, from 0 (none) to 90%.</span>
+                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Darkens the photo with a black wash, from 0 (none) to 90%.</span>
                 </div>
               )}
 
