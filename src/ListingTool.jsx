@@ -831,7 +831,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const ribbonX = w * 0.05;
     const ribbonLines = (form.ribbonLabel || "").split("\n").filter(Boolean).map((l) => l.toUpperCase());
     const iconD = ribbonW * 0.34;
-    const textMaxW = ribbonW * 0.82;
+    // Keep clear of the vertical rule lines drawn at 0.1/0.9 of the ribbon.
+    const textMaxW = ribbonW * 0.64;
     let lineSize = ribbonW * 0.19;
     ctx.font = `800 ${lineSize}px "Montserrat", sans-serif`;
     const widestLine = Math.max(1, ...ribbonLines.map((l) => ctx.measureText(l).width));
