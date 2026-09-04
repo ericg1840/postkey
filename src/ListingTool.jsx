@@ -1679,7 +1679,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           >
             <div>
               <h3 className="font-body text-base font-semibold flex items-center gap-2" style={{ color: UI.ink }}>
-                Your Social Set (Preview)
+                Download your complete social set
                 <span className="font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.04em", color: WHITE, background: ACCENT, padding: "1px 6px", borderRadius: 999 }}>NEW</span>
               </h3>
               <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>We'll generate multiple sizes for all your platforms.</p>
