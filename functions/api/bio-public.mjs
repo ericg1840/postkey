@@ -11,7 +11,7 @@ export async function onRequestGet({ request, env }) {
 
   const db = getDb(env);
   const [kit] = await db.sql`
-    SELECT user_id, agent_name, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style, bio_bg_image_url, bio_bg_tint
+    SELECT user_id, agent_name, headshot_url, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style, bio_bg_image_url, bio_bg_tint
     FROM brand_kits WHERE bio_handle = ${handle}
   `;
   if (!kit) return json({ error: "Page not found." }, { status: 404 });
@@ -25,6 +25,7 @@ export async function onRequestGet({ request, env }) {
 
   return json({
     name: kit.agent_name || "",
+    headshotUrl: kit.headshot_url || "",
     tagline: kit.bio_tagline || "",
     brokerage: kit.bio_brokerage || "",
     bgColor: kit.bio_bg_color || "#1B2430",
