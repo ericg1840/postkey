@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
 import { AuthScreen } from "./auth/AuthScreen.jsx";
 import { ResetPasswordScreen } from "./auth/ResetPasswordScreen.jsx";
 import { OnboardingWizard } from "./onboarding/OnboardingWizard.jsx";
+import { OnboardingChecklist } from "./onboarding/OnboardingChecklist.jsx";
 import { ProfilePage } from "./profile/ProfilePage.jsx";
 import { HelpPage } from "./HelpPage.jsx";
 import { BioEditorPage } from "./profile/BioEditorPage.jsx";
@@ -152,13 +153,21 @@ function AppShell() {
 
   if (brandKit && !brandKit.onboarded) return <OnboardingWizard />;
 
-  if (activeTool === "profile") return <ProfilePage onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
-  if (activeTool === "help") return <HelpPage onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
-  if (activeTool === "bio") return <BioEditorPage onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
-  if (activeTool === "listings") return <ListingTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
-  if (activeTool === "calendar") return <CalendarTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
-  if (activeTool === "description") return <DescriptionTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
-  return <CommunityTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
+  let toolScreen;
+  if (activeTool === "profile") toolScreen = <ProfilePage onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
+  else if (activeTool === "help") toolScreen = <HelpPage onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
+  else if (activeTool === "bio") toolScreen = <BioEditorPage onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
+  else if (activeTool === "listings") toolScreen = <ListingTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
+  else if (activeTool === "calendar") toolScreen = <CalendarTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
+  else if (activeTool === "description") toolScreen = <DescriptionTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
+  else toolScreen = <CommunityTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
+
+  return (
+    <>
+      {toolScreen}
+      <OnboardingChecklist onNavigate={setActiveTool} />
+    </>
+  );
 }
 
 export default function App() {

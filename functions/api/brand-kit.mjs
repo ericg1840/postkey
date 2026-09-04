@@ -22,6 +22,8 @@ export async function onRequestPut({ request, env }) {
     headshotUrl = null,
     logoUrl = null,
     onboarded,
+    listingVolume = null,
+    checklistDismissed,
   } = body;
 
   await db.sql`
@@ -39,6 +41,8 @@ export async function onRequestPut({ request, env }) {
       headshot_url = ${headshotUrl},
       logo_url = ${logoUrl},
       onboarded = COALESCE(${onboarded ?? null}, onboarded),
+      listing_volume = ${listingVolume},
+      checklist_dismissed = COALESCE(${checklistDismissed ?? null}, checklist_dismissed),
       updated_at = NOW()
     WHERE user_id = ${userId}
   `;
