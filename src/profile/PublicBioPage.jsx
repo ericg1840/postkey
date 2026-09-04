@@ -38,15 +38,19 @@ export function PublicBioPage({ handle }) {
     );
   }
 
-  const { name, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, bgImageUrl, bgTint, links } = state.data;
+  const { name, headshotUrl, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, bgImageUrl, bgTint, links } = state.data;
 
   return (
     <div className="min-h-screen flex flex-col items-center px-6 py-12" style={bgStyle(bgColor, bgImageUrl, bgTint)}>
       <div className="w-full max-w-sm flex flex-col items-center">
         <div className="w-24 h-24 rounded-full p-1 mb-4" style={{ background: `conic-gradient(from 180deg, ${ACCENT}, #6E8CFF, ${ACCENT})` }}>
-          <div className="font-display w-full h-full rounded-full flex items-center justify-center text-xl" style={{ background: UI.ink, color: "#FDFBF7" }}>
-            {(name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
-          </div>
+          {headshotUrl ? (
+            <img src={headshotUrl} alt="" className="w-full h-full rounded-full object-cover" />
+          ) : (
+            <div className="font-display w-full h-full rounded-full flex items-center justify-center text-xl" style={{ background: UI.ink, color: "#FDFBF7" }}>
+              {(name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+            </div>
+          )}
         </div>
         <h1
           className={nameFont ? "text-center mb-1" : "font-display text-center mb-1"}

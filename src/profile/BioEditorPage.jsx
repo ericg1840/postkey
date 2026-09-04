@@ -337,8 +337,8 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   </div>
                 </div>
                 <p className="font-body text-[11px] mt-3" style={{ color: UI.inkSoft }}>
-                  Photo and name come from your <button type="button" onClick={() => onSwitchTool("profile")} className="underline" style={{ color: ACCENT }}>Profile → Brand</button> settings —
-                  editing the name here updates it there too. Brokerage is specific to this page.
+                  Photo and name can be managed in <button type="button" onClick={() => onSwitchTool("profile")} className="underline" style={{ color: ACCENT }}>Profile</button>.
+                  Brokerage is specific to this page.
                 </p>
               </Section>
 
@@ -588,7 +588,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                     className="rounded-[1.9rem] overflow-hidden min-h-[560px] px-6 py-8 flex flex-col items-center transition-colors duration-200"
                     style={bgStyle(bgColor, bgImageUrl, bgTint)}
                   >
-                    <PreviewContent {...{ name, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links }} />
+                    <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links }} />
                   </div>
                 </div>
               ) : (
@@ -608,7 +608,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                     style={bgStyle(bgColor, bgImageUrl, bgTint)}
                   >
                     <div className="w-full max-w-sm">
-                      <PreviewContent {...{ name, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links }} />
+                      <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links }} />
                     </div>
                   </div>
                 </div>
@@ -621,13 +621,17 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
   );
 }
 
-function PreviewContent({ name, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links }) {
+function PreviewContent({ name, headshotUrl, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links }) {
   return (
     <>
       <div className="w-20 h-20 rounded-full p-1 mb-4" style={{ background: `conic-gradient(from 180deg, ${ACCENT}, #6E8CFF, ${ACCENT})` }}>
-        <div className="font-display w-full h-full rounded-full flex items-center justify-center text-lg" style={{ background: UI.ink, color: "#FDFBF7" }}>
-          {(name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
-        </div>
+        {headshotUrl ? (
+          <img src={headshotUrl} alt="" className="w-full h-full rounded-full object-cover" />
+        ) : (
+          <div className="font-display w-full h-full rounded-full flex items-center justify-center text-lg" style={{ background: UI.ink, color: "#FDFBF7" }}>
+            {(name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+          </div>
+        )}
       </div>
       <h2
         className={nameFont ? "text-center mb-0.5" : "font-display text-center mb-0.5"}
