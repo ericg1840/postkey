@@ -35,13 +35,13 @@ function BrandPanel() {
       <div className="absolute rounded-full pointer-events-none" style={{ top: -100, right: -100, width: 320, height: 320, background: "#FFFFFF", opacity: 0.06 }} />
 
       <div className="relative">
-        <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-white" style={{ border: "2px solid #1B2430" }}>
-          <Key size={12} color={PINK} style={{ transform: "rotate(-45deg)" }} />
-          <span className="font-mono font-bold" style={{ color: AUTH.ink, fontSize: "0.62rem", letterSpacing: "0.06em" }}>
+        <span className="inline-flex items-center gap-1.5">
+          <Key size={13} color="#F2B705" style={{ transform: "rotate(-45deg)" }} />
+          <span className="font-mono font-bold" style={{ color: "#F2B705", fontSize: "0.72rem", letterSpacing: "0.08em" }}>
             BUILT FOR REAL ESTATE AGENTS
           </span>
         </span>
-        <h2 className="font-bold mt-4" style={{ fontFamily: "'Space Grotesk', sans-serif", color: "#FFFFFF", fontSize: "1.9rem", lineHeight: 1.12 }}>
+        <h2 className="font-bold mt-3" style={{ fontFamily: "'Space Grotesk', sans-serif", color: "#FFFFFF", fontSize: "1.9rem", lineHeight: 1.12 }}>
           Your real estate content, ready in minutes.
         </h2>
         <p className="font-body text-sm mt-3" style={{ color: "rgba(255,255,255,0.75)", maxWidth: 280 }}>
