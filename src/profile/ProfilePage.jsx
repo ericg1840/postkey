@@ -351,7 +351,8 @@ function BrandPreview({ data, headshot, logo }) {
         <div className="min-w-0 flex-1">
           <div className="font-body text-xs font-semibold truncate" style={{ color: "#FFFFFF" }}>{name}</div>
           <div className="font-body truncate" style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.65rem" }}>
-            {data.agentPhone || "(555) 123-4567"}{data.brokerageName ? ` · ${data.brokerageName}` : ""}
+            {[data.agentPhone, data.agentEmail].filter(Boolean).join(" • ") || "(555) 123-4567"}
+            {data.brokerageName ? ` · ${data.brokerageName}` : ""}
           </div>
         </div>
         {logo.img && (
