@@ -1192,34 +1192,36 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               {idea ? idea.text : "Not sure what to post? We'll suggest a coffee shop, a neighborhood tip, or a weekend event."}
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap flex-shrink-0 justify-end">
+          <div className="flex flex-col gap-2 w-full sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:flex-shrink-0">
             {idea && (
               <button
                 onClick={createFromIdea}
-                className="py-2.5 px-5 rounded-lg font-body font-bold text-sm transition whitespace-nowrap"
+                className="py-2.5 px-5 rounded-lg font-body font-bold text-sm transition whitespace-nowrap w-full sm:w-auto"
                 style={{ background: ACCENT, color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
               >
                 Create this post →
               </button>
             )}
-            {idea && (
+            <div className={idea ? "grid grid-cols-2 gap-2 sm:contents" : "contents"}>
+              {idea && (
+                <button
+                  onClick={saveIdeaForLater}
+                  disabled={ideaSaved}
+                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 sm:px-4 rounded-lg font-body text-xs sm:text-sm font-semibold transition disabled:opacity-70"
+                  style={{ border: `1.5px solid ${UI.line}`, color: UI.ink, background: UI.card }}
+                >
+                  <CalendarPlus size={15} className="flex-shrink-0" />
+                  <span className="truncate">{ideaSaved ? "Saved to Planner" : "Save for later"}</span>
+                </button>
+              )}
               <button
-                onClick={saveIdeaForLater}
-                disabled={ideaSaved}
-                className="flex items-center gap-1.5 py-2.5 px-4 rounded-lg font-body text-sm font-semibold transition whitespace-nowrap disabled:opacity-70"
-                style={{ border: `1.5px solid ${UI.line}`, color: UI.ink, background: UI.card }}
+                onClick={giveIdea}
+                className="flex items-center justify-center gap-1.5 py-2.5 px-3 sm:px-5 rounded-lg font-body font-bold text-xs sm:text-sm transition whitespace-nowrap w-full sm:w-auto"
+                style={idea ? { color: UI.ink, background: UI.card, border: `1.5px solid ${UI.line}` } : { background: ACCENT_PRESETS[4], color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
               >
-                <CalendarPlus size={15} />
-                {ideaSaved ? "Saved to Planner" : "Save for later"}
+                {idea ? "Give Me Another →" : "Give Me an Idea →"}
               </button>
-            )}
-            <button
-              onClick={giveIdea}
-              className="flex items-center gap-1.5 py-2.5 px-5 rounded-lg font-body font-bold text-sm transition whitespace-nowrap"
-              style={idea ? { color: UI.ink, background: UI.card, border: `1.5px solid ${UI.line}` } : { background: ACCENT_PRESETS[4], color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
-            >
-              {idea ? "Give Me Another →" : "Give Me an Idea →"}
-            </button>
+            </div>
           </div>
         </div>
 
