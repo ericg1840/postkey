@@ -90,7 +90,7 @@ function AppShell() {
   const goGetStarted = () => { setShowAbout(false); setShowHome(false); setLegalView(null); if (!user) setAuthView("signup"); };
   const goLogIn = () => { setShowAbout(false); setShowHome(false); setLegalView(null); if (!user) setAuthView("login"); };
 
-  // Public link-in-bio page — no auth, no app chrome, renders before every
+  // Public Key Link page — no auth, no app chrome, renders before every
   // other gate (including the auth-loading screen) since it doesn't depend
   // on whether anyone is logged in on this browser.
   if (bioHandle) {

@@ -12,14 +12,14 @@ const PURPLE = ACCENT_PRESETS[4];
 
 // What's actually waiting for an agent once they sign up — maps 1:1 to the
 // real tools (brand kit onboarding, ListingTool, CommunityTool,
-// DescriptionTool, CalendarTool, the bio-link page), not generic feature copy.
+// DescriptionTool, CalendarTool, the Key Link page), not generic feature copy.
 const WHATS_INSIDE = [
   { icon: Palette, color: PINK, title: "Your brand kit, set once", text: "Add your logo, colors, headshot, and contact info one time — every post uses it automatically." },
   { icon: Home, color: PRIMARY, title: "Listing & Sold graphics", text: "Just Listed, Just Sold, Open House, and Price Drop templates, ready in seconds." },
   { icon: MapPin, color: GREEN, title: "Local & community posts", text: "Market updates, buyer & seller tips, and neighborhood spotlights that keep you visible between listings." },
   { icon: MessageCircle, color: ORANGE, title: "Captions written for you", text: "Every graphic comes with an on-brand caption, so you're never stuck staring at an empty text box." },
   { icon: Calendar, color: PURPLE, title: "A content calendar", text: "See your whole week or month of posts at a glance, and brainstorm new ideas whenever you need one." },
-  { icon: Link2, color: PINK, title: "Your own branded bio page", text: "One link for all your social media accounts that shows off your listings and gets people to your contact info." },
+  { icon: Link2, color: PINK, title: "Your own branded Key Link page", text: "One link for all your social media accounts that shows off your listings and gets people to your contact info." },
 ];
 
 // Content categories PostKey is actually built around, not a generic social caption tool.

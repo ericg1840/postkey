@@ -77,7 +77,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
       try {
         const res = await fetch("/api/bio", { credentials: "include" });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || "Couldn't load your bio page.");
+        if (!res.ok) throw new Error(data.error || "Couldn't load your Key Link page.");
         if (cancelled) return;
         setHandle(data.profile?.handle || DEFAULTS.handle);
         setTagline(data.profile?.tagline || DEFAULTS.tagline);
@@ -228,7 +228,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
         <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
           <div>
             <h1 className="font-display font-bold text-2xl sm:text-3xl mb-1" style={{ color: UI.ink }}>
-              Build your real estate link-in-bio page
+              Build your real estate Key Link page
             </h1>
             <p className="font-body text-sm max-w-xl" style={{ color: UI.inkSoft }}>
               Create a beautiful, mobile-first page that drives traffic to your most important links.
