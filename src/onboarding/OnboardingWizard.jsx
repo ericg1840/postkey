@@ -1,43 +1,86 @@
 import { useState } from "react";
-import { User, Building2, Image as ImageIcon, ArrowRight, ArrowLeft, Check } from "lucide-react";
+import { User, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import {
-  ACCENT_PRESETS, DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
+  UI, ACCENT_PRESETS, DEFAULT_HEADSHOT_URL,
   useAgentAsset, UploadBox,
 } from "../shared.jsx";
 import { AUTH } from "../auth/AuthShell.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
+import { LINK_TYPES, BioLinksList, textOn } from "../profile/bioShared.jsx";
 
-const STEPS = ["Welcome", "Photo & logo", "Brand color", "Contact info", "Brokerage & license"];
+const STEPS = ["Welcome", "Profile & first link"];
+const LISTING_COUNTS = ["1–2", "3–5", "6–10", "10+"];
+const CONTENT_LINK_TYPES = LINK_TYPES.filter((t) => t.id !== "facebook" && t.id !== "instagram" && t.id !== "tiktok" && t.id !== "linkedin");
+const PREVIEW_BG = UI.ink;
+const PREVIEW_BOX = "#2E3B4C";
+
+function initials(name) {
+  return (name || "?").trim().split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase() || "?";
+}
 
 export function OnboardingWizard() {
   const { user, brandKit, saveBrandKit } = useAuth();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [data, setData] = useState({
-    agentName: brandKit?.agentName || user?.fullName || "",
-    agentPhone: brandKit?.agentPhone || "",
-    agentEmail: brandKit?.agentEmail || "",
-    website: brandKit?.website || "",
-    brokerageName: brandKit?.brokerageName || "",
-    brokerageCity: brandKit?.brokerageCity || "",
-    officePhone: brandKit?.officePhone || "",
-    licenseNumber: brandKit?.licenseNumber || "",
-    accentColor: brandKit?.accentColor || "#1B2430",
-  });
-  const set = (key) => (e) => setData((d) => ({ ...d, [key]: e.target.value }));
+  const [error, setError] = useState("");
+
+  const [listingVolume, setListingVolume] = useState(brandKit?.listingVolume || "");
+  const [agentName, setAgentName] = useState(brandKit?.agentName || user?.fullName || "");
+  const [brokerage, setBrokerage] = useState(brandKit?.brokerageName || "");
+  const [accentColor, setAccentColor] = useState(brandKit?.accentColor || "#0043FF");
+  const [linkType, setLinkType] = useState("website");
+  const [linkLabel, setLinkLabel] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
 
   const headshot = useAgentAsset(DEFAULT_HEADSHOT_URL, "Headshot", brandKit?.headshotUrl);
-  const logo = useAgentAsset(DEFAULT_LOGO_URL, "Brokerage logo", brandKit?.logoUrl);
+  const previewAvatarUrl = headshot.source === "custom" ? headshot.url : null;
 
-  const finish = async (markOnboarded) => {
+  const hasLink = linkUrl.trim().length > 0;
+  const previewLinks = hasLink
+    ? [{ id: "preview", type: linkType, label: linkLabel.trim() || CONTENT_LINK_TYPES.find((t) => t.id === linkType)?.label || "Link", url: linkUrl.trim() }]
+    : [];
+
+  const finish = async ({ markOnboarded, saveProfile }) => {
     setBusy(true);
+    setError("");
     try {
+      // Save the bio-page link first so the brand-kit save below (which
+      // updates local state directly, not from a re-fetch) can report the
+      // real link count — otherwise the checklist would show "no link yet"
+      // right after a link was in fact just saved.
+      if (saveProfile) {
+        const res = await fetch("/api/bio", {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            brokerage,
+            bgColor: PREVIEW_BG,
+            boxColor: PREVIEW_BOX,
+            buttonStyle: "rounded",
+            links: hasLink
+              ? [{ type: linkType, label: linkLabel.trim(), url: linkUrl.trim() }]
+              : [],
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Couldn't save your link.");
+        }
+      }
+
       await saveBrandKit({
-        ...data,
-        headshotUrl: headshot.source === "custom" ? headshot.url : null,
-        logoUrl: logo.source === "custom" ? logo.url : null,
+        ...brandKit,
+        agentName,
+        brokerageName: brokerage,
+        accentColor,
+        listingVolume: listingVolume || null,
+        headshotUrl: previewAvatarUrl,
         onboarded: markOnboarded,
+        linkCount: saveProfile && hasLink ? 1 : (brandKit?.linkCount || 0),
       });
+    } catch (err) {
+      setError(err.message);
     } finally {
       setBusy(false);
     }
@@ -45,10 +88,10 @@ export function OnboardingWizard() {
 
   const isLast = step === STEPS.length - 1;
   const next = async () => {
-    if (isLast) await finish(true);
+    if (isLast) await finish({ markOnboarded: true, saveProfile: true });
     else setStep((s) => s + 1);
   };
-  const skip = () => finish(true);
+  const skip = () => finish({ markOnboarded: true, saveProfile: false });
 
   return (
     <div
@@ -67,13 +110,13 @@ export function OnboardingWizard() {
         .ob-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; letter-spacing: 0.04em; color: ${AUTH.muted}; display: block; margin-bottom: 0.35rem; }
       `}</style>
 
-      <div className="w-full" style={{ maxWidth: 480 }}>
+      <div className="w-full" style={{ maxWidth: step === 1 ? 760 : 480 }}>
         <div className="flex items-center justify-between mb-4">
           <span className="font-body text-xs font-semibold" style={{ color: AUTH.muted }}>
             Step {step + 1} of {STEPS.length}
           </span>
           <button onClick={skip} disabled={busy} className="font-body text-xs underline" style={{ color: AUTH.muted }}>
-            Skip for now
+            Skip onboarding
           </button>
         </div>
 
@@ -85,91 +128,114 @@ export function OnboardingWizard() {
 
         <div className="rounded-2xl p-8" style={{ background: "rgba(255,255,255,0.96)", boxShadow: "0 20px 50px rgba(27,36,48,0.14)" }}>
           {step === 0 && (
-            <div>
-              <h1 className="font-display font-bold text-xl mb-2" style={{ color: AUTH.ink }}>Welcome to PostKey{data.agentName ? `, ${data.agentName.split(" ")[0]}` : ""}!</h1>
+            <div style={{ maxWidth: 400 }}>
+              <h1 className="font-display font-bold text-xl mb-2" style={{ color: AUTH.ink }}>
+                Welcome to PostKey{agentName ? `, ${agentName.split(" ")[0]}` : ""}!
+              </h1>
               <p className="font-body text-sm mb-6" style={{ color: AUTH.muted }}>
-                Let's set up your brand kit once — your photo, logo, colors, and contact info will be ready on every post from now on.
+                A couple of quick questions to get you set up — nothing here is required.
               </p>
-              <label>
+
+              <label className="block mb-2">
                 <span className="ob-label">YOUR NAME (AS SHOWN ON POSTS)</span>
-                <span className="ob-field"><input className="ob-input" value={data.agentName} onChange={set("agentName")} placeholder="Jane Doe, Realtor" /></span>
+                <span className="ob-field"><input className="ob-input" value={agentName} onChange={(e) => setAgentName(e.target.value)} placeholder="Jane Doe, Realtor" /></span>
+              </label>
+
+              <label className="block">
+                <span className="ob-label">LISTINGS YOU TYPICALLY MANAGE <span style={{ textTransform: "none" }}>(optional)</span></span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {LISTING_COUNTS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setListingVolume((v) => (v === c ? "" : c))}
+                      className="font-body text-sm rounded-full px-3.5 py-1.5 transition"
+                      style={{
+                        border: `1.5px solid ${listingVolume === c ? AUTH.ink : AUTH.border}`,
+                        background: listingVolume === c ? AUTH.ink : "transparent",
+                        color: listingVolume === c ? "#FFFFFF" : AUTH.ink,
+                        fontWeight: listingVolume === c ? 700 : 400,
+                      }}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
               </label>
             </div>
           )}
 
           {step === 1 && (
-            <div>
-              <h2 className="font-display font-bold text-lg mb-1" style={{ color: AUTH.ink }}>Your photo & logo</h2>
-              <p className="font-body text-sm mb-5" style={{ color: AUTH.muted }}>These appear on the contact strip of every post.</p>
-              <div className="grid grid-cols-2 gap-3">
-                <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
-                <UploadBox label="LOGO" icon={Building2} state={logo} hint="Brokerage logo" />
-              </div>
-            </div>
-          )}
+            <div className="grid gap-8 md:grid-cols-[1fr_260px]">
+              <div>
+                <h2 className="font-display font-bold text-lg mb-1" style={{ color: AUTH.ink }}>Set up your link-in-bio page</h2>
+                <p className="font-body text-sm mb-5" style={{ color: AUTH.muted }}>Fill this in and watch your page take shape on the right.</p>
 
-          {step === 2 && (
-            <div>
-              <h2 className="font-display font-bold text-lg mb-1" style={{ color: AUTH.ink }}>Your brand color</h2>
-              <p className="font-body text-sm mb-5" style={{ color: AUTH.muted }}>Used for headlines, accents, and highlights on your posts.</p>
-              <div className="flex items-center gap-2 flex-wrap">
-                {ACCENT_PRESETS.map((c) => (
-                  <button key={c} onClick={() => setData((d) => ({ ...d, accentColor: c }))} aria-label={c}
-                    className="rounded-full transition"
-                    style={{
-                      width: "2rem", height: "2rem", background: c,
-                      border: data.accentColor.toLowerCase() === c.toLowerCase() ? `2px solid ${AUTH.ink}` : "2px solid transparent",
-                      boxShadow: data.accentColor.toLowerCase() === c.toLowerCase() ? "0 0 0 2px white, 0 0 0 3px " + AUTH.ink : "none",
-                    }} />
-                ))}
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input type="color" value={data.accentColor} onChange={(e) => setData((d) => ({ ...d, accentColor: e.target.value }))}
-                    style={{ width: "2rem", height: "2rem", padding: 0, border: `1px solid ${AUTH.border}`, borderRadius: "0.4rem", background: "none" }} />
-                  <span className="font-mono text-xs" style={{ color: AUTH.muted }}>Custom</span>
+                <div className="mb-4">
+                  <UploadBox label="PHOTO" icon={User} state={headshot} hint="Your photo" />
+                </div>
+
+                <label className="block mb-4">
+                  <span className="ob-label">BROKERAGE</span>
+                  <span className="ob-field"><input className="ob-input" value={brokerage} onChange={(e) => setBrokerage(e.target.value)} placeholder="Your Brokerage" /></span>
                 </label>
+
+                <label className="ob-label block mb-1.5">BRAND COLOR</label>
+                <div className="flex items-center gap-2 flex-wrap mb-5">
+                  {ACCENT_PRESETS.map((c) => (
+                    <button key={c} type="button" onClick={() => setAccentColor(c)} aria-label={c}
+                      className="rounded-full transition"
+                      style={{
+                        width: "1.9rem", height: "1.9rem", background: c,
+                        border: accentColor.toLowerCase() === c.toLowerCase() ? `2px solid ${AUTH.ink}` : "2px solid transparent",
+                        boxShadow: accentColor.toLowerCase() === c.toLowerCase() ? "0 0 0 2px white, 0 0 0 3px " + AUTH.ink : "none",
+                      }} />
+                  ))}
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)}
+                      style={{ width: "1.9rem", height: "1.9rem", padding: 0, border: `1px solid ${AUTH.border}`, borderRadius: "0.4rem", background: "none" }} />
+                    <span className="font-mono text-xs" style={{ color: AUTH.muted }}>Custom</span>
+                  </label>
+                </div>
+
+                <span className="ob-label block mb-1.5">FIRST LINK</span>
+                <div className="grid gap-2 mb-1">
+                  <select
+                    value={linkType}
+                    onChange={(e) => setLinkType(e.target.value)}
+                    className="ob-field font-body text-sm"
+                    style={{ color: AUTH.ink, appearance: "auto" }}
+                  >
+                    {CONTENT_LINK_TYPES.map((t) => (
+                      <option key={t.id} value={t.id}>{t.label}</option>
+                    ))}
+                  </select>
+                  <span className="ob-field"><input className="ob-input" value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} placeholder="Link title, e.g. Book a showing" /></span>
+                  <span className="ob-field"><input className="ob-input" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder={CONTENT_LINK_TYPES.find((t) => t.id === linkType)?.placeholder} /></span>
+                </div>
+              </div>
+
+              <div>
+                <div className="rounded-2xl p-1.5" style={{ background: AUTH.inkDeep, boxShadow: "0 12px 30px rgba(0,0,0,0.28)" }}>
+                  <div className="rounded-xl px-4 py-6 flex flex-col items-center text-center" style={{ background: PREVIEW_BG, minHeight: 380 }}>
+                    <div
+                      className="w-16 h-16 rounded-full mb-3 flex items-center justify-center font-display font-bold overflow-hidden"
+                      style={{ background: previewAvatarUrl ? "transparent" : `linear-gradient(135deg, ${accentColor}, #E0298C)`, color: "#FFFFFF" }}
+                    >
+                      {previewAvatarUrl ? <img src={previewAvatarUrl} alt="" className="w-full h-full object-cover" /> : initials(agentName)}
+                    </div>
+                    <p className="font-display font-bold text-base" style={{ color: textOn(PREVIEW_BG) }}>{agentName || "Your name"}</p>
+                    {brokerage && <p className="font-body text-xs mb-5" style={{ color: "#9FB4E8" }}>{brokerage}</p>}
+                    {!brokerage && <div className="mb-5" />}
+                    <BioLinksList links={previewLinks} bgColor={PREVIEW_BG} boxColor={PREVIEW_BOX} buttonStyle="rounded" asLink={false} />
+                  </div>
+                </div>
+                <p className="font-mono text-[0.65rem] uppercase tracking-wide mt-2 text-center" style={{ color: AUTH.muted }}>Live preview</p>
               </div>
             </div>
           )}
 
-          {step === 3 && (
-            <div className="grid gap-4">
-              <h2 className="font-display font-bold text-lg" style={{ color: AUTH.ink }}>Contact info</h2>
-              <label>
-                <span className="ob-label">CELL PHONE</span>
-                <span className="ob-field"><input className="ob-input" value={data.agentPhone} onChange={set("agentPhone")} placeholder="(555) 123-4567" /></span>
-              </label>
-              <label>
-                <span className="ob-label">EMAIL</span>
-                <span className="ob-field"><input className="ob-input" type="email" value={data.agentEmail} onChange={set("agentEmail")} placeholder="you@example.com" /></span>
-              </label>
-              <label>
-                <span className="ob-label">WEBSITE</span>
-                <span className="ob-field"><input className="ob-input" value={data.website} onChange={set("website")} placeholder="yourname.com" /></span>
-              </label>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className="grid gap-4">
-              <h2 className="font-display font-bold text-lg" style={{ color: AUTH.ink }}>Brokerage & license</h2>
-              <label>
-                <span className="ob-label">BROKERAGE</span>
-                <span className="ob-field"><input className="ob-input" value={data.brokerageName} onChange={set("brokerageName")} placeholder="Your Brokerage" /></span>
-              </label>
-              <label>
-                <span className="ob-label">OFFICE CITY</span>
-                <span className="ob-field"><input className="ob-input" value={data.brokerageCity} onChange={set("brokerageCity")} placeholder="Your City" /></span>
-              </label>
-              <label>
-                <span className="ob-label">OFFICE PHONE</span>
-                <span className="ob-field"><input className="ob-input" value={data.officePhone} onChange={set("officePhone")} placeholder="(555) 987-6543" /></span>
-              </label>
-              <label>
-                <span className="ob-label">LICENSE NUMBER</span>
-                <span className="ob-field"><input className="ob-input" value={data.licenseNumber} onChange={set("licenseNumber")} placeholder="For required disclosures" /></span>
-              </label>
-            </div>
-          )}
+          {error && <p className="font-body text-sm mt-4" style={{ color: "#C0392B" }}>{error}</p>}
 
           <div className="flex items-center justify-between mt-8">
             {step > 0 ? (
