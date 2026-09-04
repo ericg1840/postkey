@@ -42,6 +42,7 @@ function describeEvent(eventType, details) {
     case "subscription_changed": return `${d.change || "changed plan"}: ${d.fromTier || "?"} → ${d.toTier || "?"}`;
     case "status_change": return `account status: ${d.from || "?"} → ${d.to || "?"}`;
     case "password_reset_triggered": return "password reset email sent";
+    case "account_deleted": return "account deleted by admin";
     case "page_view": return `viewed their public bio page${d.handle ? ` (/u/${d.handle})` : ""}`;
     default: return "";
   }
@@ -195,6 +196,11 @@ function ActionsMenu({ user, onAction }) {
             onMouseEnter={(e) => (e.currentTarget.style.background = UI.stone)} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
             View activity
           </button>
+          <div className="my-1 border-t" style={{ borderColor: UI.line }} />
+          <button onClick={() => choose("confirm_delete")} className="w-full text-left px-3 py-2 font-semibold" style={{ color: ERROR }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = UI.stone)} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+            Delete account
+          </button>
         </div>,
         document.body
       )}
@@ -284,6 +290,71 @@ function UserActivityModal({ userId, onClose }) {
   );
 }
 
+function DeleteAccountModal({ user, onClose, onDeleted }) {
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const matches = confirmEmail.trim().toLowerCase() === user.email.toLowerCase();
+
+  const submit = async () => {
+    if (!matches || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await api("/api/admin/user-action", {
+        method: "POST",
+        body: JSON.stringify({ userId: user.id, action: "delete_account", confirmEmail: user.email }),
+      });
+      onDeleted();
+    } catch (e) {
+      setError(e.message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(27,36,48,0.55)" }} onClick={onClose}>
+      <div className="rounded-2xl w-full max-w-sm p-6" style={{ background: WHITE }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-display font-bold text-lg" style={{ color: ERROR }}>Delete account</h3>
+          <button onClick={onClose} aria-label="Close" style={{ color: UI.inkSoft }}><X size={20} /></button>
+        </div>
+        <p className="font-body text-sm mb-4" style={{ color: UI.ink }}>
+          This permanently deletes <strong>{user.email}</strong> and everything tied to it — brand kit, bio links, and posts. This can't be undone.
+        </p>
+        <label className="block mb-4">
+          <span className="font-mono text-[0.65rem] uppercase tracking-wide" style={{ color: UI.inkSoft }}>
+            Type the email to confirm
+          </span>
+          <input
+            type="text"
+            autoFocus
+            value={confirmEmail}
+            onChange={(e) => setConfirmEmail(e.target.value)}
+            placeholder={user.email}
+            className="w-full mt-1.5 rounded-lg px-3 py-2 font-body text-sm border"
+            style={{ borderColor: UI.line, color: UI.ink }}
+          />
+        </label>
+        {error && <p className="font-body text-sm mb-3" style={{ color: ERROR }}>{error}</p>}
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} disabled={busy} className="font-body text-sm font-semibold rounded-full px-4 py-2" style={{ color: UI.inkSoft }}>
+            Cancel
+          </button>
+          <button
+            onClick={submit}
+            disabled={!matches || busy}
+            className="font-body text-sm font-semibold rounded-full px-4 py-2 disabled:opacity-40"
+            style={{ background: ERROR, color: WHITE }}
+          >
+            {busy ? "Deleting…" : "Delete account"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ActivityFeed({ refreshKey }) {
   const [events, setEvents] = useState(null);
   const [error, setError] = useState("");
@@ -308,7 +379,7 @@ function ActivityFeed({ refreshKey }) {
             <li key={e.id} className="flex items-start justify-between gap-3 font-body text-sm">
               <span style={{ color: UI.ink }}>
                 <span className="font-semibold capitalize">{e.eventType.replace(/_/g, " ")}</span>
-                {e.email && <span style={{ color: UI.inkSoft }}> — {e.email}</span>}
+                {(e.email || e.details?.email) && <span style={{ color: UI.inkSoft }}> — {e.email || e.details.email}</span>}
                 <span style={{ color: UI.inkSoft }}> ({describeEvent(e.eventType, e.details)})</span>
               </span>
               <span className="flex-shrink-0 font-mono text-xs" style={{ color: UI.inkSoft }}>{timeAgo(e.createdAt)}</span>
@@ -331,6 +402,7 @@ export function AdminDashboard({ onExit }) {
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
   const [activityUserId, setActivityUserId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [feedKey, setFeedKey] = useState(0);
 
   useEffect(() => {
@@ -358,6 +430,11 @@ export function AdminDashboard({ onExit }) {
 
       if (action === "view_activity") {
         setActivityUserId(user.id);
+        return;
+      }
+
+      if (action === "confirm_delete") {
+        setDeleteTarget(user);
         return;
       }
 
@@ -481,6 +558,17 @@ export function AdminDashboard({ onExit }) {
       </div>
 
       {activityUserId && <UserActivityModal userId={activityUserId} onClose={() => setActivityUserId(null)} />}
+      {deleteTarget && (
+        <DeleteAccountModal
+          user={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={() => {
+            setDeleteTarget(null);
+            loadUsers();
+            setFeedKey((k) => k + 1);
+          }}
+        />
+      )}
     </div>
   );
 }
