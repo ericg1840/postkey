@@ -223,14 +223,16 @@ export function BrandKitPreview() {
 }
 
 // Chunky "sticker" button: thick ink border + offset drop shadow, used for
-// every primary/secondary CTA on the playful redesign.
-function StickerButton({ as: As = "button", href, onClick, background, color, children, className = "", small }) {
+// every primary/secondary CTA on the playful redesign — exported so other
+// "Bold Blocks" screens (sign up / log in) use the same control.
+export function StickerButton({ as: As = "button", href, onClick, background, color, children, className = "", small, disabled }) {
   const Tag = As;
   return (
     <Tag
       href={href}
       onClick={onClick}
-      className={`font-body font-bold rounded-full transition hover:opacity-85 inline-flex items-center gap-1.5 ${small ? "px-4 py-2 text-xs" : "px-6 py-3.5 text-sm"} ${className}`}
+      disabled={disabled}
+      className={`font-body font-bold rounded-full transition inline-flex items-center justify-center gap-1.5 ${disabled ? "opacity-60" : "hover:opacity-85"} ${small ? "px-4 py-2 text-xs" : "px-6 py-3.5 text-sm"} ${className}`}
       style={{ background, color, border: "2.5px solid #1B2430", boxShadow: "4px 4px 0 #1B2430" }}
     >
       {children}
