@@ -13,7 +13,6 @@ export async function onRequestGet({ request, env }) {
   if (user.account_status && user.account_status !== "active") return json({ user: null }, { status: 200 });
 
   const [kit] = await db.sql`SELECT * FROM brand_kits WHERE user_id = ${userId}`;
-  const [{ count: linkCount }] = await db.sql`SELECT COUNT(*)::int AS count FROM bio_links WHERE user_id = ${userId}`;
   return json({
     user: { id: user.id, email: user.email, fullName: user.full_name, isAdmin: user.is_admin },
     brandKit: kit
@@ -31,9 +30,6 @@ export async function onRequestGet({ request, env }) {
           headshotUrl: kit.headshot_url,
           logoUrl: kit.logo_url,
           onboarded: kit.onboarded,
-          listingVolume: kit.listing_volume,
-          checklistDismissed: kit.checklist_dismissed,
-          linkCount,
         }
       : null,
   });

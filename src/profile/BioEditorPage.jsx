@@ -191,14 +191,8 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Couldn't save.");
 
-      // One combined brand-kit save (name change, if any, plus the fresh
-      // link count) — saveBrandKit updates local state directly rather than
-      // re-fetching, so two separate calls in a row would have the second
-      // one clobber the first's change with the stale pre-render brandKit.
-      const trimmedName = nameDraft.trim();
-      const nameChanged = trimmedName && trimmedName !== name;
-      if (nameChanged || (brandKit && brandKit.linkCount !== links.length)) {
-        await saveBrandKit({ ...brandKit, agentName: nameChanged ? trimmedName : (brandKit?.agentName ?? name), linkCount: links.length });
+      if (nameDraft.trim() && nameDraft.trim() !== name) {
+        await saveBrandKit({ ...brandKit, agentName: nameDraft.trim() });
       }
       setSaveStatus("saved");
     } catch (err) {
