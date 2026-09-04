@@ -367,8 +367,8 @@ const BLACK_BAND = "#1B2430";
 function Field({ label, ...props }) {
   return (
     <label className="block">
-      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>{label}</span>
-      <input className="input" {...props} />
+      <span className="font-mono text-xs block mb-2" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>{label}</span>
+      <input className="input" style={{ fontSize: "0.95rem", padding: "0.7rem 0.9rem" }} {...props} />
     </label>
   );
 }
@@ -409,7 +409,7 @@ export function BrandSection({ brandKit, saveBrandKit }) {
 
   return (
     <div className="grid lg:grid-cols-[1fr_auto] gap-8">
-      <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
+      <div className="grid md:grid-cols-2 gap-x-8 gap-y-5">
         <div className="grid grid-cols-2 gap-3 md:col-span-2">
           <UploadBox label="HEADSHOT" icon={User} state={headshot} hint="Your photo" />
           <UploadBox label="LOGO" icon={Building2} state={logo} hint="Brokerage logo" />
@@ -420,17 +420,17 @@ export function BrandSection({ brandKit, saveBrandKit }) {
         <Field label="WEBSITE" value={data.website} onChange={update("website")} placeholder="yourname.com" />
         <Field label="BROKERAGE" value={data.brokerageName} onChange={update("brokerageName")} placeholder="Your Brokerage" />
         <Field label="OFFICE CITY" value={data.brokerageCity} onChange={update("brokerageCity")} placeholder="Your City" />
-        <Field label="OFFICE PHONE" value={data.officePhone} onChange={update("officePhone")} placeholder="(555) 987-6543" />
+        <Field label="OFFICE PHONE" value={data.officePhone} onChange={update("officePhone")} placeholder="(555) 867-5309" />
         <Field label="LICENSE NUMBER" value={data.licenseNumber} onChange={update("licenseNumber")} placeholder="For required disclosures" />
 
         <div className="md:col-span-2">
-          <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BRAND COLOR</span>
-          <ColorSwatchPicker value={data.accentColor} onChange={(v) => { setData((d) => ({ ...d, accentColor: v })); setStatus("idle"); }} />
+          <span className="font-mono text-xs block mb-2" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BRAND COLOR</span>
+          <ColorSwatchPicker value={data.accentColor} onChange={(v) => { setData((d) => ({ ...d, accentColor: v })); setStatus("idle"); }} size="2.2rem" />
         </div>
 
         <div className="md:col-span-2">
-          <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SCRIPT FONT</span>
-          <select className="input" value={data.scriptFont} onChange={update("scriptFont")}>
+          <span className="font-mono text-xs block mb-2" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SCRIPT FONT</span>
+          <select className="input" style={{ fontSize: "0.95rem", padding: "0.7rem 0.9rem" }} value={data.scriptFont} onChange={update("scriptFont")}>
             {SCRIPT_FONTS.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
           </select>
         </div>
