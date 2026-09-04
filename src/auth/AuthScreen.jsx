@@ -2,6 +2,10 @@ import { useState } from "react";
 import { User, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
 import { AUTH, AUTH_BLUE, AuthShell, AuthField } from "./AuthShell.jsx";
+import { ACCENT_PRESETS } from "../shared.jsx";
+
+const PINK = ACCENT_PRESETS[0];
+const GREEN = ACCENT_PRESETS[2];
 
 const COPY = {
   login: { title: "Welcome back", subtitle: "Log in to pick up where you left off." },
@@ -10,20 +14,20 @@ const COPY = {
 };
 
 const STEPS = ["Account", "Brand", "First Post"];
+const STEP_COLORS = [PINK, AUTH_BLUE, GREEN];
 
 function ModeTabs({ mode, onChange }) {
   return (
-    <div className="flex items-center rounded-full p-1 mb-6" style={{ background: AUTH.field, border: `1px solid ${AUTH.border}` }}>
+    <div className="flex items-center rounded-full p-1 mb-6 bg-white" style={{ border: "2px solid #1B2430" }}>
       {["signup", "login"].map((m) => (
         <button
           key={m}
           type="button"
           onClick={() => onChange(m)}
-          className="flex-1 font-body text-sm font-semibold rounded-full py-2 transition"
+          className="flex-1 font-body text-sm font-bold rounded-full py-2 transition"
           style={{
-            background: mode === m ? "#FFFFFF" : "transparent",
-            color: mode === m ? AUTH_BLUE : AUTH.muted,
-            boxShadow: mode === m ? "0 1px 4px rgba(27,36,48,0.12)" : "none",
+            background: mode === m ? PINK : "transparent",
+            color: mode === m ? "#FFFFFF" : AUTH.muted,
           }}
         >
           {m === "signup" ? "Sign Up" : "Log In"}
@@ -40,12 +44,12 @@ function StepIndicator() {
         <div key={label} className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
             <span
-              className="flex items-center justify-center rounded-full font-body font-semibold flex-shrink-0"
+              className="flex items-center justify-center rounded-full font-body font-bold flex-shrink-0"
               style={{
                 width: 20, height: 20, fontSize: "0.68rem",
-                background: i === 0 ? AUTH_BLUE : AUTH.field,
+                background: i === 0 ? STEP_COLORS[i] : AUTH.field,
                 color: i === 0 ? "#FFFFFF" : AUTH.muted,
-                border: i === 0 ? "none" : `1px solid ${AUTH.border}`,
+                border: i === 0 ? "2px solid #1B2430" : `1px solid ${AUTH.border}`,
               }}
             >
               {i + 1}
@@ -99,7 +103,7 @@ export function AuthScreen({ initialMode = "login", onBack }) {
       {mode !== "forgot" && <ModeTabs mode={mode} onChange={switchMode} />}
 
       <div className={mode === "forgot" ? "mb-6" : "mb-6 text-center"}>
-        <h1 className="font-display font-bold text-xl" style={{ color: AUTH.ink }}>{title}</h1>
+        <h1 className="font-bold text-xl" style={{ fontFamily: "'Space Grotesk', sans-serif", color: AUTH.ink }}>{title}</h1>
         {subtitle && <p className="font-body text-sm mt-1.5" style={{ color: AUTH.muted }}>{subtitle}</p>}
       </div>
 
