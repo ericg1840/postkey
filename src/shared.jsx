@@ -665,9 +665,6 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
           </button>
         </nav>
         <div className="flex items-center gap-4 justify-self-end">
-          <span className="font-mono text-xs hidden sm:inline" style={{ color: UI.inkSoft }}>
-            {active === "listings" ? "PHOTO IN, POST OUT" : active === "community" ? "LOCAL LOVE, POSTED" : active === "calendar" ? "PLAN AHEAD, POST ON TIME" : active === "profile" ? "YOUR BRAND, YOUR WAY" : active === "bio" ? "ONE LINK, EVERYWHERE" : active === "help" ? "QUICK ANSWERS" : "WRITE IT ONCE, POST IT EVERYWHERE"}
-          </span>
           {onLogout && (
             <div className="flex items-center gap-2">
               {userName && (
