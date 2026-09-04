@@ -103,13 +103,131 @@ export const ACCENT_PRESETS = ["#E0298C", "#0043FF", "#0F9D58", "#E8792E", "#7B3
 
 const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
-// A brand-color picker: preset swatches plus a typed hex field for
-// "Custom" — deliberately not a native <input type="color"> for the
-// custom slot, since every browser's own color-picker dialog shows raw
-// R/G/B values alongside the swatch that most agents have no use for.
+function normalizeHex(hex) {
+  const h = hex.replace("#", "");
+  return h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+}
+function hexToRgbLocal(hex) {
+  const h = normalizeHex(hex);
+  const n = parseInt(h, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+function rgbToHex(r, g, b) {
+  return "#" + [r, g, b].map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")).join("");
+}
+function rgbToHsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d !== 0) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  return { h, s: max === 0 ? 0 : d / max, v: max };
+}
+function hsvToRgb(h, s, v) {
+  const c = v * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = v - c;
+  let [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return { r: (r + m) * 255, g: (g + m) * 255, b: (b + m) * 255 };
+}
+
+// A visual saturation/value square plus a hue strip — the "pick any
+// color" affordance, drawn entirely with gradients rather than a native
+// <input type="color">, since every browser's own color-picker dialog
+// shows raw R/G/B values alongside the swatch that most agents have no
+// use for. Renders inline (used inside a popover by ColorSwatchPicker).
+function VisualColorPicker({ value, onChange }) {
+  const { r, g, b } = HEX_RE.test(value) ? hexToRgbLocal(value) : { r: 0, g: 0, b: 0 };
+  const { h, s, v } = rgbToHsv(r, g, b);
+  const svRef = useRef(null);
+  const hueRef = useRef(null);
+
+  const setFromSv = (clientX, clientY) => {
+    const rect = svRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+    const { r, g, b } = hsvToRgb(h, x, 1 - y);
+    onChange(rgbToHex(r, g, b));
+  };
+  const setFromHue = (clientX) => {
+    const rect = hueRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const { r, g, b } = hsvToRgb(x * 360, s, v);
+    onChange(rgbToHex(r, g, b));
+  };
+
+  const dragging = (onMove) => (e) => {
+    e.preventDefault();
+    onMove(e.clientX, e.clientY);
+    const move = (ev) => onMove(ev.clientX, ev.clientY);
+    const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  return (
+    <div className="grid gap-2.5" style={{ width: 200 }}>
+      <div
+        ref={svRef}
+        onPointerDown={dragging((x, y) => setFromSv(x, y))}
+        className="relative rounded-lg cursor-crosshair"
+        style={{
+          height: 130,
+          background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${h}, 100%, 50%))`,
+        }}
+      >
+        <div
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            width: 12, height: 12, left: `calc(${s * 100}% - 6px)`, top: `calc(${(1 - v) * 100}% - 6px)`,
+            border: "2px solid white", boxShadow: "0 0 0 1px rgba(0,0,0,0.4)",
+          }}
+        />
+      </div>
+      <div
+        ref={hueRef}
+        onPointerDown={dragging((x) => setFromHue(x))}
+        className="relative rounded-full cursor-pointer"
+        style={{ height: 12, background: "linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red)" }}
+      >
+        <div
+          className="absolute top-1/2 rounded-full pointer-events-none"
+          style={{
+            width: 14, height: 14, left: `calc(${(h / 360) * 100}% - 7px)`, transform: "translateY(-50%)",
+            border: "2px solid white", boxShadow: "0 0 0 1px rgba(0,0,0,0.4)", background: `hsl(${h}, 100%, 50%)`,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// A brand-color picker: preset swatches, a visual saturation/hue picker
+// for anything else, and a typed hex field — deliberately not a native
+// <input type="color"> for the custom slot, since every browser's own
+// color-picker dialog shows raw R/G/B values alongside the swatch that
+// most agents have no use for.
 export function ColorSwatchPicker({ value, onChange, presets = ACCENT_PRESETS, size = "2rem" }) {
   const [hexDraft, setHexDraft] = useState(value);
+  const [open, setOpen] = useState(false);
+  const popoverRef = useRef(null);
+  const triggerRef = useRef(null);
   useEffect(() => setHexDraft(value), [value]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e) => {
+      if (popoverRef.current?.contains(e.target) || triggerRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
 
   const handleHexInput = (raw) => {
     setHexDraft(raw);
@@ -133,8 +251,15 @@ export function ColorSwatchPicker({ value, onChange, presets = ACCENT_PRESETS, s
           }}
         />
       ))}
-      <div className="flex items-center gap-1.5 rounded-lg border px-2" style={{ borderColor: UI.line, height: size }}>
-        <span className="rounded-full flex-shrink-0" style={{ width: `calc(${size} - 0.6rem)`, height: `calc(${size} - 0.6rem)`, background: HEX_RE.test(value) ? value : "transparent", border: `1px solid ${UI.line}` }} />
+      <div className="relative flex items-center gap-1.5 rounded-lg border px-2" style={{ borderColor: UI.line, height: size }}>
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-label="Pick a custom color"
+          className="rounded-full flex-shrink-0 cursor-pointer"
+          style={{ width: `calc(${size} - 0.6rem)`, height: `calc(${size} - 0.6rem)`, background: HEX_RE.test(value) ? value : "transparent", border: `1px solid ${UI.line}` }}
+        />
         <input
           value={hexDraft}
           onChange={(e) => handleHexInput(e.target.value)}
@@ -144,6 +269,15 @@ export function ColorSwatchPicker({ value, onChange, presets = ACCENT_PRESETS, s
           className="font-mono text-xs uppercase bg-transparent outline-none"
           style={{ color: UI.ink, width: "5.2rem" }}
         />
+        {open && (
+          <div
+            ref={popoverRef}
+            className="absolute z-20 rounded-xl border p-3"
+            style={{ top: "calc(100% + 6px)", left: 0, background: UI.card, borderColor: UI.line, boxShadow: "0 12px 30px rgba(27,36,48,0.2)" }}
+          >
+            <VisualColorPicker value={HEX_RE.test(value) ? value : "#000000"} onChange={onChange} />
+          </div>
+        )}
       </div>
     </div>
   );
