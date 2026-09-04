@@ -85,7 +85,7 @@ function BrandPanel() {
 export function AuthShell({ icon: Icon, title, subtitle, onBack, children }) {
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-6 py-10 relative overflow-hidden"
+      className="min-h-dvh flex items-center justify-center px-6 py-10 relative overflow-hidden"
       style={{ background: "#FFF6E7" }}
     >
       <div className="absolute rounded-full pointer-events-none" style={{ top: -120, left: -100, width: 360, height: 360, background: AUTH_BLUE, opacity: 0.14, filter: "blur(10px)" }} />

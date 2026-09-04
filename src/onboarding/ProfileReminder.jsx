@@ -44,7 +44,7 @@ export function ProfileReminder({ onNavigate }) {
     <div
       className="fixed z-40 rounded-2xl p-4"
       style={{
-        bottom: "1.25rem", right: "1.25rem", left: "1.25rem", maxWidth: 320, marginLeft: "auto",
+        bottom: "calc(1.25rem + env(safe-area-inset-bottom))", right: "1.25rem", left: "1.25rem", maxWidth: 320, marginLeft: "auto",
         background: WHITE, border: `1px solid ${UI.line}`, boxShadow: "0 16px 40px rgba(27,36,48,0.18)",
       }}
     >

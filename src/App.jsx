@@ -23,7 +23,7 @@ import { LegalPage } from "./marketing/LegalPage.jsx";
 function LoadingScreen() {
   return (
     <div
-      className="min-h-screen flex items-center justify-center"
+      className="min-h-dvh flex items-center justify-center"
       style={{ background: "linear-gradient(180deg, #BFE0F5 0%, #DCEEFA 45%, #F3F9FD 100%)" }}
     >
       <style>{`

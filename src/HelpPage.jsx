@@ -43,7 +43,7 @@ export function HelpPage({ onSwitchTool, onGoHome }) {
   const { user, logout } = useAuth();
 
   return (
-    <div className="min-h-screen" style={{ background: UI.page }}>
+    <div className="min-h-dvh" style={{ background: UI.page }}>
       <TopNav active="help" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} onLogoClick={onGoHome} />
       <div className="max-w-3xl mx-auto px-3 sm:px-6 py-6 sm:py-10">
         <h1 className="font-display font-bold text-2xl mb-1" style={{ color: UI.ink }}>Help</h1>

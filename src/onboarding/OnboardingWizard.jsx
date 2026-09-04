@@ -18,7 +18,7 @@ export function OnboardingWizard() {
 
   return (
     <div
-      className="min-h-screen px-4 sm:px-8 py-10"
+      className="min-h-dvh px-4 sm:px-8 py-10"
       style={{
         background: "linear-gradient(180deg, #BFE0F5 0%, #DCEEFA 45%, #F3F9FD 100%)",
         paddingTop: "calc(2.5rem + env(safe-area-inset-top))",

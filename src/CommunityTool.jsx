@@ -1136,7 +1136,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
 
 
   return (
-    <div className="min-h-screen" style={{ background: UI.page, color: UI.ink }}>
+    <div className="min-h-dvh" style={{ background: UI.page, color: UI.ink }}>
       <TopNav active="community" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} onLogoClick={onGoHome} />
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-10">

@@ -222,7 +222,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: UI.page }}>
+    <div className="min-h-dvh" style={{ background: UI.page }}>
       <TopNav active="bio" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} onLogoClick={onGoHome} />
       <div className="max-w-6xl mx-auto px-3 sm:px-6 py-6 sm:py-10">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
