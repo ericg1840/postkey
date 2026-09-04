@@ -754,7 +754,7 @@ function ColorField({ label, value, onChange }) {
     <div>
       <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>{label}</label>
       <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 border" style={{ borderColor: UI.line, background: UI.card }}>
-        <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="w-7 h-7 rounded-md border-none cursor-pointer bg-transparent" />
+        <span className="w-7 h-7 rounded-md flex-shrink-0" style={{ background: value, border: `1px solid ${UI.line}` }} />
         <input value={value} onChange={(e) => onChange(e.target.value)} className="font-body flex-1 bg-transparent text-sm outline-none uppercase min-w-0" style={{ color: UI.ink }} />
       </div>
     </div>

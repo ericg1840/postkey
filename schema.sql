@@ -54,6 +54,7 @@ CREATE TABLE brand_kits (
   accent_color TEXT NOT NULL DEFAULT '#E0298C',
   script_font TEXT NOT NULL DEFAULT 'Dancing Script',
   onboarded BOOLEAN NOT NULL DEFAULT false,
+  profile_reminder_dismissed BOOLEAN NOT NULL DEFAULT false,
   headshot_url TEXT,
   logo_url TEXT,
   updated_at TIMESTAMP DEFAULT NOW(),
