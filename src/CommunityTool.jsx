@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Download, Facebook, Image as ImageIcon, SlidersHorizontal, Check, Copy, ChevronDown, ArrowRight, Shuffle } from "lucide-react";
+import { Download, Facebook, Image as ImageIcon, SlidersHorizontal, Check, ChevronDown, ArrowRight } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, ColorSwatchPicker, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
@@ -140,28 +140,6 @@ const STYLES = {
   checklist: { label: "Checklist", description: "Headline card + checkmarks" },
   quote: { label: "Quote Card", description: "Big pull-quote + your message" },
   poll: { label: "This or That", description: "Two-option compare card" },
-};
-
-// A short hashtag set for the caption composer below — deterministic, not
-// AI-generated, so it never invents a claim about the post. Card-style posts
-// carry a specific template (spotlight, reno tip, recipe, ...), so those get
-// their own tags; every other look gets one set for the whole style.
-const TEMPLATE_HASHTAGS = {
-  spotlight: ["#ShopLocal", "#SupportSmallBusiness", "#CommunityFavorite"],
-  reno_tip: ["#HomeMaintenance", "#HomeTips", "#CurbAppeal"],
-  paint: ["#HomeDesign", "#DesignTips", "#HomeInspo"],
-  recipe: ["#RealEstateAgent", "#LocalLife", "#JustForFun"],
-  neighborhood: ["#NeighborhoodGuide", "#LocalLife", "#CommunityFirst"],
-  home_value: ["#RealEstateTips", "#HomeBuyingTips", "#HomeSellingTips"],
-  design_trend: ["#HomeDesign", "#DesignTips", "#HomeInspo"],
-};
-const STYLE_HASHTAGS = {
-  testimonial: ["#ClientLove", "#HappyClients", "#RealEstateReview"],
-  tips: ["#RealEstateTips", "#HomeBuyingTips", "#HomeSellingTips"],
-  stats: ["#RealEstateTips", "#HomeBuyingTips", "#HomeSellingTips"],
-  checklist: ["#RealEstateTips", "#HomeBuyingTips", "#HomeSellingTips"],
-  quote: ["#HomeDesign", "#DesignTips", "#HomeInspo"],
-  poll: ["#RealEstateAgent", "#LocalLife", "#JustForFun"],
 };
 
 const DEFAULTS = {
@@ -1054,55 +1032,6 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     setDownloadingAll(false);
   };
 
-  // A few different opening hooks for the same underlying content — lets
-  // "Try another version" give agents a genuinely different caption to
-  // choose from without inventing any claim the post itself doesn't make.
-  const CAPTION_OPENERS = [
-    (s) => s,
-    (s) => `👋 ${s}`,
-    (s) => `${s} 💬 Let us know what you think!`,
-  ];
-
-  // A ready-to-post caption built from whatever's already on the graphic —
-  // not AI-written, just assembled, so it never says something the post
-  // itself doesn't.
-  const buildCaption = (variant = 0) => {
-    const tagSet = form.style === "card" ? TEMPLATE_HASHTAGS[form.template] : STYLE_HASHTAGS[form.style];
-    const tags = (tagSet || []).join(" ");
-    let lines;
-    if (form.style === "testimonial") {
-      lines = [`"${form.quote}"`, `— ${form.clientName}${form.clientType ? `, ${form.clientType}` : ""}`];
-    } else if (form.style === "tips" || form.style === "stats" || form.style === "checklist") {
-      const items = (form.listItems || "").split("\n").map((s) => s.trim()).filter(Boolean);
-      lines = [form.subject, ...items.map((i) => `• ${i}`)];
-    } else if (form.style === "quote") {
-      lines = [form.quoteEyebrow, `"${form.quoteText}"`, `— ${firstNameOf(form.agentName)}`];
-    } else if (form.style === "poll") {
-      lines = [form.pollHeadline, `${form.optionA} or ${form.optionB}? Drop your pick in the comments 👇`];
-    } else {
-      lines = [`${form.word1} ${form.script}`.trim(), form.subject, form.body].filter(Boolean);
-    }
-    const opener = CAPTION_OPENERS[variant % CAPTION_OPENERS.length];
-    const body = lines.filter(Boolean);
-    if (body.length) body[0] = opener(body[0]);
-    return [...body, tags].filter(Boolean).join("\n\n");
-  };
-
-  const [captionVariant, setCaptionVariant] = useState(0);
-  const tryAnotherCaption = () => setCaptionVariant((v) => v + 1);
-
-  const [captionCopied, setCaptionCopied] = useState(false);
-  const copyCaption = async () => {
-    try {
-      await navigator.clipboard.writeText(buildCaption(captionVariant));
-      setCaptionCopied(true);
-      setTimeout(() => setCaptionCopied(false), 2000);
-    } catch {
-      setDownloadError("Couldn't copy the caption — try selecting and copying the text manually.");
-    }
-  };
-
-
   return (
     <div className="min-h-dvh" style={{ background: UI.page, color: UI.ink }}>
       <TopNav active="community" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} onLogoClick={onGoHome} />
@@ -1547,30 +1476,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
 
             {/* CONSOLIDATED DOWNLOAD CARD — everything needed to finish and post lives here, next to the preview it belongs with */}
             <div className="rounded-2xl p-3.5 sm:p-6 mt-3 sm:mt-4" style={{ background: UI.card, border: `2.5px solid ${UI.ink}` }}>
-              {/* Caption first — the most-used feature, so it shouldn't be
-                  buried under three buttons an agent has to scroll past. */}
-              <div className="rounded-xl p-3.5" style={{ background: mixWithWhite(ACCENT, 0.94), border: `1.5px solid ${ACCENT}` }}>
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className="font-mono text-xs font-bold" style={{ color: ACCENT, letterSpacing: "0.04em" }}>SUGGESTED CAPTION</span>
-                  <button
-                    onClick={tryAnotherCaption}
-                    className="flex items-center gap-1 font-body text-xs font-semibold flex-shrink-0"
-                    style={{ color: ACCENT }}
-                  >
-                    <Shuffle size={12} /> Try another version
-                  </button>
-                </div>
-                <p className="font-body text-sm whitespace-pre-line" style={{ color: UI.ink, lineHeight: 1.6 }}>{buildCaption(captionVariant)}</p>
-                <button
-                  onClick={copyCaption}
-                  className="w-full mt-3 py-2 rounded-lg font-body font-bold text-xs flex items-center justify-center gap-2 transition"
-                  style={{ background: captionCopied ? UI.card : ACCENT, color: captionCopied ? UI.ink : WHITE, border: captionCopied ? `1.5px solid ${UI.line}` : `2px solid ${UI.ink}`, boxShadow: captionCopied ? "none" : `2px 2px 0 ${UI.ink}` }}
-                >
-                  {captionCopied ? <Check size={14} /> : <Copy size={14} />} {captionCopied ? "Caption copied!" : "Copy caption"}
-                </button>
-              </div>
-
-              <div className="grid gap-2 mt-4">
+              <div className="grid gap-2">
                 <button
                   onClick={shareToFacebook}
                   disabled={sharingFacebook}
