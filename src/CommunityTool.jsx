@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Download, Facebook, Image as ImageIcon, Sparkles, SlidersHorizontal, Check, Copy, ChevronDown, CalendarPlus, ArrowRight, Shuffle } from "lucide-react";
+import { Download, Facebook, Image as ImageIcon, SlidersHorizontal, Check, Copy, ChevronDown, ArrowRight, Shuffle } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, ColorSwatchPicker, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
@@ -7,7 +7,6 @@ import {
   useUploadedImage, useAgentAsset, UploadBox, PhotoReposition, TopNav, isMobileDevice,
   Accordion, PrivacyBadge, splitHeadlineLastWord, drawHouseBackdrop, useDefaultImage, firstNameOf,
   peekPostHandoff, clearPostHandoff, shareImageToFacebook,
-  loadCalendarEntries, saveCalendarEntries, genCalendarEntryId,
   peekDraftHandoff, clearDraftHandoff, loadPostDrafts, SaveForLaterButton,
 } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
@@ -131,12 +130,8 @@ const TEMPLATES = {
 };
 
 // Visual structures a post can take — independent of TEMPLATES above, which
-// only supplies headline copy for the "card" style. This is also the single
-// list agents pick from up front: card and testimonial double as the
-// "content idea" picks (Local & Trending, Client Love), since choosing a
-// look and choosing what to share are the same decision for every style
-// but card — card is the one look that still needs a specific angle, which
-// "Give Me an Idea" (below) or a manual template pick supplies.
+// only supplies headline copy for the "card" style, picked via the TOPIC
+// selector once "Local & Trending" is chosen here.
 const STYLES = {
   card: { label: "Local & Trending", description: "Restaurants, local favorites & more" },
   testimonial: { label: "Client Love", description: "Testimonials & client stories" },
@@ -168,22 +163,6 @@ const STYLE_HASHTAGS = {
   quote: ["#HomeDesign", "#DesignTips", "#HomeInspo"],
   poll: ["#RealEstateAgent", "#LocalLife", "#JustForFun"],
 };
-
-// Curated prompts for agents who know they should post but can't think of
-// what — each points at the template that best fits so "Create this post"
-// can jump straight into a filled-out starting point.
-const IDEAS = [
-  { text: "Spotlight a local coffee shop you always recommend to clients.", template: "spotlight" },
-  { text: "Share a quick home-maintenance tip your clients thank you for.", template: "reno_tip" },
-  { text: "Highlight a favorite restaurant in the neighborhood.", template: "spotlight" },
-  { text: "Give a mini guide to a neighborhood you sell in often.", template: "neighborhood" },
-  { text: "Share a home value tip that surprises people.", template: "home_value" },
-  { text: "Post this season's must-try paint color.", template: "paint" },
-  { text: "Share a simple recipe for the weekend.", template: "recipe" },
-  { text: "Highlight a design trend your buyers keep asking about.", template: "design_trend" },
-  { text: "Recommend a local park or weekend spot for families.", template: "spotlight" },
-  { text: "Shout out a small business worth checking out this week.", template: "spotlight" },
-];
 
 const DEFAULTS = {
   template: "spotlight",
@@ -279,29 +258,6 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
       script: t.script,
       badgeText: t.badge.replace("{agent}", firstNameOf(f.agentName)),
     }));
-  };
-
-  const [idea, setIdea] = useState(null);
-  const [ideaSaved, setIdeaSaved] = useState(false);
-  const giveIdea = () => {
-    const others = IDEAS.filter((i) => i !== idea);
-    setIdea(others[Math.floor(Math.random() * others.length)]);
-    setIdeaSaved(false);
-  };
-  // Saves the idea into the Content Planner without a date yet — it shows
-  // up there as a "Saved idea" waiting to be scheduled, so a good prompt
-  // you can't act on right now doesn't just get lost when you move on.
-  const saveIdeaForLater = () => {
-    if (!idea) return;
-    const entries = loadCalendarEntries();
-    saveCalendarEntries([...entries, {
-      id: genCalendarEntryId(), date: null, title: idea.text, type: "community", notes: "", time: "", done: false, source: "community",
-    }]);
-    setIdeaSaved(true);
-  };
-  const createFromIdea = () => {
-    if (!idea) return;
-    applyTemplate(idea.template);
   };
 
   const activeTemplate = TEMPLATES[form.template];
@@ -1176,55 +1132,6 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
           ))}
         </div>
 
-        {/* NEED INSPIRATION */}
-        <div
-          className={`${mobileStep === 1 ? "flex" : "hidden lg:flex"} rounded-2xl p-4 sm:p-6 mb-2 sm:mb-3 flex-col sm:flex-row sm:items-center gap-4`}
-          style={{ background: UI.card, border: `2.5px solid ${ACCENT_PRESETS[4]}` }}
-        >
-          <div className="flex items-center justify-center rounded-2xl flex-shrink-0" style={{ width: 48, height: 48, background: ACCENT_PRESETS[4], transform: "rotate(-6deg)" }}>
-            <Sparkles size={22} color={WHITE} />
-          </div>
-          <div className="flex-1">
-            <p className="font-mono text-xs font-bold" style={{ color: ACCENT_PRESETS[4], letterSpacing: "0.06em" }}>
-              {idea ? "RECOMMENDED FOR YOU" : "NEED INSPIRATION?"}
-            </p>
-            <p className="font-body text-base font-semibold mt-1" style={{ color: UI.ink, lineHeight: 1.35 }}>
-              {idea ? idea.text : "Not sure what to post? We'll suggest a coffee shop, a neighborhood tip, or a weekend event."}
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 w-full sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:flex-shrink-0">
-            {idea && (
-              <button
-                onClick={createFromIdea}
-                className="py-2.5 px-5 rounded-lg font-body font-bold text-sm transition whitespace-nowrap w-full sm:w-auto"
-                style={{ background: ACCENT, color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
-              >
-                Create this post →
-              </button>
-            )}
-            <div className={idea ? "grid grid-cols-2 gap-2 sm:contents" : "contents"}>
-              {idea && (
-                <button
-                  onClick={saveIdeaForLater}
-                  disabled={ideaSaved}
-                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 sm:px-4 rounded-lg font-body text-xs sm:text-sm font-semibold transition disabled:opacity-70"
-                  style={{ border: `1.5px solid ${UI.line}`, color: UI.ink, background: UI.card }}
-                >
-                  <CalendarPlus size={15} className="flex-shrink-0" />
-                  <span className="truncate">{ideaSaved ? "Saved to Planner" : "Save for later"}</span>
-                </button>
-              )}
-              <button
-                onClick={giveIdea}
-                className="flex items-center justify-center gap-1.5 py-2.5 px-3 sm:px-5 rounded-lg font-body font-bold text-xs sm:text-sm transition whitespace-nowrap w-full sm:w-auto"
-                style={idea ? { color: UI.ink, background: UI.card, border: `1.5px solid ${UI.line}` } : { background: ACCENT_PRESETS[4], color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
-              >
-                {idea ? "Give Me Another →" : "Give Me an Idea →"}
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* MAIN GRID: controls + preview */}
         <div className="grid lg:grid-cols-[2fr_3fr] gap-8 items-start">
           {/* LEFT: CONTROLS */}
@@ -1282,6 +1189,29 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                     <UploadBox label="PHOTO" icon={ImageIcon} state={photo} hint="Drop or click to add a photo" large required />
                     <PhotoReposition state={photo} aspect={form.aspect} />
                   </>
+                )}
+
+                {form.style === "card" && (
+                  <label className="block">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>TOPIC</span>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(TEMPLATES).map(([key, t]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => applyTemplate(key)}
+                          className="px-3 py-1.5 rounded-full font-body text-xs font-semibold transition"
+                          style={{
+                            background: form.template === key ? ACCENT : UI.stone,
+                            color: form.template === key ? WHITE : UI.ink,
+                            border: `1.5px solid ${form.template === key ? ACCENT : UI.line}`,
+                          }}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </label>
                 )}
 
                 {form.style === "card" && (
