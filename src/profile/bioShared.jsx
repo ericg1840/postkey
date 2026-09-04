@@ -1,8 +1,23 @@
 import {
   Globe, Facebook, Instagram, Home, Building2, Briefcase, Link as LinkIcon,
-  BedDouble, Bath, Star, ChevronRight, Linkedin, Music2,
+  BedDouble, Bath, Star, ChevronRight, Linkedin,
 } from "lucide-react";
 import { UI } from "../shared.jsx";
+
+// Lucide has no TikTok mark, so this draws the note glyph as a filled path —
+// matching lucide's own icon API (size + color, color resolved through
+// currentColor) so it drops into the same <Icon size={..} color={..} />
+// call sites as every other icon in LINK_TYPES.
+function TikTokIcon({ size = 24, color, style, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={{ color, ...style }} {...props}>
+      <path
+        fill="currentColor"
+        d="M16.6 5.82c-1.01-.9-1.6-2.19-1.6-3.62h-3.2v13.44c0 1.62-1.32 2.94-2.94 2.94s-2.94-1.32-2.94-2.94 1.32-2.94 2.94-2.94c.3 0 .59.05.86.13V9.5a6.14 6.14 0 0 0-.86-.06A6.15 6.15 0 0 0 2.72 15.6a6.15 6.15 0 0 0 6.14 6.15 6.15 6.15 0 0 0 6.14-6.15V9.02a9.34 9.34 0 0 0 5.46 1.75V7.56a5.98 5.98 0 0 1-3.86-1.74Z"
+      />
+    </svg>
+  );
+}
 
 // Each type carries its own badge color — reads as a system of distinct,
 // purposeful buttons rather than one repeated blue icon for everything.
@@ -14,7 +29,7 @@ export const LINK_TYPES = [
   { id: "custom", label: "Custom Link", icon: LinkIcon, placeholder: "https://...", color: "#4F46E5" },
   { id: "facebook", label: "Facebook", icon: Facebook, placeholder: "facebook.com/yourpage", color: "#1877F2" },
   { id: "instagram", label: "Instagram", icon: Instagram, placeholder: "instagram.com/yourhandle", color: "linear-gradient(135deg, #F58529, #DD2A7B, #8134AF, #515BD4)" },
-  { id: "tiktok", label: "TikTok", icon: Music2, placeholder: "tiktok.com/@yourhandle", color: "#111111" },
+  { id: "tiktok", label: "TikTok", icon: TikTokIcon, placeholder: "tiktok.com/@yourhandle", color: "#111111" },
   { id: "linkedin", label: "LinkedIn", icon: Linkedin, placeholder: "linkedin.com/in/you", color: "#0A66C2" },
 ];
 const LINK_TYPE_MAP = Object.fromEntries(LINK_TYPES.map((t) => [t.id, t]));
