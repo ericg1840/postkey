@@ -302,6 +302,26 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                       <input value={brokerage} onChange={(e) => setBrokerage(e.target.value)} placeholder="Coastal Living Realty" className="input" />
                     </div>
                     <div className="sm:col-span-2">
+                      <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Your link</label>
+                      <div className="flex items-center gap-2 rounded-lg px-2.5 border" style={{ borderColor: handleError ? ERROR : UI.line, background: UI.card }}>
+                        <span className="font-body text-sm flex-shrink-0" style={{ color: UI.inkSoft }}>{window.location.host}/u/</span>
+                        <input
+                          value={handle}
+                          onChange={(e) => onHandleChange(e.target.value)}
+                          placeholder="janedoe"
+                          className="font-body flex-1 bg-transparent text-sm outline-none py-2 min-w-0"
+                          style={{ color: UI.ink }}
+                        />
+                      </div>
+                      {handleError ? (
+                        <p className="font-body text-xs mt-1" style={{ color: ERROR }}>{handleError}</p>
+                      ) : (
+                        <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>
+                          {handle ? "This is the link you'll share." : "Pick a link so you can share and preview your page — save to claim it."}
+                        </p>
+                      )}
+                    </div>
+                    <div className="sm:col-span-2">
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="font-mono text-xs uppercase tracking-wide" style={{ color: UI.inkSoft }}>Tagline / Bio</label>
                         <span className="font-mono text-[10px]" style={{ color: UI.inkSoft }}>{tagline.length}/{TAGLINE_MAX}</span>
