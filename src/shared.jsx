@@ -600,19 +600,19 @@ export function GlobalStyles() {
 export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
   return (
     <header className="sticky top-0 z-50" style={{ borderBottom: `2px solid ${UI.ink}`, background: UI.page, paddingTop: "env(safe-area-inset-top)" }}>
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-5 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-5 flex flex-wrap sm:grid sm:grid-cols-[1fr_auto_1fr] items-center justify-between gap-3 sm:gap-4">
         {onLogoClick ? (
-          <button type="button" onClick={onLogoClick} className="flex items-center gap-2">
+          <button type="button" onClick={onLogoClick} className="flex items-center gap-2 justify-self-start">
             <Logo size={34} />
             <span className="font-display font-bold text-xl" style={{ color: UI.ink }}>PostKey</span>
           </button>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-self-start">
             <Logo size={34} />
             <span className="font-display font-bold text-xl" style={{ color: UI.ink }}>PostKey</span>
           </div>
         )}
-        <nav className="flex items-center gap-1 p-1 rounded-full" style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}>
+        <nav className="flex items-center gap-1 p-1 rounded-full justify-self-center" style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}>
           <button
             onClick={() => onSwitch("listings")}
             className="px-4 py-1.5 rounded-full font-body text-xs font-bold transition"
@@ -664,7 +664,7 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
             Bio Link
           </button>
         </nav>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 justify-self-end">
           <span className="font-mono text-xs hidden sm:inline" style={{ color: UI.inkSoft }}>
             {active === "listings" ? "PHOTO IN, POST OUT" : active === "community" ? "LOCAL LOVE, POSTED" : active === "calendar" ? "PLAN AHEAD, POST ON TIME" : active === "profile" ? "YOUR BRAND, YOUR WAY" : active === "bio" ? "ONE LINK, EVERYWHERE" : active === "help" ? "QUICK ANSWERS" : "WRITE IT ONCE, POST IT EVERYWHERE"}
           </span>
