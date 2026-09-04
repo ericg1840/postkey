@@ -63,12 +63,12 @@ function BrandPanel() {
         </div>
       </div>
 
-      <div className="relative flex justify-center my-8" style={{ height: 210 }}>
-        <div className="absolute" style={{ top: 0, left: 6, transform: "rotate(-8deg)" }}>
-          <PostCard category="JUST LISTED" headline="Just Listed!" color={PINK} />
+      <div className="relative mx-auto my-8" style={{ width: 260, height: 190 }}>
+        <div className="absolute" style={{ top: 0, left: 20 }}>
+          <PostCard category="JUST LISTED" headline="Just Listed!" color={PINK} rotate={-8} top={0} left={0} scale={0.78} />
         </div>
-        <div className="absolute" style={{ top: 14, right: 0, transform: "rotate(7deg)" }}>
-          <PostCard category="SOLD" headline="Sold Fast!" color={GREEN} />
+        <div className="absolute" style={{ top: 24, left: 130 }}>
+          <PostCard category="SOLD" headline="Sold Fast!" color={GREEN} rotate={7} top={0} left={0} scale={0.78} />
         </div>
       </div>
 
