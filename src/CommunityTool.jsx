@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Download, Facebook, Image as ImageIcon, Sparkles, SlidersHorizontal, Check, Copy, ChevronDown, CalendarPlus, ArrowRight, Shuffle } from "lucide-react";
 import {
-  UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
+  UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, ColorSwatchPicker, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
   mixWithWhite, drawCover, wrapText, roundRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, PhotoReposition, TopNav, isMobileDevice,
@@ -1466,24 +1466,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                 <Accordion title="Customize design" subtitle="Accent color, personal note, size, contact band" defaultOpen>
             <div className="md:col-span-2">
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ACCENT COLOR</span>
-              <div className="flex items-center gap-2 flex-wrap">
-                {ACCENT_PRESETS.map((c) => (
-                  <button key={c} onClick={() => setForm((f) => ({ ...f, accentColor: c }))}
-                    aria-label={c}
-                    className="rounded-full transition"
-                    style={{
-                      width: "1.75rem", height: "1.75rem", background: c,
-                      border: form.accentColor.toLowerCase() === c.toLowerCase() ? `2px solid ${UI.ink}` : "2px solid transparent",
-                      boxShadow: form.accentColor.toLowerCase() === c.toLowerCase() ? `0 0 0 2px ${UI.card}` : "none",
-                    }} />
-                ))}
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input type="color" value={form.accentColor}
-                    onChange={(e) => setForm((f) => ({ ...f, accentColor: e.target.value }))}
-                    style={{ width: "1.75rem", height: "1.75rem", padding: 0, border: `1px solid ${UI.line}`, borderRadius: "0.35rem", background: "none" }} />
-                  <span className="font-mono text-xs" style={{ color: UI.inkSoft }}>Custom</span>
-                </label>
-              </div>
+              <ColorSwatchPicker value={form.accentColor} onChange={(v) => setForm((f) => ({ ...f, accentColor: v }))} size="1.75rem" />
             </div>
 
             {(form.style === "card" || form.style === "testimonial") && (

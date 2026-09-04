@@ -30,6 +30,7 @@ export async function onRequestGet({ request, env }) {
           headshotUrl: kit.headshot_url,
           logoUrl: kit.logo_url,
           onboarded: kit.onboarded,
+          profileReminderDismissed: kit.profile_reminder_dismissed,
         }
       : null,
   });

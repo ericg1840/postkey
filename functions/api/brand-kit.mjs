@@ -22,6 +22,7 @@ export async function onRequestPut({ request, env }) {
     headshotUrl = null,
     logoUrl = null,
     onboarded,
+    profileReminderDismissed,
   } = body;
 
   await db.sql`
@@ -39,6 +40,7 @@ export async function onRequestPut({ request, env }) {
       headshot_url = ${headshotUrl},
       logo_url = ${logoUrl},
       onboarded = COALESCE(${onboarded ?? null}, onboarded),
+      profile_reminder_dismissed = COALESCE(${profileReminderDismissed ?? null}, profile_reminder_dismissed),
       updated_at = NOW()
     WHERE user_id = ${userId}
   `;

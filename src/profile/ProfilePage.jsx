@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { User, Building2, Check, Download, Trash2, ImageOff, Loader2, CalendarClock, FileEdit, Pencil } from "lucide-react";
 import {
-  UI, ACCENT, WHITE, ACCENT_PRESETS, SCRIPT_FONTS, scriptFontCss,
+  UI, ACCENT, WHITE, ColorSwatchPicker, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, mixWithWhite,
   useAgentAsset, UploadBox, TopNav,
   loadCalendarEntries, saveCalendarEntries,
@@ -373,7 +373,7 @@ function Field({ label, ...props }) {
   );
 }
 
-function BrandSection({ brandKit, saveBrandKit }) {
+export function BrandSection({ brandKit, saveBrandKit }) {
   const [data, setData] = useState(() => ({
     agentName: brandKit?.agentName || "",
     agentPhone: brandKit?.agentPhone || "",
@@ -425,22 +425,7 @@ function BrandSection({ brandKit, saveBrandKit }) {
 
         <div className="md:col-span-2">
           <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BRAND COLOR</span>
-          <div className="flex items-center gap-2 flex-wrap">
-            {ACCENT_PRESETS.map((c) => (
-              <button key={c} type="button" onClick={() => { setData((d) => ({ ...d, accentColor: c })); setStatus("idle"); }} aria-label={c}
-                className="rounded-full transition"
-                style={{
-                  width: "2rem", height: "2rem", background: c,
-                  border: data.accentColor.toLowerCase() === c.toLowerCase() ? `2px solid ${UI.ink}` : "2px solid transparent",
-                  boxShadow: data.accentColor.toLowerCase() === c.toLowerCase() ? `0 0 0 2px white, 0 0 0 3px ${UI.ink}` : "none",
-                }} />
-            ))}
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input type="color" value={data.accentColor} onChange={(e) => { setData((d) => ({ ...d, accentColor: e.target.value })); setStatus("idle"); }}
-                style={{ width: "2rem", height: "2rem", padding: 0, border: `1px solid ${UI.line}`, borderRadius: "0.4rem", background: "none" }} />
-              <span className="font-mono text-xs" style={{ color: UI.inkSoft }}>Custom</span>
-            </label>
-          </div>
+          <ColorSwatchPicker value={data.accentColor} onChange={(v) => { setData((d) => ({ ...d, accentColor: v })); setStatus("idle"); }} />
         </div>
 
         <div className="md:col-span-2">
