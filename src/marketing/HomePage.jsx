@@ -243,9 +243,9 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
     <div style={{ background: "#FFFFFF" }}>
       <header style={{ paddingTop: "env(safe-area-inset-top)" }}>
         <div className="max-w-5xl mx-auto px-3 sm:px-8 py-4 sm:py-5 flex items-center justify-between gap-1 border-b" style={{ borderColor: "#EFF2F7" }}>
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-0">
-            <Logo size={24} />
-            <span className="font-bold text-base whitespace-nowrap" style={{ fontFamily: "'Space Grotesk', sans-serif", color: AUTH.ink }}>PostKey</span>
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-shrink-0">
+            <Logo size={34} />
+            <span className="font-bold text-lg sm:text-xl whitespace-nowrap" style={{ fontFamily: "'Space Grotesk', sans-serif", color: AUTH.ink }}>PostKey</span>
           </div>
           <nav className="hidden sm:flex items-center gap-7">
             <a href="#expect" className="font-body text-sm font-semibold" style={{ color: AUTH.ink }}>What You Get</a>
