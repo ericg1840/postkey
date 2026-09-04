@@ -77,7 +77,7 @@ export function PublicBioPage({ handle }) {
           className="flex items-center gap-1.5 mt-10 text-xs font-body opacity-60 hover:opacity-90 transition-opacity"
           style={{ color: textOn(bgColor) }}
         >
-          Create your own link-in-bio page with{" "}
+          Create your own Key Link page with{" "}
           <span className="font-display font-bold" style={{ color: ACCENT }}>PostKey</span>
           <ArrowRight size={13} />
         </a>

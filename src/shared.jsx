@@ -843,7 +843,7 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
               color: active === "bio" ? WHITE : UI.inkSoft,
             }}
           >
-            Bio Link
+            Key Link
           </button>
         </nav>
         <div className="flex items-center gap-4 justify-self-end">

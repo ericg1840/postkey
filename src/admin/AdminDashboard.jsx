@@ -37,13 +37,13 @@ function describeEvent(eventType, details) {
   switch (eventType) {
     case "signup": return "created their account";
     case "login": return "logged in";
-    case "link_updated": return `saved ${d.linkCount ?? 0} bio link${d.linkCount === 1 ? "" : "s"}`;
+    case "link_updated": return `saved ${d.linkCount ?? 0} link${d.linkCount === 1 ? "" : "s"} on their Key Link page`;
     case "listing_created": return `added a listing${d.address ? ` — ${d.address}` : ""}`;
     case "subscription_changed": return `${d.change || "changed plan"}: ${d.fromTier || "?"} → ${d.toTier || "?"}`;
     case "status_change": return `account status: ${d.from || "?"} → ${d.to || "?"}`;
     case "password_reset_triggered": return "password reset email sent";
     case "account_deleted": return "account deleted by admin";
-    case "page_view": return `viewed their public bio page${d.handle ? ` (/u/${d.handle})` : ""}`;
+    case "page_view": return `viewed their public Key Link page${d.handle ? ` (/u/${d.handle})` : ""}`;
     default: return "";
   }
 }
@@ -320,7 +320,7 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
           <button onClick={onClose} aria-label="Close" style={{ color: UI.inkSoft }}><X size={20} /></button>
         </div>
         <p className="font-body text-sm mb-4" style={{ color: UI.ink }}>
-          This permanently deletes <strong>{user.email}</strong> and everything tied to it — brand kit, bio links, and posts. This can't be undone.
+          This permanently deletes <strong>{user.email}</strong> and everything tied to it — brand kit, Key Link page, and posts. This can't be undone.
         </p>
         <label className="block mb-4">
           <span className="font-mono text-[0.65rem] uppercase tracking-wide" style={{ color: UI.inkSoft }}>
