@@ -936,6 +936,18 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     }
   };
 
+  // On desktop, style and details sit on one continuous page rather than
+  // behind separate steps, so picking a style scrolls straight to its
+  // details instead of leaving the agent to notice and scroll themselves.
+  // Mobile keeps its explicit "Continue to Make It Yours" step as-is.
+  const selectStyle = (key) => {
+    setForm((f) => ({ ...f, style: key }));
+    const el = sectionRefs.current[2];
+    if (el && window.matchMedia("(min-width: 1024px)").matches) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   const [downloadError, setDownloadError] = useState("");
   const [downloading, setDownloading] = useState(false);
 
@@ -1141,7 +1153,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               <h3 className="font-body text-base font-semibold mb-3" style={{ color: UI.ink }}>What do you want to share?</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {Object.entries(STYLES).map(([key, s]) => (
-                  <button key={key} onClick={() => setForm((f) => ({ ...f, style: key }))}
+                  <button key={key} onClick={() => selectStyle(key)}
                     className="relative text-left rounded-2xl overflow-hidden transition font-body flex flex-col"
                     style={{
                       borderStyle: "solid",
