@@ -449,7 +449,7 @@ export function AdminDashboard({ onExit }) {
   const pageCount = Math.max(1, Math.ceil(totalCount / 50));
 
   return (
-    <div className="min-h-screen" style={{ background: UI.page }}>
+    <div className="min-h-dvh" style={{ background: UI.page }}>
       <header className="sticky top-0 z-30" style={{ borderBottom: `2px solid ${UI.ink}`, background: UI.page }}>
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">

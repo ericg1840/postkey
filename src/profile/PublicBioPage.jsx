@@ -23,7 +23,7 @@ export function PublicBioPage({ handle }) {
 
   if (state.loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: UI.ink }}>
+      <div className="min-h-dvh flex items-center justify-center" style={{ background: UI.ink }}>
         <p className="font-body text-sm" style={{ color: "#8A93A3" }}>Loading…</p>
       </div>
     );
@@ -31,7 +31,7 @@ export function PublicBioPage({ handle }) {
 
   if (state.error || !state.data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-2 text-center px-6" style={{ background: UI.ink }}>
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-2 text-center px-6" style={{ background: UI.ink }}>
         <p className="font-display text-lg" style={{ color: "#FDFBF7" }}>This page doesn't exist.</p>
         <p className="font-body text-sm" style={{ color: "#8A93A3" }}>{state.error}</p>
       </div>
@@ -41,7 +41,7 @@ export function PublicBioPage({ handle }) {
   const { name, headshotUrl, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, bgImageUrl, bgTint, links } = state.data;
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-6 py-12" style={bgStyle(bgColor, bgImageUrl, bgTint)}>
+    <div className="min-h-dvh flex flex-col items-center px-6 py-12" style={bgStyle(bgColor, bgImageUrl, bgTint)}>
       <div className="w-full max-w-sm flex flex-col items-center">
         <div className="w-24 h-24 rounded-full p-1 mb-4" style={{ background: `conic-gradient(from 180deg, ${ACCENT}, #6E8CFF, ${ACCENT})` }}>
           {headshotUrl ? (

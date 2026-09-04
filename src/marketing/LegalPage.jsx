@@ -111,7 +111,7 @@ export function LegalPage({ variant, onBack }) {
   const title = isPrivacy ? "Privacy Policy" : "Terms of Service";
 
   return (
-    <div style={{ background: "#FDFBF7" }} className="min-h-screen">
+    <div style={{ background: "#FDFBF7" }} className="min-h-dvh">
       <header style={{ paddingTop: "env(safe-area-inset-top)" }}>
         <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-1">
           <button onClick={onBack} className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-0">
