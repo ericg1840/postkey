@@ -75,6 +75,17 @@ export async function onRequestPost({ request, env }) {
     return json({ ok: true });
   }
 
+  if (action === "delete_account") {
+    if (body?.confirmEmail !== targetUser.email) {
+      return json({ error: "Confirmation email didn't match." }, { status: 400 });
+    }
+    await logEvent(db, userId, "account_deleted", { email: targetUser.email, deletedByAdmin: true });
+    // Every other table (subscriptions, brand_kits, bio_links, posts) has
+    // ON DELETE CASCADE on user_id, so removing the row here is enough.
+    await db.sql`DELETE FROM users WHERE id = ${userId}`;
+    return json({ ok: true });
+  }
+
   if (action === "reset_password") {
     const { token, tokenHash, expires } = createResetToken();
     await db.sql`
