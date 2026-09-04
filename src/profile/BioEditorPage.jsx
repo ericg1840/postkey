@@ -232,7 +232,6 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
             </h1>
             <p className="font-body text-sm max-w-xl" style={{ color: UI.inkSoft }}>
               Create a beautiful, mobile-first page that drives traffic to your most important links.
-              Paste a Zillow listing link and we'll pull in the property details for you.
             </p>
           </div>
 
