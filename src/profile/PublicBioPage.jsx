@@ -41,7 +41,16 @@ export function PublicBioPage({ handle }) {
   const { name, headshotUrl, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, bgImageUrl, bgTint, links } = state.data;
 
   return (
-    <div className="min-h-dvh flex flex-col items-center px-6 py-12" style={bgStyle(bgColor, bgImageUrl, bgTint)}>
+    <div
+      className="min-h-dvh flex flex-col items-center px-6"
+      style={{
+        ...bgStyle(bgColor, bgImageUrl, bgTint),
+        paddingTop: "calc(3rem + env(safe-area-inset-top))",
+        paddingBottom: "calc(3rem + env(safe-area-inset-bottom))",
+        paddingLeft: "calc(1.5rem + env(safe-area-inset-left))",
+        paddingRight: "calc(1.5rem + env(safe-area-inset-right))",
+      }}
+    >
       <div className="w-full max-w-sm flex flex-col items-center">
         <div className="w-24 h-24 rounded-full p-1 mb-4" style={{ background: `conic-gradient(from 180deg, ${ACCENT}, #6E8CFF, ${ACCENT})` }}>
           {headshotUrl ? (

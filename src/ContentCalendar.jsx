@@ -222,13 +222,13 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setFocusMonth((m) => addMonths(m, -1))} className="p-2 rounded-lg" style={{ border: `2px solid ${UI.ink}` }} aria-label="Previous month">
+            <button type="button" onClick={() => setFocusMonth((m) => addMonths(m, -1))} className="press-fx flex items-center justify-center rounded-lg" style={{ border: `2px solid ${UI.ink}`, width: 44, height: 44 }} aria-label="Previous month">
               <ChevronLeft size={16} color={UI.ink} />
             </button>
             <h2 className="font-body text-sm font-semibold text-center" style={{ minWidth: "9rem" }}>
               {focusMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </h2>
-            <button type="button" onClick={() => setFocusMonth((m) => addMonths(m, 1))} className="p-2 rounded-lg" style={{ border: `2px solid ${UI.ink}` }} aria-label="Next month">
+            <button type="button" onClick={() => setFocusMonth((m) => addMonths(m, 1))} className="press-fx flex items-center justify-center rounded-lg" style={{ border: `2px solid ${UI.ink}`, width: 44, height: 44 }} aria-label="Next month">
               <ChevronRight size={16} color={UI.ink} />
             </button>
           </div>
@@ -246,8 +246,8 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
             <button
               key={v}
               onClick={() => setView(v)}
-              className="flex-1 py-1.5 font-body text-sm font-bold rounded-md capitalize transition"
-              style={{ background: view === v ? ACCENT : "transparent", color: view === v ? WHITE : UI.inkSoft }}
+              className="press-fx flex-1 font-body text-sm font-bold rounded-md capitalize transition"
+              style={{ minHeight: 44, background: view === v ? ACCENT : "transparent", color: view === v ? WHITE : UI.inkSoft }}
             >
               {v}
             </button>
@@ -289,16 +289,16 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
         <div className="flex items-center gap-3.5 mb-2">
           <button
             onClick={() => openNewPost(todayKey)}
-            className="flex-1 rounded-lg py-2.5 font-body text-sm font-bold transition"
-            style={{ background: ACCENT, color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
+            className="press-fx flex-1 rounded-lg font-body text-sm font-bold transition"
+            style={{ minHeight: 44, background: ACCENT, color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
           >
             + Plan a post
           </button>
           <button
             onClick={runAutofill}
             disabled={autofillLoading}
-            className="flex items-center gap-1 font-body text-sm font-semibold whitespace-nowrap disabled:opacity-50"
-            style={{ color: ACCENT }}
+            className="press-fx flex items-center justify-center gap-1 font-body text-sm font-semibold whitespace-nowrap disabled:opacity-50 px-1"
+            style={{ color: ACCENT, minHeight: 44 }}
           >
             {autofillLoading ? "Filling…" : "Auto-fill month"}
             <Info size={14} />
@@ -311,7 +311,7 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
             <p className="font-body text-xs leading-relaxed flex-1" style={{ color: UI.ink }}>
               Auto-fill adds suggested posts to your open days. Nothing is scheduled until you confirm each one below.
             </p>
-            <button onClick={() => setAutofillNoteOpen(false)} className="flex-shrink-0" style={{ color: UI.inkSoft }}>
+            <button onClick={() => setAutofillNoteOpen(false)} className="press-fx flex items-center justify-center flex-shrink-0" style={{ color: UI.inkSoft, width: 44, height: 44, margin: "-12px -12px -12px 0" }}>
               <X size={13} />
             </button>
           </div>
@@ -332,7 +332,7 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
                 {day.posts.length === 0 && (
                   <div className="flex items-center justify-between py-2">
                     <span className="font-body text-sm" style={{ color: UI.inkSoft }}>No post planned</span>
-                    <button onClick={() => openNewPost(day.date)} className="font-body text-xs font-bold" style={{ color: ACCENT }}>+ Add</button>
+                    <button onClick={() => openNewPost(day.date)} className="press-fx flex items-center justify-center font-body text-xs font-bold px-2" style={{ color: ACCENT, minHeight: 44 }}>+ Add</button>
                   </div>
                 )}
 
@@ -351,8 +351,8 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
                           </span>
                         </div>
                         <div className="flex gap-1.5 mt-1.5">
-                          <button onClick={() => confirmSuggested(post.id)} className="font-body text-xs font-bold rounded-md px-2.5 py-1" style={{ background: ACCENT, color: WHITE }}>Confirm</button>
-                          <button onClick={() => dismissSuggested(post.id)} className="font-body text-xs font-bold rounded-md px-2.5 py-1" style={{ border: `1px solid ${UI.line}`, color: UI.ink, background: UI.card }}>Dismiss</button>
+                          <button onClick={() => confirmSuggested(post.id)} className="press-fx font-body text-xs font-bold rounded-md px-2.5" style={{ minHeight: 44, background: ACCENT, color: WHITE }}>Confirm</button>
+                          <button onClick={() => dismissSuggested(post.id)} className="press-fx font-body text-xs font-bold rounded-md px-2.5" style={{ minHeight: 44, border: `1px solid ${UI.line}`, color: UI.ink, background: UI.card }}>Dismiss</button>
                         </div>
                       </div>
                     </div>
@@ -366,7 +366,7 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
                           {CATEGORIES[post.category].label}
                         </span>
                       </div>
-                      <button onClick={() => openEditPost(post)} className="p-1 flex-shrink-0" style={{ color: UI.inkSoft }} aria-label="Edit post">
+                      <button onClick={() => openEditPost(post)} className="press-fx flex items-center justify-center flex-shrink-0" style={{ color: UI.inkSoft, width: 44, height: 44, margin: "-10px -10px -10px 0" }} aria-label="Edit post">
                         <Pencil size={15} />
                       </button>
                     </div>
@@ -395,8 +395,8 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
             </div>
             <button
               onClick={() => addIdeaToPlan(idea)}
-              className="font-body text-xs font-bold rounded-md px-2.5 py-1.5 whitespace-nowrap flex-shrink-0"
-              style={{ border: `1px solid ${ACCENT}`, color: ACCENT, background: UI.card }}
+              className="press-fx font-body text-xs font-bold rounded-md px-2.5 whitespace-nowrap flex-shrink-0"
+              style={{ minHeight: 44, border: `1px solid ${ACCENT}`, color: ACCENT, background: UI.card }}
             >
               Add to plan
             </button>
@@ -487,14 +487,18 @@ function MonthView({ posts, focusMonth, todayKey, onDayClick }) {
 function PostModal({ editing, setEditing, onSave, onDelete, onCreatePost, onClose }) {
   const dateLabel = new Date(`${editing.date}T00:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-4 sm:p-6" style={{ background: "rgba(27,36,48,0.45)", zIndex: 100 }} onClick={onClose}>
-      <div className="rounded-2xl w-full" style={{ maxWidth: 420, background: UI.card, border: `2.5px solid ${UI.ink}`, boxShadow: "0 20px 50px rgba(27,36,48,0.25)" }} onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop fixed inset-0 flex items-end sm:items-center justify-center sm:p-6" style={{ background: "rgba(27,36,48,0.45)", zIndex: 100 }} onClick={onClose}>
+      <div
+        className="modal-sheet rounded-t-2xl sm:rounded-2xl w-full"
+        style={{ maxWidth: 420, background: UI.card, border: `2.5px solid ${UI.ink}`, boxShadow: "0 20px 50px rgba(27,36,48,0.25)", maxHeight: "90dvh", overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between px-6 pt-5">
           <div>
             <h2 className="font-display font-bold text-base" style={{ color: UI.ink }}>{editing.id ? "Edit post" : "Plan a post"}</h2>
             <p className="font-body text-xs mt-0.5" style={{ color: UI.inkSoft }}>{dateLabel}</p>
           </div>
-          <button onClick={onClose} style={{ color: UI.inkSoft }} aria-label="Close"><X size={18} /></button>
+          <button onClick={onClose} className="press-fx flex items-center justify-center" style={{ color: UI.inkSoft, minWidth: 44, minHeight: 44, margin: "-13px -13px -13px 0" }} aria-label="Close"><X size={18} /></button>
         </div>
 
         <div className="px-6 py-4 grid gap-4">
@@ -529,8 +533,9 @@ function PostModal({ editing, setEditing, onSave, onDelete, onCreatePost, onClos
                     key={key}
                     type="button"
                     onClick={() => setEditing((f) => ({ ...f, category: key }))}
-                    className="flex items-center justify-center gap-1.5 p-2 rounded-lg font-body text-xs font-bold transition"
+                    className="press-fx flex items-center justify-center gap-1.5 rounded-lg font-body text-xs font-bold transition"
                     style={{
+                      minHeight: 44,
                       borderStyle: "solid",
                       borderWidth: editing.category === key ? 2 : 1.5,
                       borderColor: editing.category === key ? c.color : UI.line,
@@ -564,15 +569,15 @@ function PostModal({ editing, setEditing, onSave, onDelete, onCreatePost, onClos
               type="button"
               onClick={onCreatePost}
               disabled={!editing.title.trim()}
-              className="w-full py-2.5 rounded-lg font-body font-bold text-sm transition disabled:opacity-50"
-              style={{ border: `2px solid ${ACCENT}`, color: ACCENT }}
+              className="press-fx w-full rounded-lg font-body font-bold text-sm transition disabled:opacity-50"
+              style={{ minHeight: 44, border: `2px solid ${ACCENT}`, color: ACCENT }}
             >
               Create this post →
             </button>
           )}
           <div className="flex items-center gap-2">
             {onDelete && (
-              <button type="button" onClick={onDelete} className="flex items-center gap-1.5 py-2.5 px-3 rounded-lg font-body text-xs font-semibold transition" style={{ border: `1.5px solid ${UI.line}`, color: "#C0392B" }}>
+              <button type="button" onClick={onDelete} className="press-fx flex items-center gap-1.5 px-3 rounded-lg font-body text-xs font-semibold transition" style={{ minHeight: 44, border: `1.5px solid ${UI.line}`, color: "#C0392B" }}>
                 <Trash2 size={14} /> Delete
               </button>
             )}
@@ -580,8 +585,8 @@ function PostModal({ editing, setEditing, onSave, onDelete, onCreatePost, onClos
               type="button"
               onClick={onSave}
               disabled={!editing.title.trim()}
-              className="flex-1 py-2.5 rounded-lg font-body font-bold text-sm transition disabled:opacity-50"
-              style={{ background: ACCENT, color: WHITE, border: `2px solid ${UI.ink}`, boxShadow: `2px 2px 0 ${UI.ink}` }}
+              className="press-fx flex-1 rounded-lg font-body font-bold text-sm transition disabled:opacity-50"
+              style={{ minHeight: 44, background: ACCENT, color: WHITE, border: `2px solid ${UI.ink}`, boxShadow: `2px 2px 0 ${UI.ink}` }}
             >
               {editing.id ? "Save changes" : "Add to calendar"}
             </button>

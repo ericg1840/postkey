@@ -444,7 +444,7 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
               <div className="grid grid-cols-4 gap-2 mb-4">
                 {PROPERTY_TYPES.map(({ key, label, icon: Icon }) => (
                   <button key={key} type="button" onClick={() => setForm((f) => ({ ...f, propertyType: key }))}
-                    className="flex flex-col items-center gap-1.5 py-3 rounded-lg transition"
+                    className="press-fx flex flex-col items-center gap-1.5 py-3 rounded-lg transition"
                     style={{
                       borderStyle: "solid",
                       borderWidth: form.propertyType === key ? 2.5 : 2,
@@ -461,7 +461,7 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
               <div className="grid grid-cols-2 gap-2">
                 {TONE_OPTIONS.map(({ key, label, description: d }) => (
                   <button key={key} type="button" onClick={() => setForm((f) => ({ ...f, tone: key }))}
-                    className="text-left p-3 rounded-lg transition"
+                    className="press-fx text-left p-3 rounded-lg transition"
                     style={{
                       borderStyle: "solid",
                       borderWidth: form.tone === key ? 2.5 : 2,
@@ -582,8 +582,8 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
                   <span className="font-mono text-xs font-bold" style={{ color: ACCENT, letterSpacing: "0.04em" }}>LISTING DESCRIPTION</span>
                   <button
                     onClick={tryAnother}
-                    className="flex items-center gap-1 font-body text-xs font-semibold flex-shrink-0"
-                    style={{ color: ACCENT }}
+                    className="press-fx flex items-center justify-center gap-1 font-body text-xs font-semibold flex-shrink-0 px-2"
+                    style={{ color: ACCENT, minHeight: 44 }}
                   >
                     <Shuffle size={12} /> Try another version
                   </button>
@@ -594,8 +594,8 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
                 </div>
                 <button
                   onClick={copyDescription}
-                  className="w-full mt-3 py-2 rounded-lg font-body font-bold text-xs flex items-center justify-center gap-2 transition"
-                  style={{ background: copied ? UI.card : ACCENT, color: copied ? UI.ink : WHITE, border: copied ? `1.5px solid ${UI.line}` : `2px solid ${UI.ink}`, boxShadow: copied ? "none" : `2px 2px 0 ${UI.ink}` }}
+                  className="press-fx w-full mt-3 rounded-lg font-body font-bold text-xs flex items-center justify-center gap-2 transition"
+                  style={{ minHeight: 44, background: copied ? UI.card : ACCENT, color: copied ? UI.ink : WHITE, border: copied ? `1.5px solid ${UI.line}` : `2px solid ${UI.ink}`, boxShadow: copied ? "none" : `2px 2px 0 ${UI.ink}` }}
                 >
                   {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? "Copied!" : "Copy description"}
                 </button>

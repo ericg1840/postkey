@@ -43,7 +43,7 @@ function PostThumb({ post, onDelete }) {
       </div>
 
       <div
-        className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition"
+        className="hover-reveal absolute inset-0 flex items-center justify-center gap-2 transition"
         style={{ background: "rgba(27,36,48,0.55)" }}
       >
         {confirming ? (
@@ -51,15 +51,15 @@ function PostThumb({ post, onDelete }) {
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="font-body text-xs font-semibold rounded-full px-3 py-1.5 disabled:opacity-60"
-              style={{ background: "#C0392B", color: WHITE }}
+              className="press-fx font-body text-xs font-semibold rounded-full px-3 disabled:opacity-60"
+              style={{ minHeight: 40, background: "#C0392B", color: WHITE }}
             >
               {deleting ? "Deleting…" : "Delete"}
             </button>
             <button
               onClick={() => setConfirming(false)}
-              className="font-body text-xs font-semibold rounded-full px-3 py-1.5"
-              style={{ background: WHITE, color: UI.ink }}
+              className="press-fx font-body text-xs font-semibold rounded-full px-3"
+              style={{ minHeight: 40, background: WHITE, color: UI.ink }}
             >
               Cancel
             </button>
@@ -69,16 +69,16 @@ function PostThumb({ post, onDelete }) {
             <button
               aria-label="Download"
               onClick={() => downloadDataUrl(post.imageData, filename)}
-              className="flex items-center justify-center rounded-full transition hover:opacity-85"
-              style={{ width: 32, height: 32, background: WHITE, color: UI.ink }}
+              className="press-fx flex items-center justify-center rounded-full transition"
+              style={{ width: 44, height: 44, background: WHITE, color: UI.ink }}
             >
               <Download size={14} />
             </button>
             <button
               aria-label="Delete"
               onClick={() => setConfirming(true)}
-              className="flex items-center justify-center rounded-full transition hover:opacity-85"
-              style={{ width: 32, height: 32, background: WHITE, color: "#C0392B" }}
+              className="press-fx flex items-center justify-center rounded-full transition"
+              style={{ width: 44, height: 44, background: WHITE, color: "#C0392B" }}
             >
               <Trash2 size={14} />
             </button>
@@ -234,16 +234,16 @@ function PlannedPostsSection() {
               <button
                 type="button"
                 onClick={() => togglePosted(post.id)}
-                className="font-body text-xs font-semibold rounded-full px-3 py-1.5 flex-shrink-0 transition"
-                style={{ background: post.posted ? UI.stone : mixWithWhite(ACCENT, 0.88), color: post.posted ? UI.inkSoft : ACCENT }}
+                className="press-fx font-body text-xs font-semibold rounded-full px-3 flex-shrink-0 transition"
+                style={{ minHeight: 40, background: post.posted ? UI.stone : mixWithWhite(ACCENT, 0.88), color: post.posted ? UI.inkSoft : ACCENT }}
               >
                 {post.posted ? "Posted" : "Mark posted"}
               </button>
               <button
                 aria-label="Delete"
                 onClick={() => deletePost(post.id)}
-                className="flex items-center justify-center rounded-full flex-shrink-0 transition hover:opacity-70"
-                style={{ width: 28, height: 28, color: "#C0392B" }}
+                className="press-fx flex items-center justify-center rounded-full flex-shrink-0 transition"
+                style={{ width: 44, height: 44, color: "#C0392B", margin: "-8px" }}
               >
                 <Trash2 size={14} />
               </button>
@@ -317,16 +317,16 @@ function DraftsSection({ onSwitchTool }) {
             <button
               type="button"
               onClick={() => editDraft(draft)}
-              className="font-body text-xs font-semibold rounded-full px-3 py-1.5 flex-shrink-0 flex items-center gap-1.5 transition"
-              style={{ background: mixWithWhite(ACCENT, 0.88), color: ACCENT }}
+              className="press-fx font-body text-xs font-semibold rounded-full px-3 flex-shrink-0 flex items-center justify-center gap-1.5 transition"
+              style={{ minHeight: 40, background: mixWithWhite(ACCENT, 0.88), color: ACCENT }}
             >
               <Pencil size={12} /> Edit
             </button>
             <button
               aria-label="Delete"
               onClick={() => deleteDraft(draft.id)}
-              className="flex items-center justify-center rounded-full flex-shrink-0 transition hover:opacity-70"
-              style={{ width: 28, height: 28, color: "#C0392B" }}
+              className="press-fx flex items-center justify-center rounded-full flex-shrink-0 transition"
+              style={{ width: 44, height: 44, color: "#C0392B", margin: "-8px" }}
             >
               <Trash2 size={14} />
             </button>
@@ -452,8 +452,8 @@ export function BrandSection({ brandKit, saveBrandKit }) {
             type="button"
             onClick={save}
             disabled={status === "saving"}
-            className="font-body text-sm font-semibold rounded px-5 py-2.5 transition disabled:opacity-60"
-            style={{ background: ACCENT, color: WHITE }}
+            className="press-fx font-body text-sm font-semibold rounded px-5 transition disabled:opacity-60"
+            style={{ minHeight: 44, background: ACCENT, color: WHITE }}
           >
             {status === "saving" ? "Saving…" : "Save brand settings"}
           </button>
@@ -511,8 +511,8 @@ function AccountSection() {
       {user?.isAdmin && (
         <a
           href="/admin"
-          className="font-body text-sm font-semibold rounded px-5 py-2.5 transition justify-self-start"
-          style={{ background: UI.stone, color: UI.ink }}
+          className="press-fx font-body text-sm font-semibold rounded px-5 transition justify-self-start flex items-center"
+          style={{ minHeight: 44, background: UI.stone, color: UI.ink }}
         >
           Open admin dashboard →
         </a>
@@ -528,8 +528,8 @@ function AccountSection() {
         <button
           type="submit"
           disabled={busy}
-          className="font-body text-sm font-semibold rounded px-5 py-2.5 transition disabled:opacity-60 justify-self-start"
-          style={{ background: ACCENT, color: WHITE }}
+          className="press-fx font-body text-sm font-semibold rounded px-5 transition disabled:opacity-60 justify-self-start"
+          style={{ minHeight: 44, background: ACCENT, color: WHITE }}
         >
           {busy ? "Saving…" : "Update password"}
         </button>
@@ -559,13 +559,14 @@ export function ProfilePage({ onSwitchTool, onGoHome }) {
           Manage the brand info that appears on every post, and your account settings.
         </p>
 
-        <div className="flex items-center gap-1 p-1 rounded-full mb-6 w-fit" style={{ background: UI.stone }}>
+        <div className="scroll-touch no-scrollbar flex items-center gap-1 p-1 rounded-full mb-6 max-w-full overflow-x-auto sm:w-fit" style={{ background: UI.stone }}>
           {PROFILE_TABS.map(({ id, label }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
+              className="press-fx flex-shrink-0 px-4 rounded-full font-body text-xs font-semibold transition whitespace-nowrap"
               style={{
+                minHeight: 44,
                 background: tab === id ? UI.card : "transparent",
                 color: tab === id ? UI.ink : UI.inkSoft,
                 boxShadow: tab === id ? "0 1px 3px rgba(27,36,48,0.15)" : "none",

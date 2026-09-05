@@ -1025,7 +1025,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
         <div className="flex items-center mb-5 sm:mb-8 lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}>
           {[{ n: 1, label: "Choose a Post Idea", color: ACCENT_PRESETS[0] }, { n: 2, label: "Make It Yours", color: ACCENT_PRESETS[1] }, { n: 3, label: "Post It", color: ACCENT_PRESETS[2] }].map((s, i, arr) => (
             <div key={s.n} className={`flex items-center min-w-0 ${i < arr.length - 1 ? "flex-1" : "flex-shrink-0"}`}>
-              <button type="button" onClick={() => goToStep(s.n)} className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-0">
+              <button type="button" onClick={() => goToStep(s.n)} className="press-fx flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-0 py-2.5 -my-2.5">
                 <span
                   className="flex items-center justify-center rounded-full font-body text-xs font-bold flex-shrink-0"
                   style={{
@@ -1086,8 +1086,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
             <button
               type="button"
               onClick={() => setMobileStep(2)}
-              className="lg:hidden w-full py-2.5 rounded-lg font-body font-semibold text-sm transition"
-              style={{ background: ACCENT, color: WHITE }}
+              className="press-fx lg:hidden w-full rounded-lg font-body font-semibold text-sm transition"
+              style={{ background: ACCENT, color: WHITE, minHeight: 44 }}
             >
               Continue to Make It Yours
             </button>
@@ -1117,8 +1117,9 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                           key={key}
                           type="button"
                           onClick={() => applyTemplate(key)}
-                          className="px-3 py-1.5 rounded-full font-body text-xs font-semibold transition"
+                          className="press-fx px-3 rounded-full font-body text-xs font-semibold transition"
                           style={{
+                            minHeight: 44,
                             background: form.template === key ? ACCENT : UI.stone,
                             color: form.template === key ? WHITE : UI.ink,
                             border: `1.5px solid ${form.template === key ? ACCENT : UI.line}`,
@@ -1369,13 +1370,13 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
 
             <div className="lg:hidden flex items-center gap-2">
               <button type="button" onClick={() => setMobileStep(1)}
-                className="py-2.5 px-4 rounded-lg border font-body font-semibold text-sm transition"
-                style={{ borderColor: UI.line, color: UI.ink }}>
+                className="press-fx px-4 rounded-lg border font-body font-semibold text-sm transition"
+                style={{ borderColor: UI.line, color: UI.ink, minHeight: 44 }}>
                 Back
               </button>
               <button type="button" onClick={() => setMobileStep(3)}
-                className="flex-1 py-2.5 rounded-lg font-body font-semibold text-sm transition"
-                style={{ background: ACCENT, color: WHITE }}>
+                className="press-fx flex-1 rounded-lg font-body font-semibold text-sm transition"
+                style={{ background: ACCENT, color: WHITE, minHeight: 44 }}>
                 Continue to Preview &amp; Download
               </button>
             </div>
@@ -1386,8 +1387,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
           <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "calc(82px + 1.5rem)", scrollMarginTop: "calc(82px + 1.5rem)" }}>
             {mobileStep === 3 && (
               <button type="button" onClick={() => setMobileStep(2)}
-                className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2"
-                style={{ color: UI.inkSoft }}>
+                className="press-fx lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2 -ml-2 px-2"
+                style={{ color: UI.inkSoft, minHeight: 44 }}>
                 ← Back to Make It Yours
               </button>
             )}
@@ -1399,8 +1400,9 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                   <div className="grid grid-cols-2 sm:flex sm:items-center gap-1 p-1 rounded-xl" style={{ background: UI.stone }}>
                   {Object.entries(ASPECTS).map(([key, a]) => (
                     <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
-                      className="px-3 py-1 rounded-lg font-body text-xs font-semibold transition text-center whitespace-nowrap"
+                      className="press-fx px-3 rounded-lg font-body text-xs font-semibold transition text-center whitespace-nowrap"
                       style={{
+                        minHeight: 44,
                         background: form.aspect === key ? ACCENT : "transparent",
                         color: form.aspect === key ? WHITE : UI.inkSoft,
                         boxShadow: form.aspect === key ? "0 1px 3px rgba(27,36,48,0.25)" : "none",
@@ -1433,18 +1435,18 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                 <button
                   onClick={shareToFacebook}
                   disabled={sharingFacebook}
-                  className="w-full py-3.5 rounded-lg font-body font-bold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
-                  style={{ background: "#1877F2", color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
+                  className="press-fx w-full py-3.5 rounded-lg font-body font-bold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                  style={{ background: "#1877F2", color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}`, minHeight: 44 }}
                 >
                   <Facebook size={16} /> {sharingFacebook ? "Preparing…" : "Share to Facebook"}
                 </button>
 
-                <div className="flex items-center gap-3 justify-center">
+                <div className="flex items-center gap-1 justify-center">
                   <button
                     onClick={downloadImage}
                     disabled={downloading}
-                    className="font-body text-xs font-semibold underline underline-offset-2 flex items-center gap-1.5 transition disabled:opacity-60"
-                    style={{ color: UI.inkSoft }}
+                    className="press-fx font-body text-xs font-semibold underline underline-offset-2 flex items-center justify-center gap-1.5 px-2 transition disabled:opacity-60"
+                    style={{ color: UI.inkSoft, minHeight: 44 }}
                   >
                     <Download size={13} /> {downloading ? "Preparing…" : `Download image (${ASPECTS[form.aspect].label})`}
                   </button>
@@ -1453,8 +1455,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                     <button
                       type="button"
                       onClick={() => setShowDownloadMenu((s) => !s)}
-                      className="font-body text-xs font-semibold flex items-center gap-1 transition"
-                      style={{ color: UI.inkSoft }}
+                      className="press-fx font-body text-xs font-semibold flex items-center justify-center gap-1 px-2 transition"
+                      style={{ color: UI.inkSoft, minHeight: 44 }}
                     >
                       More sizes <ChevronDown size={13} style={{ transform: showDownloadMenu ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
                     </button>
@@ -1466,8 +1468,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                         <button
                           onClick={() => { setShowDownloadMenu(false); downloadAllSizes(); }}
                           disabled={downloadingAll}
-                          className="w-full text-left px-3.5 py-2.5 font-body text-xs font-semibold flex items-center gap-2 transition disabled:opacity-60"
-                          style={{ color: UI.ink }}
+                          className="press-fx w-full text-left px-3.5 py-2.5 font-body text-xs font-semibold flex items-center gap-2 transition disabled:opacity-60"
+                          style={{ color: UI.ink, minHeight: 44 }}
                         >
                           <Download size={13} /> {downloadingAll ? "Preparing…" : "Download all sizes"}
                         </button>

@@ -24,8 +24,9 @@ function ModeTabs({ mode, onChange }) {
           key={m}
           type="button"
           onClick={() => onChange(m)}
-          className="flex-1 font-body text-sm font-bold rounded-full py-2 transition"
+          className="press-fx flex-1 font-body text-sm font-bold rounded-full transition"
           style={{
+            minHeight: 44,
             background: mode === m ? PINK : "transparent",
             color: mode === m ? "#FFFFFF" : AUTH.muted,
           }}
@@ -110,7 +111,7 @@ export function AuthScreen({ initialMode = "login", onBack }) {
       {mode === "forgot" && resetMessage ? (
         <div className="grid gap-4">
           <p className="font-body text-sm" style={{ color: AUTH.ink }}>{resetMessage}</p>
-          <button type="button" onClick={() => switchMode("login")} className="font-body text-xs font-semibold underline text-left" style={{ color: AUTH.muted }}>
+          <button type="button" onClick={() => switchMode("login")} className="press-fx font-body text-xs font-semibold underline text-left flex items-center -ml-1 px-1" style={{ color: AUTH.muted, minHeight: 44 }}>
             Back to log in
           </button>
         </div>
@@ -126,7 +127,7 @@ export function AuthScreen({ initialMode = "login", onBack }) {
           </AuthField>
           {mode !== "forgot" && (
             <AuthField icon={Lock} trailing={
-              <button type="button" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? "Hide password" : "Show password"} style={{ color: AUTH.muted }}>
+              <button type="button" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? "Hide password" : "Show password"} className="press-fx flex items-center justify-center" style={{ color: AUTH.muted, width: 44, height: 44, margin: "-10px" }}>
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             }>
@@ -146,7 +147,7 @@ export function AuthScreen({ initialMode = "login", onBack }) {
           )}
 
           {mode === "login" && (
-            <button type="button" onClick={() => switchMode("forgot")} className="font-body text-xs text-right -mt-1" style={{ color: AUTH.muted }}>
+            <button type="button" onClick={() => switchMode("forgot")} className="press-fx font-body text-xs -mt-1 flex items-center justify-end px-1" style={{ color: AUTH.muted, minHeight: 44 }}>
               Forgot password?
             </button>
           )}
@@ -160,15 +161,15 @@ export function AuthScreen({ initialMode = "login", onBack }) {
           {mode === "signup" && <StepIndicator />}
 
           {mode === "forgot" ? (
-            <button type="button" onClick={() => switchMode("login")} className="font-body text-xs font-semibold underline text-center mt-1" style={{ color: AUTH.muted }}>
+            <button type="button" onClick={() => switchMode("login")} className="press-fx font-body text-xs font-semibold underline text-center mt-1 flex items-center justify-center" style={{ color: AUTH.muted, minHeight: 44 }}>
               Back to log in
             </button>
           ) : (
             <button
               type="button"
               onClick={() => switchMode(mode === "login" ? "signup" : "login")}
-              className="font-body text-xs text-center mt-1"
-              style={{ color: AUTH.muted }}
+              className="press-fx font-body text-xs text-center mt-1 flex items-center justify-center"
+              style={{ color: AUTH.muted, minHeight: 44 }}
             >
               {mode === "login" ? "New here? " : "Already have an account? "}
               <span className="font-semibold underline" style={{ color: AUTH.ink }}>

@@ -1263,7 +1263,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 const Icon = t.icon;
                 return (
                   <button key={key} onClick={() => chooseTemplate(key)}
-                    className="relative text-left p-4 rounded-xl transition"
+                    className="press-fx relative text-left p-4 rounded-xl transition"
                     style={{
                       borderWidth: selected ? 2.5 : 2,
                       borderStyle: "solid",
@@ -1289,8 +1289,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           <button
             type="button"
             onClick={() => goToStep(2)}
-            className="lg:hidden w-full mt-6 py-2.5 rounded-lg font-body font-semibold text-sm transition"
-            style={{ background: ACCENT, color: WHITE }}
+            className="press-fx lg:hidden w-full mt-6 rounded-lg font-body font-semibold text-sm transition"
+            style={{ background: ACCENT, color: WHITE, minHeight: 44 }}
           >
             Continue to Details &amp; Design
           </button>
@@ -1309,7 +1309,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 {STYLE_OPTIONS.map(({ key, label, description }) => (
                   <button key={key} type="button" onClick={() => setForm((f) => ({ ...f, layout: key }))}
                     aria-label={`${label} — ${description}`}
-                    className="text-left rounded-lg overflow-hidden transition"
+                    className="press-fx text-left rounded-lg overflow-hidden transition"
                     style={{
                       borderWidth: form.layout === key ? 2.5 : 2,
                       borderStyle: "solid",
@@ -1546,13 +1546,13 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
             <div className="lg:hidden flex items-center gap-2">
               <button type="button" onClick={() => goToStep(1)}
-                className="py-2.5 px-4 rounded-lg border font-body font-semibold text-sm transition"
-                style={{ borderColor: UI.line, color: UI.ink }}>
+                className="press-fx px-4 rounded-lg border font-body font-semibold text-sm transition"
+                style={{ borderColor: UI.line, color: UI.ink, minHeight: 44 }}>
                 Back
               </button>
               <button type="button" onClick={() => goToStep(3)}
-                className="flex-1 py-2.5 rounded-lg font-body font-semibold text-sm transition"
-                style={{ background: ACCENT, color: WHITE }}>
+                className="press-fx flex-1 rounded-lg font-body font-semibold text-sm transition"
+                style={{ background: ACCENT, color: WHITE, minHeight: 44 }}>
                 Continue to Review &amp; Download
               </button>
             </div>
@@ -1563,8 +1563,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "lg:sticky lg:col-start-2 lg:row-span-full" : "hidden lg:block lg:sticky lg:col-start-2 lg:row-span-full"} style={{ top: "calc(82px + 1.5rem)", scrollMarginTop: "calc(82px + 1.5rem)" }}>
             {mobileStep === 3 && (
               <button type="button" onClick={() => goToStep(2)}
-                className="lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2"
-                style={{ color: UI.inkSoft }}>
+                className="press-fx lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2 -ml-2 px-2"
+                style={{ color: UI.inkSoft, minHeight: 44 }}>
                 ← Back to Details &amp; Design
               </button>
             )}
@@ -1574,8 +1574,9 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 <div className="grid grid-cols-2 sm:flex sm:items-center gap-1 p-1 rounded-xl" style={{ background: UI.stone }}>
                   {Object.entries(ASPECTS).map(([key, a]) => (
                     <button key={key} onClick={() => setForm((f) => ({ ...f, aspect: key }))}
-                      className="px-3 py-1 rounded-lg font-body text-xs font-semibold transition text-center whitespace-nowrap"
+                      className="press-fx px-3 rounded-lg font-body text-xs font-semibold transition text-center whitespace-nowrap"
                       style={{
+                        minHeight: 44,
                         background: form.aspect === key ? UI.card : "transparent",
                         color: form.aspect === key ? UI.ink : UI.inkSoft,
                         boxShadow: form.aspect === key ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
@@ -1604,16 +1605,16 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 <button
                   onClick={downloadImage}
                   disabled={downloading}
-                  className="py-3 rounded-lg font-body font-bold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
-                  style={{ background: ACCENT, color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
+                  className="press-fx rounded-lg font-body font-bold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                  style={{ minHeight: 44, background: ACCENT, color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
                 >
                   <Download size={16} /> {downloading ? "Preparing…" : "Download"}
                 </button>
                 <button
                   onClick={shareToFacebook}
                   disabled={sharingFacebook}
-                  className="py-3 rounded-lg font-body font-bold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
-                  style={{ background: "#1877F2", color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
+                  className="press-fx rounded-lg font-body font-bold text-sm flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                  style={{ minHeight: 44, background: "#1877F2", color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
                 >
                   <Facebook size={16} /> {sharingFacebook ? "Preparing…" : "Share to Facebook"}
                 </button>

@@ -221,15 +221,15 @@ function UserActivityModal({ userId, onClose }) {
   }, [userId]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(27,36,48,0.55)" }} onClick={onClose}>
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" style={{ background: "rgba(27,36,48,0.55)" }} onClick={onClose}>
       <div
-        className="rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto p-6"
-        style={{ background: WHITE }}
+        className="modal-sheet rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[85dvh] sm:max-h-[80vh] overflow-y-auto p-6"
+        style={{ background: WHITE, paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display font-bold text-lg" style={{ color: UI.ink }}>User activity</h3>
-          <button onClick={onClose} aria-label="Close" style={{ color: UI.inkSoft }}><X size={20} /></button>
+          <button onClick={onClose} aria-label="Close" className="press-fx flex items-center justify-center" style={{ color: UI.inkSoft, width: 44, height: 44, margin: "-12px -12px -12px 0" }}><X size={20} /></button>
         </div>
 
         {error && <p className="font-body text-sm" style={{ color: ERROR }}>{error}</p>}
@@ -313,11 +313,11 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(27,36,48,0.55)" }} onClick={onClose}>
-      <div className="rounded-2xl w-full max-w-sm p-6" style={{ background: WHITE }} onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" style={{ background: "rgba(27,36,48,0.55)" }} onClick={onClose}>
+      <div className="modal-sheet rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm p-6" style={{ background: WHITE, paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))" }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-display font-bold text-lg" style={{ color: ERROR }}>Delete account</h3>
-          <button onClick={onClose} aria-label="Close" style={{ color: UI.inkSoft }}><X size={20} /></button>
+          <button onClick={onClose} aria-label="Close" className="press-fx flex items-center justify-center" style={{ color: UI.inkSoft, width: 44, height: 44, margin: "-12px -12px -12px 0" }}><X size={20} /></button>
         </div>
         <p className="font-body text-sm mb-4" style={{ color: UI.ink }}>
           This permanently deletes <strong>{user.email}</strong> and everything tied to it — brand kit, Key Link page, and posts. This can't be undone.
@@ -338,14 +338,14 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
         </label>
         {error && <p className="font-body text-sm mb-3" style={{ color: ERROR }}>{error}</p>}
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} disabled={busy} className="font-body text-sm font-semibold rounded-full px-4 py-2" style={{ color: UI.inkSoft }}>
+          <button onClick={onClose} disabled={busy} className="press-fx font-body text-sm font-semibold rounded-full px-4" style={{ color: UI.inkSoft, minHeight: 44 }}>
             Cancel
           </button>
           <button
             onClick={submit}
             disabled={!matches || busy}
-            className="font-body text-sm font-semibold rounded-full px-4 py-2 disabled:opacity-40"
-            style={{ background: ERROR, color: WHITE }}
+            className="press-fx font-body text-sm font-semibold rounded-full px-4 disabled:opacity-40"
+            style={{ background: ERROR, color: WHITE, minHeight: 44 }}
           >
             {busy ? "Deleting…" : "Delete account"}
           </button>

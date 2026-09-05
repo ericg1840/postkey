@@ -95,11 +95,15 @@ export function AuthShell({ icon: Icon, title, subtitle, onBack, children }) {
       <style>{`
         .auth-input { width: 100%; background: transparent; border: none; outline: none; font-family: 'Public Sans', sans-serif; font-size: 0.9rem; color: ${AUTH.ink}; }
         .auth-input::placeholder { color: ${AUTH.muted}; }
-        .auth-field { display: flex; align-items: center; gap: 0.6rem; background: ${AUTH.field}; border: 2px solid #1B2430; border-radius: 12px; padding: 0.7rem 0.9rem; }
+        @media (max-width: 767px) {
+          .auth-input { font-size: 16px; }
+        }
+        .auth-field { display: flex; align-items: center; gap: 0.6rem; background: ${AUTH.field}; border: 2px solid #1B2430; border-radius: 12px; padding: 0.7rem 0.9rem; min-height: 44px; }
         .auth-field:focus-within { background: #FFFFFF; }
-        .auth-cta { width: 100%; background: ${PINK}; color: #FFFFFF; font-family: 'Public Sans', sans-serif; font-weight: 700; font-size: 0.9rem; border: 2.5px solid #1B2430; box-shadow: 4px 4px 0 #1B2430; border-radius: 999px; padding: 0.8rem; transition: opacity 0.15s, transform 0.15s; }
+        .auth-cta { width: 100%; min-height: 44px; background: ${PINK}; color: #FFFFFF; font-family: 'Public Sans', sans-serif; font-weight: 700; font-size: 0.9rem; border: 2.5px solid #1B2430; box-shadow: 4px 4px 0 #1B2430; border-radius: 999px; padding: 0.8rem; transition: opacity 0.15s, transform 0.15s; }
         .auth-cta:disabled { opacity: 0.6; }
         .auth-cta:not(:disabled):hover { opacity: 0.88; }
+        .auth-cta:not(:disabled):active { transform: scale(0.97); }
       `}</style>
 
       <div className="absolute top-6 left-6 md:top-8 md:left-9 flex items-center gap-4 z-10" style={{ top: "calc(1.5rem + env(safe-area-inset-top))" }}>
@@ -110,8 +114,8 @@ export function AuthShell({ icon: Icon, title, subtitle, onBack, children }) {
         {onBack && (
           <button
             onClick={onBack}
-            className="font-body text-xs font-semibold flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-white"
-            style={{ color: AUTH.ink, border: "2px solid #1B2430" }}
+            className="press-fx font-body text-xs font-semibold flex items-center gap-1.5 rounded-full px-3 bg-white"
+            style={{ color: AUTH.ink, border: "2px solid #1B2430", minHeight: 44 }}
           >
             ← Back to home
           </button>

@@ -33,7 +33,7 @@ export function OnboardingWizard() {
               Set up your brand kit once — your photo, logo, colors, and contact info will be ready on every post from now on.
             </p>
           </div>
-          <button onClick={skip} disabled={skipping} className="font-body text-xs underline whitespace-nowrap flex-shrink-0 mt-1" style={{ color: AUTH.muted }}>
+          <button onClick={skip} disabled={skipping} className="press-fx font-body text-xs underline whitespace-nowrap flex-shrink-0 flex items-center px-1 -mr-1" style={{ color: AUTH.muted, minHeight: 44 }}>
             {skipping ? "Skipping…" : "Skip for now"}
           </button>
         </div>

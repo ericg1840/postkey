@@ -227,8 +227,8 @@ export function StickerButton({ as: As = "button", href, onClick, background, co
       href={href}
       onClick={onClick}
       disabled={disabled}
-      className={`font-body font-bold rounded-full transition inline-flex items-center justify-center gap-1.5 ${disabled ? "opacity-60" : "hover:opacity-85"} ${small ? "px-4 py-2 text-xs" : "px-6 py-3.5 text-sm"} ${className}`}
-      style={{ background, color, border: "2.5px solid #1B2430", boxShadow: "4px 4px 0 #1B2430" }}
+      className={`press-fx font-body font-bold rounded-full transition inline-flex items-center justify-center gap-1.5 ${disabled ? "opacity-60" : "hover:opacity-85"} ${small ? "px-4 text-xs" : "px-6 text-sm"} ${className}`}
+      style={{ minHeight: 44, background, color, border: "2.5px solid #1B2430", boxShadow: "4px 4px 0 #1B2430" }}
     >
       {children}
     </Tag>
@@ -254,8 +254,8 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <button
               onClick={onLogIn}
-              className="font-body text-xs sm:text-sm font-semibold rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2 transition whitespace-nowrap"
-              style={{ color: AUTH.ink }}
+              className="press-fx font-body text-xs sm:text-sm font-semibold rounded-full px-2.5 sm:px-4 transition whitespace-nowrap"
+              style={{ color: AUTH.ink, minHeight: 44 }}
             >
               Log in
             </button>

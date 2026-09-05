@@ -678,7 +678,7 @@ export function UploadBox({ label, icon: Icon, state, hint, large = false, requi
           <div className={`flex items-center gap-2 font-body text-sm min-w-0 ${large ? "" : "flex-1"}`}>
             <span className="truncate">{isDefault ? `${state.name} (default)` : state.name}</span>
             {!isDefault && state.source !== "loading" && (
-              <button onClick={(e) => { e.stopPropagation(); state.clear(); }} style={{ color: UI.inkSoft, flexShrink: 0 }} title="Reset to default">
+              <button onClick={(e) => { e.stopPropagation(); state.clear(); }} className="press-fx flex items-center justify-center" style={{ color: UI.inkSoft, flexShrink: 0, minWidth: 44, minHeight: 44, margin: "-11px -11px -11px 0" }} title="Reset to default">
                 <X size={13} />
               </button>
             )}
@@ -804,9 +804,75 @@ export function GlobalStyles() {
       .font-display { font-family: 'Fraunces', serif; }
       .font-body { font-family: 'Public Sans', sans-serif; }
       .font-mono { font-family: 'IBM Plex Mono', monospace; }
-      .input { width: 100%; background: ${UI.card}; border: 1px solid ${UI.line}; border-radius: 10px; padding: 0.55rem 0.7rem; font-family: 'Public Sans', sans-serif; font-size: 0.88rem; color: ${UI.ink}; }
-      textarea.input { resize: none; }
+      .input { width: 100%; min-height: 44px; background: ${UI.card}; border: 1px solid ${UI.line}; border-radius: 10px; padding: 0.55rem 0.7rem; font-family: 'Public Sans', sans-serif; font-size: 0.88rem; color: ${UI.ink}; }
+      textarea.input { resize: none; min-height: 0; }
       .input:focus { outline: 2px solid ${ACCENT}; outline-offset: 1px; }
+      /* iOS Safari auto-zooms the page when a focused input's font-size is
+         under 16px — force 16px on touch viewports so typing never yanks
+         the whole layout in, then let the desktop rule below shrink it back. */
+      @media (max-width: 767px) {
+        .input { font-size: 16px; }
+      }
+      /* Native-feeling touch defaults, applied app-wide: no 300ms tap delay,
+         no double-tap-to-zoom on buttons, no callout/selection popovers on
+         things meant to be tapped not read, and no rubber-band overscroll
+         fighting our own fixed headers/sheets. */
+      button, a, [role="button"], input[type="checkbox"], input[type="radio"] {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      }
+      button, [role="button"] {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+      }
+      html, body {
+        overscroll-behavior-y: contain;
+      }
+      .scroll-touch {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+      }
+      .no-scrollbar {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      @media (hover: hover) {
+        .press-fx:hover { filter: brightness(0.97); }
+      }
+      .press-fx:active {
+        transform: scale(0.96);
+      }
+      .press-fx {
+        transition: transform 120ms ease, filter 120ms ease;
+      }
+      /* Native-feeling modal: slides up from the bottom like a real sheet on
+         phones (where centered-fade dialogs read as "web popup"), and
+         settles into a plain centered fade once there's room for it. */
+      @keyframes modal-fade-in { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes modal-sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+      .modal-backdrop { animation: modal-fade-in 180ms ease-out; }
+      .modal-sheet { animation: modal-sheet-up 220ms cubic-bezier(0.32, 0.72, 0, 1); }
+      @media (min-width: 640px) {
+        .modal-sheet { animation: modal-fade-in 150ms ease-out; }
+      }
+      /* Hover-reveal overlays (e.g. a photo's download/delete actions) have
+         no equivalent on touch — there's no hover to reveal them — so they
+         only fade in on pointers that actually support hover; everywhere
+         else they stay visible all the time. */
+      .hover-reveal { opacity: 1; }
+      @media (hover: hover) and (pointer: fine) {
+        .hover-reveal { opacity: 0; }
+        .group:hover .hover-reveal { opacity: 1; }
+      }
+      .bio-link-row, .bio-link-icon {
+        transition: transform 120ms ease;
+      }
+      .bio-link-row:active { transform: scale(0.98); }
+      .bio-link-icon:active { transform: scale(0.92); }
     `}</style>
   );
 }
@@ -815,94 +881,67 @@ export function GlobalStyles() {
 export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
   return (
     <header className="sticky top-0 z-50" style={{ borderBottom: `2px solid ${UI.ink}`, background: UI.page, paddingTop: "env(safe-area-inset-top)" }}>
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-5 flex flex-wrap sm:grid sm:grid-cols-[1fr_auto_1fr] items-center justify-between gap-3 sm:gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-5 flex flex-wrap sm:grid sm:grid-cols-[1fr_auto_1fr] items-center justify-between gap-2 sm:gap-4">
         {onLogoClick ? (
-          <button type="button" onClick={onLogoClick} className="flex items-center gap-2 justify-self-start">
+          <button type="button" onClick={onLogoClick} className="press-fx flex items-center gap-2 justify-self-start" style={{ minHeight: 44 }}>
             <Logo size={34} />
             <span className="font-display font-bold text-xl" style={{ color: UI.ink }}>PostKey</span>
           </button>
         ) : (
-          <div className="flex items-center gap-2 justify-self-start">
+          <div className="flex items-center gap-2 justify-self-start" style={{ minHeight: 44 }}>
             <Logo size={34} />
             <span className="font-display font-bold text-xl" style={{ color: UI.ink }}>PostKey</span>
           </div>
         )}
-        <nav className="flex items-center gap-1 p-1 rounded-full justify-self-center" style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}>
-          <button
-            onClick={() => onSwitch("listings")}
-            className="px-4 py-1.5 rounded-full font-body text-xs font-bold transition"
-            style={{
-              background: active === "listings" ? ACCENT : "transparent",
-              color: active === "listings" ? WHITE : UI.inkSoft,
-            }}
-          >
-            Listings
-          </button>
-          <button
-            onClick={() => onSwitch("community")}
-            className="px-4 py-1.5 rounded-full font-body text-xs font-bold transition"
-            style={{
-              background: active === "community" ? ACCENT : "transparent",
-              color: active === "community" ? WHITE : UI.inkSoft,
-            }}
-          >
-            Community
-          </button>
-          <button
-            onClick={() => onSwitch("calendar")}
-            className="px-4 py-1.5 rounded-full font-body text-xs font-bold transition"
-            style={{
-              background: active === "calendar" ? ACCENT : "transparent",
-              color: active === "calendar" ? WHITE : UI.inkSoft,
-            }}
-          >
-            Planner
-          </button>
-          <button
-            onClick={() => onSwitch("description")}
-            className="px-4 py-1.5 rounded-full font-body text-xs font-bold transition"
-            style={{
-              background: active === "description" ? ACCENT : "transparent",
-              color: active === "description" ? WHITE : UI.inkSoft,
-            }}
-          >
-            Description
-          </button>
-          <button
-            onClick={() => onSwitch("bio")}
-            className="px-4 py-1.5 rounded-full font-body text-xs font-bold transition"
-            style={{
-              background: active === "bio" ? ACCENT : "transparent",
-              color: active === "bio" ? WHITE : UI.inkSoft,
-            }}
-          >
-            Key Link
-          </button>
+        <nav
+          className="scroll-touch no-scrollbar flex items-center gap-1 p-1 rounded-full justify-self-center order-3 sm:order-none w-full sm:w-auto overflow-x-auto"
+          style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}
+        >
+          {[
+            { key: "listings", label: "Listings" },
+            { key: "community", label: "Community" },
+            { key: "calendar", label: "Planner" },
+            { key: "description", label: "Description" },
+            { key: "bio", label: "Key Link" },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => onSwitch(tab.key)}
+              className="press-fx flex-shrink-0 flex items-center justify-center px-4 rounded-full font-body text-xs font-bold"
+              style={{
+                minHeight: 44,
+                background: active === tab.key ? ACCENT : "transparent",
+                color: active === tab.key ? WHITE : UI.inkSoft,
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
         </nav>
-        <div className="flex items-center gap-4 justify-self-end">
+        <div className="flex items-center gap-1 sm:gap-2 justify-self-end">
           {onLogout && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center">
               {userName && (
-                <span className="font-body text-xs" style={{ color: UI.inkSoft }}>{userName}</span>
+                <span className="font-body text-xs mr-1 hidden sm:inline" style={{ color: UI.inkSoft }}>{userName}</span>
               )}
               <button
                 onClick={() => onSwitch("profile")}
-                className="font-body text-xs underline"
-                style={{ color: active === "profile" ? UI.ink : UI.inkSoft, fontWeight: active === "profile" ? 600 : 400 }}
+                className="press-fx flex items-center justify-center px-2.5 font-body text-xs underline"
+                style={{ minHeight: 44, minWidth: 44, color: active === "profile" ? UI.ink : UI.inkSoft, fontWeight: active === "profile" ? 600 : 400 }}
               >
                 Profile
               </button>
               <button
                 onClick={() => onSwitch("help")}
-                className="font-body text-xs underline"
-                style={{ color: active === "help" ? UI.ink : UI.inkSoft, fontWeight: active === "help" ? 600 : 400 }}
+                className="press-fx flex items-center justify-center px-2.5 font-body text-xs underline"
+                style={{ minHeight: 44, minWidth: 44, color: active === "help" ? UI.ink : UI.inkSoft, fontWeight: active === "help" ? 600 : 400 }}
               >
                 Help
               </button>
               <button
                 onClick={onLogout}
-                className="font-body text-xs font-semibold underline"
-                style={{ color: UI.inkSoft }}
+                className="press-fx flex items-center justify-center px-2.5 font-body text-xs font-semibold underline"
+                style={{ minHeight: 44, minWidth: 44, color: UI.inkSoft }}
               >
                 Log out
               </button>
