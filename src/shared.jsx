@@ -894,7 +894,7 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
           </div>
         )}
         <nav
-          className="scroll-touch no-scrollbar flex items-center gap-1 p-1 rounded-full justify-self-center order-3 sm:order-none w-full sm:w-auto overflow-x-auto"
+          className="scroll-touch no-scrollbar flex items-center gap-1 p-1 rounded-full justify-self-center order-3 sm:order-none w-fit max-w-full mx-auto sm:mx-0 overflow-x-auto"
           style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}
         >
           {[
