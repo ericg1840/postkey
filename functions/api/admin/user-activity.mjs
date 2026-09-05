@@ -17,13 +17,11 @@ export async function onRequestGet({ request, env }) {
   `;
   if (!user) return json({ error: "User not found." }, { status: 404 });
 
-  const [{ posts_count }] = await db.sql`SELECT COUNT(*)::int AS posts_count FROM posts WHERE user_id = ${userId}`;
-  const recentPosts = await db.sql`
-    SELECT category, headline, created_at FROM posts WHERE user_id = ${userId} ORDER BY created_at DESC LIMIT 10
-  `;
-  const recentEvents = await db.sql`
-    SELECT event_type, details, created_at FROM activity_events WHERE user_id = ${userId} ORDER BY created_at DESC LIMIT 10
-  `;
+  const [[{ posts_count }], recentPosts, recentEvents] = await Promise.all([
+    db.sql`SELECT COUNT(*)::int AS posts_count FROM posts WHERE user_id = ${userId}`,
+    db.sql`SELECT category, headline, created_at FROM posts WHERE user_id = ${userId} ORDER BY created_at DESC LIMIT 10`,
+    db.sql`SELECT event_type, details, created_at FROM activity_events WHERE user_id = ${userId} ORDER BY created_at DESC LIMIT 10`,
+  ]);
 
   return json({
     user: {

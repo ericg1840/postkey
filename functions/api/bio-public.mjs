@@ -16,12 +16,16 @@ export async function onRequestGet({ request, env }) {
   `;
   if (!kit) return json({ error: "Page not found." }, { status: 404 });
 
-  await logEvent(db, kit.user_id, "page_view", { handle });
-
-  const links = await db.sql`
-    SELECT type, label, url, address, price, beds, baths, photo_url
-    FROM bio_links WHERE user_id = ${kit.user_id} ORDER BY sort_order ASC, id ASC
-  `;
+  // The page-view log write doesn't gate what the visitor sees, so it runs
+  // alongside the links fetch instead of blocking it — one round trip off
+  // the critical path of what is this app's highest-traffic read.
+  const [, links] = await Promise.all([
+    logEvent(db, kit.user_id, "page_view", { handle }),
+    db.sql`
+      SELECT type, label, url, address, price, beds, baths, photo_url
+      FROM bio_links WHERE user_id = ${kit.user_id} ORDER BY sort_order ASC, id ASC
+    `,
+  ]);
 
   return json({
     name: kit.agent_name || "",
