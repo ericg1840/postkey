@@ -15,6 +15,9 @@ import * as bio from "../functions/api/bio.mjs";
 import * as bioPublic from "../functions/api/bio-public.mjs";
 import * as listingsFetch from "../functions/api/listings-fetch.mjs";
 import * as posts from "../functions/api/posts.mjs";
+import * as contentPosts from "../functions/api/content/posts.mjs";
+import * as contentIdeas from "../functions/api/content/ideas.mjs";
+import * as contentAutofill from "../functions/api/content/autofill.mjs";
 import * as adminStats from "../functions/api/admin/stats.mjs";
 import * as adminUsers from "../functions/api/admin/users.mjs";
 import * as adminUsersExport from "../functions/api/admin/users-export.mjs";
@@ -35,6 +38,12 @@ const ROUTES = {
   "/api/bio-public": { GET: bioPublic.onRequestGet },
   "/api/listings-fetch": { POST: listingsFetch.onRequestPost },
   "/api/posts": { GET: posts.onRequestGet, POST: posts.onRequestPost, DELETE: posts.onRequestDelete },
+  "/api/content/posts": {
+    GET: contentPosts.onRequestGet, POST: contentPosts.onRequestPost,
+    PATCH: contentPosts.onRequestPatch, DELETE: contentPosts.onRequestDelete,
+  },
+  "/api/content/ideas": { GET: contentIdeas.onRequestGet, POST: contentIdeas.onRequestPost, PATCH: contentIdeas.onRequestPatch },
+  "/api/content/autofill": { POST: contentAutofill.onRequestPost },
   "/api/admin/stats": { GET: adminStats.onRequestGet },
   "/api/admin/users": { GET: adminUsers.onRequestGet },
   "/api/admin/users-export": { GET: adminUsersExport.onRequestGet },

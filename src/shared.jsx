@@ -975,32 +975,6 @@ export function clearPostHandoff() {
   }
 }
 
-// Content Planner entries — shared so other tools (e.g. Community's "Need
-// inspiration" card) can save an idea into the planner without a date yet,
-// not just the Planner page itself.
-export const CALENDAR_STORAGE_KEY = "postkey_calendar_entries";
-
-export function loadCalendarEntries() {
-  try {
-    const raw = localStorage.getItem(CALENDAR_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveCalendarEntries(entries) {
-  try {
-    localStorage.setItem(CALENDAR_STORAGE_KEY, JSON.stringify(entries));
-  } catch {
-    // localStorage unavailable (private browsing, etc) — entries just won't persist across refreshes.
-  }
-}
-
-export function genCalendarEntryId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
 // Post drafts — a "Save for later" snapshot of a Listing/Community post's
 // full form (everything except the uploaded photos, which live only in
 // memory and never get persisted) so someone can sit down, rough out a
