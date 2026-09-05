@@ -105,7 +105,11 @@ export async function onRequestPost({ request, env }) {
     const firstName = fullName.split(/\s+/)[0];
     await sendWelcomeEmail(user.email, firstName, new URL(request.url).origin, env);
   } catch (err) {
-    // Never let a flaky email provider block or fail an otherwise-successful signup.
+    // Never let a flaky email provider block or fail an otherwise-successful
+    // signup — but a silent failure here is invisible to everyone (no error
+    // page, no reset-style message), so log it instead of swallowing it.
+    console.error("Welcome email failed", err);
+    await logEvent(db, user.id, "welcome_email_failed", { error: err.message }).catch(() => {});
   }
 
   return json(
