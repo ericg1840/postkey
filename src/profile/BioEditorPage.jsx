@@ -282,10 +282,8 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                     <button
                       type="button"
                       onClick={() => onSwitchTool("profile")}
-                      className="font-body text-xs rounded-full px-3 py-1.5 border transition flex items-center gap-1.5"
-                      style={{ borderColor: UI.line, color: UI.inkSoft }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = ACCENT}
-                      onMouseLeave={(e) => e.currentTarget.style.color = UI.inkSoft}
+                      className="press-fx font-body text-xs rounded-full px-3 border transition flex items-center gap-1.5"
+                      style={{ minHeight: 44, borderColor: UI.line, color: UI.inkSoft }}
                     >
                       Change Photo
                     </button>
@@ -374,8 +372,8 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                     <button
                       type="button"
                       onClick={() => setField("bgImageUrl")("")}
-                      className="absolute top-2 right-2 rounded-full p-1"
-                      style={{ background: "rgba(0,0,0,0.5)", color: "#FFFFFF" }}
+                      className="press-fx absolute top-2 right-2 rounded-full flex items-center justify-center"
+                      style={{ background: "rgba(0,0,0,0.5)", color: "#FFFFFF", width: 32, height: 32 }}
                       aria-label="Remove background image"
                     >
                       <X size={14} />
@@ -470,8 +468,8 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   <button
                     onClick={() => setContentMenuOpen((o) => !o)}
                     disabled={availableContentTypes.length === 0}
-                    className="font-body w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    style={{ background: WHITE, color: ACCENT_PRESETS[4], border: `2.5px solid ${ACCENT_PRESETS[4]}`, boxShadow: `3px 3px 0 ${ACCENT_PRESETS[4]}` }}
+                    className="press-fx font-body w-full flex items-center justify-center gap-2 rounded-xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    style={{ minHeight: 44, background: WHITE, color: ACCENT_PRESETS[4], border: `2.5px solid ${ACCENT_PRESETS[4]}`, boxShadow: `3px 3px 0 ${ACCENT_PRESETS[4]}` }}
                   >
                     <Plus size={16} /> Add Content
                   </button>
@@ -502,7 +500,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                           placeholder={typeInfo.placeholder}
                           className="input flex-1 min-w-0"
                         />
-                        <button onClick={() => removeLink(link.id)} className="shrink-0 p-1 transition" style={{ color: UI.inkSoft }} onMouseEnter={(e) => e.currentTarget.style.color = ERROR} onMouseLeave={(e) => e.currentTarget.style.color = UI.inkSoft} aria-label="Remove link">
+                        <button onClick={() => removeLink(link.id)} className="press-fx shrink-0 flex items-center justify-center transition" style={{ color: UI.inkSoft, width: 44, height: 44 }} aria-label="Remove link">
                           <X size={16} />
                         </button>
                       </div>
@@ -513,8 +511,8 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   <button
                     onClick={() => setSocialMenuOpen((o) => !o)}
                     disabled={availableSocialTypes.length === 0}
-                    className="font-body w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    style={{ background: WHITE, color: ACCENT_PRESETS[0], border: `2.5px solid ${ACCENT_PRESETS[0]}`, boxShadow: `3px 3px 0 ${ACCENT_PRESETS[0]}` }}
+                    className="press-fx font-body w-full flex items-center justify-center gap-2 rounded-xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    style={{ minHeight: 44, background: WHITE, color: ACCENT_PRESETS[0], border: `2.5px solid ${ACCENT_PRESETS[0]}`, boxShadow: `3px 3px 0 ${ACCENT_PRESETS[0]}` }}
                   >
                     <Plus size={16} /> Add Social Link
                   </button>
@@ -528,8 +526,8 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                 <button
                   onClick={save}
                   disabled={saveStatus === "saving"}
-                  className="font-body text-sm font-bold rounded-lg px-5 py-2.5 transition disabled:opacity-60 flex items-center gap-2"
-                  style={{ background: "#0F9D58", color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
+                  className="press-fx font-body text-sm font-bold rounded-lg px-5 transition disabled:opacity-60 flex items-center gap-2"
+                  style={{ minHeight: 44, background: "#0F9D58", color: WHITE, border: `2.5px solid ${UI.ink}`, boxShadow: `3px 3px 0 ${UI.ink}` }}
                 >
                   <Check size={16} /> {saveStatus === "saving" ? "Saving…" : "Save Changes"}
                 </button>
@@ -538,18 +536,16 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                     href={publicUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="font-body text-sm font-semibold rounded-lg px-5 py-2.5 transition flex items-center gap-2 border"
-                    style={{ borderColor: UI.line, color: UI.ink }}
+                    className="press-fx font-body text-sm font-semibold rounded-lg px-5 transition flex items-center gap-2 border"
+                    style={{ minHeight: 44, borderColor: UI.line, color: UI.ink }}
                   >
                     <Eye size={16} /> Preview
                   </a>
                 )}
                 <button
                   onClick={resetToDefault}
-                  className="font-body text-sm flex items-center gap-1.5 transition"
-                  style={{ color: UI.inkSoft }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = ERROR}
-                  onMouseLeave={(e) => e.currentTarget.style.color = UI.inkSoft}
+                  className="press-fx font-body text-sm flex items-center gap-1.5 transition px-1"
+                  style={{ color: UI.inkSoft, minHeight: 44 }}
                 >
                   <RotateCcw size={14} /> Reset to Default
                 </button>
@@ -564,16 +560,16 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   <button
                     onClick={() => setPreviewMode("mobile")}
                     aria-label="Mobile preview"
-                    className="p-1.5 rounded-full transition"
-                    style={{ background: previewMode === "mobile" ? ACCENT : "transparent" }}
+                    className="press-fx flex items-center justify-center rounded-full transition"
+                    style={{ width: 40, height: 40, background: previewMode === "mobile" ? ACCENT : "transparent" }}
                   >
                     <Smartphone size={14} style={{ color: previewMode === "mobile" ? WHITE : UI.inkSoft }} />
                   </button>
                   <button
                     onClick={() => setPreviewMode("desktop")}
                     aria-label="Desktop preview"
-                    className="p-1.5 rounded-full transition"
-                    style={{ background: previewMode === "desktop" ? ACCENT : "transparent" }}
+                    className="press-fx flex items-center justify-center rounded-full transition"
+                    style={{ width: 40, height: 40, background: previewMode === "desktop" ? ACCENT : "transparent" }}
                   >
                     <Monitor size={14} style={{ color: previewMode === "desktop" ? WHITE : UI.inkSoft }} />
                   </button>
@@ -681,11 +677,11 @@ function LinkRow({ link, isFirst, isLast, onMove, onUpdate, onRemove, onFetch })
   return (
     <div className="rounded-xl px-3 py-2.5 border" style={{ background: UI.stone, borderColor: UI.line }}>
       <div className="flex items-center gap-2">
-        <div className="flex items-center -ml-0.5 shrink-0">
+        <div className="flex items-center -ml-1.5 shrink-0">
           <GripVertical size={14} style={{ color: UI.inkSoft, opacity: 0.5 }} />
-          <div className="flex flex-col ml-0.5" style={{ color: UI.inkSoft }}>
-            <button onClick={() => onMove(-1)} disabled={isFirst} className="disabled:opacity-20 leading-none text-[10px] px-1 transition" style={{ color: "inherit" }} onMouseEnter={(e) => e.currentTarget.style.color = ACCENT} onMouseLeave={(e) => e.currentTarget.style.color = UI.inkSoft} aria-label="Move up">▲</button>
-            <button onClick={() => onMove(1)} disabled={isLast} className="disabled:opacity-20 leading-none text-[10px] px-1 transition" style={{ color: "inherit" }} onMouseEnter={(e) => e.currentTarget.style.color = ACCENT} onMouseLeave={(e) => e.currentTarget.style.color = UI.inkSoft} aria-label="Move down">▼</button>
+          <div className="flex flex-col" style={{ color: UI.inkSoft }}>
+            <button onClick={() => onMove(-1)} disabled={isFirst} className="press-fx flex items-center justify-center disabled:opacity-20 leading-none text-[10px] transition" style={{ color: "inherit", width: 28, height: 22 }} aria-label="Move up">▲</button>
+            <button onClick={() => onMove(1)} disabled={isLast} className="press-fx flex items-center justify-center disabled:opacity-20 leading-none text-[10px] transition" style={{ color: "inherit", width: 28, height: 22 }} aria-label="Move down">▼</button>
           </div>
         </div>
         <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: typeInfo.color }}>
@@ -720,7 +716,7 @@ function LinkRow({ link, isFirst, isLast, onMove, onUpdate, onRemove, onFetch })
           </div>
         )}
 
-        <button onClick={onRemove} className="shrink-0 p-1 transition" style={{ color: UI.inkSoft }} onMouseEnter={(e) => e.currentTarget.style.color = ERROR} onMouseLeave={(e) => e.currentTarget.style.color = UI.inkSoft} aria-label="Remove link">
+        <button onClick={onRemove} className="press-fx shrink-0 flex items-center justify-center transition" style={{ color: UI.inkSoft, width: 44, height: 44, margin: "-8px -8px -8px 0" }} aria-label="Remove link">
           <X size={16} />
         </button>
       </div>
