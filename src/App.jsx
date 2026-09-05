@@ -3,7 +3,7 @@ import { Key } from "lucide-react";
 import { GlobalStyles } from "./shared.jsx";
 import { ListingTool } from "./ListingTool.jsx";
 import { CommunityTool } from "./CommunityTool.jsx";
-import { CalendarTool } from "./CalendarTool.jsx";
+import { ContentCalendar } from "./ContentCalendar.jsx";
 import { DescriptionTool } from "./DescriptionTool.jsx";
 import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
 import { AuthScreen } from "./auth/AuthScreen.jsx";
@@ -158,7 +158,7 @@ function AppShell() {
   else if (activeTool === "help") toolScreen = <HelpPage onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
   else if (activeTool === "bio") toolScreen = <BioEditorPage onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
   else if (activeTool === "listings") toolScreen = <ListingTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
-  else if (activeTool === "calendar") toolScreen = <CalendarTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
+  else if (activeTool === "calendar") toolScreen = <ContentCalendar onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
   else if (activeTool === "description") toolScreen = <DescriptionTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
   else toolScreen = <CommunityTool onSwitchTool={setActiveTool} onGoHome={() => setShowHome(true)} />;
 

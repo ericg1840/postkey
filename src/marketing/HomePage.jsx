@@ -12,7 +12,7 @@ const PURPLE = ACCENT_PRESETS[4];
 
 // What's actually waiting for an agent once they sign up — maps 1:1 to the
 // real tools (brand kit onboarding, ListingTool, CommunityTool,
-// DescriptionTool, CalendarTool, the Key Link page), not generic feature copy.
+// DescriptionTool, ContentCalendar, the Key Link page), not generic feature copy.
 const WHATS_INSIDE = [
   { icon: Palette, color: PINK, title: "Your brand kit, set once", text: "Add your logo, colors, headshot, and contact info one time — every post uses it automatically." },
   { icon: Home, color: PRIMARY, title: "Listing & Sold graphics", text: "Just Listed, Just Sold, Open House, and Price Drop templates, ready in seconds." },

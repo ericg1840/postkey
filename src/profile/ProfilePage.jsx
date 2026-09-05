@@ -4,7 +4,6 @@ import {
   UI, ACCENT, WHITE, ColorSwatchPicker, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, mixWithWhite,
   useAgentAsset, UploadBox, TopNav,
-  loadCalendarEntries, saveCalendarEntries,
   loadPostDrafts, savePostDrafts, writeDraftHandoff,
 } from "../shared.jsx";
 import { useAuth, api } from "../auth/AuthContext.jsx";
@@ -152,35 +151,47 @@ function PostsSection() {
 const PLANNED_POST_TYPES = {
   listing: { label: "Listing", color: "#0043FF" },
   community: { label: "Community", color: "#0F9D58" },
-  other: { label: "Other", color: "#697386" },
+  promo: { label: "Promo", color: "#E8792E" },
+  bts: { label: "Behind the scenes", color: "#7B3FE4" },
 };
 
 function formatPlannedDate(dateKey) {
   return new Date(`${dateKey}T00:00:00`).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 
-// Posts saved from the Content Planner — but only the ones a person actually
-// wrote themselves. The Planner also seeds days with suggestion-pool prompts
-// ("Fill my month") and Community's "Need inspiration" ideas can land here
-// too; those aren't real posts someone made, so they're left out of this
-// list entirely rather than mixed in with genuine plans.
+// Posts confirmed on the Content Calendar — suggested-but-unconfirmed
+// posts (from auto-fill or an added idea) aren't real plans yet, so
+// they're left out of this list entirely rather than mixed in.
 function PlannedPostsSection() {
-  const [entries, setEntries] = useState(() => loadCalendarEntries());
+  const [entries, setEntries] = useState([]);
 
-  const plannedPosts = entries
-    .filter((e) => e.date && e.source !== "suggestion" && e.source !== "community")
-    .sort((a, b) => a.date.localeCompare(b.date));
+  useEffect(() => {
+    api("/api/content/posts")
+      .then((data) => setEntries((data.posts || []).filter((p) => p.status === "confirmed")))
+      .catch(() => {});
+  }, []);
 
-  const togglePosted = (id) => {
-    const next = entries.map((e) => (e.id === id ? { ...e, done: !e.done } : e));
+  const plannedPosts = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+
+  const togglePosted = async (id) => {
+    const next = entries.map((e) => (e.id === id ? { ...e, posted: !e.posted } : e));
     setEntries(next);
-    saveCalendarEntries(next);
+    const post = next.find((e) => e.id === id);
+    try {
+      await api(`/api/content/posts?id=${id}`, { method: "PATCH", body: JSON.stringify({ posted: post.posted }) });
+    } catch {
+      setEntries(entries);
+    }
   };
 
-  const deletePost = (id) => {
-    const next = entries.filter((e) => e.id !== id);
-    setEntries(next);
-    saveCalendarEntries(next);
+  const deletePost = async (id) => {
+    const prev = entries;
+    setEntries(entries.filter((e) => e.id !== id));
+    try {
+      await api(`/api/content/posts?id=${id}`, { method: "DELETE" });
+    } catch {
+      setEntries(prev);
+    }
   };
 
   if (plannedPosts.length === 0) {
@@ -188,7 +199,7 @@ function PlannedPostsSection() {
       <div className="flex flex-col items-center justify-center text-center py-16">
         <CalendarClock size={28} style={{ color: UI.inkSoft }} />
         <p className="font-body text-sm mt-3" style={{ color: UI.inkSoft }}>
-          Posts you plan with a date on the Content Planner will show up here.
+          Posts you plan with a date on the Content Calendar will show up here.
         </p>
       </div>
     );
@@ -197,11 +208,11 @@ function PlannedPostsSection() {
   return (
     <div>
       <p className="font-body text-xs mb-5" style={{ color: UI.inkSoft }}>
-        Every post you've scheduled on the Content Planner, earliest first.
+        Every post you've scheduled on the Content Calendar, earliest first.
       </p>
       <ul className="grid gap-2">
         {plannedPosts.map((post) => {
-          const t = PLANNED_POST_TYPES[post.type] || PLANNED_POST_TYPES.other;
+          const t = PLANNED_POST_TYPES[post.category] || PLANNED_POST_TYPES.community;
           return (
             <li
               key={post.id}
@@ -212,21 +223,21 @@ function PlannedPostsSection() {
               <div className="min-w-0 flex-1">
                 <span
                   className="block font-body text-sm font-semibold truncate"
-                  style={{ color: post.done ? UI.inkSoft : UI.ink, textDecoration: post.done ? "line-through" : "none" }}
+                  style={{ color: post.posted ? UI.inkSoft : UI.ink, textDecoration: post.posted ? "line-through" : "none" }}
                 >
                   {post.title}
                 </span>
                 <span className="block font-body text-xs" style={{ color: UI.inkSoft }}>
-                  {formatPlannedDate(post.date)}{post.time ? ` · ${post.time}` : ""} · {t.label}
+                  {formatPlannedDate(post.date)} · {t.label}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => togglePosted(post.id)}
                 className="font-body text-xs font-semibold rounded-full px-3 py-1.5 flex-shrink-0 transition"
-                style={{ background: post.done ? UI.stone : mixWithWhite(ACCENT, 0.88), color: post.done ? UI.inkSoft : ACCENT }}
+                style={{ background: post.posted ? UI.stone : mixWithWhite(ACCENT, 0.88), color: post.posted ? UI.inkSoft : ACCENT }}
               >
-                {post.done ? "Posted" : "Mark posted"}
+                {post.posted ? "Posted" : "Mark posted"}
               </button>
               <button
                 aria-label="Delete"

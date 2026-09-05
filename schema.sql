@@ -103,3 +103,31 @@ CREATE TABLE posts (
 );
 
 CREATE INDEX posts_user_id_idx ON posts(user_id, created_at DESC);
+
+-- Content Planner: dated posts (confirmed or still-suggested) and dateless
+-- ideas waiting to be scheduled. See migrations/005_content_calendar.sql.
+CREATE TABLE content_posts (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'confirmed',
+  source TEXT NOT NULL DEFAULT 'manual',
+  posted BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX content_posts_user_id_date_idx ON content_posts(user_id, date);
+
+CREATE TABLE content_ideas (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  target_date TEXT,
+  added_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX content_ideas_user_id_idx ON content_ideas(user_id);
