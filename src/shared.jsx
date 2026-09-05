@@ -868,6 +868,11 @@ export function GlobalStyles() {
         .hover-reveal { opacity: 0; }
         .group:hover .hover-reveal { opacity: 1; }
       }
+      .bio-link-row, .bio-link-icon {
+        transition: transform 120ms ease;
+      }
+      .bio-link-row:active { transform: scale(0.98); }
+      .bio-link-icon:active { transform: scale(0.92); }
     `}</style>
   );
 }

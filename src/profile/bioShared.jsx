@@ -157,7 +157,7 @@ export function BioLinksList({ links, bgColor, boxColor, buttonStyle, asLink }) 
                 key={link.id ?? `s${i}`}
                 {...(asLink ? { href: linkHref(link), target: "_blank", rel: "noreferrer" } : {})}
                 aria-label={typeInfo.label}
-                className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 transition-transform hover:scale-105"
+                className="bio-link-icon w-11 h-11 rounded-full flex items-center justify-center shrink-0 hover:scale-105"
                 style={{ background: typeInfo.color, boxShadow: "0 3px 10px rgba(0,0,0,0.25)" }}
               >
                 <Icon size={19} color="#FFFFFF" />
@@ -190,7 +190,7 @@ export function BioLinksList({ links, bgColor, boxColor, buttonStyle, asLink }) 
               <Row
                 key={link.id ?? i}
                 {...(asLink ? { href: linkHref(link), target: "_blank", rel: "noreferrer" } : {})}
-                className="overflow-hidden block"
+                className="bio-link-row overflow-hidden block"
                 style={{ backgroundColor: boxColor, borderRadius: radius === 999 ? 24 : radius }}
               >
                 <img
@@ -238,7 +238,7 @@ export function BioLinksList({ links, bgColor, boxColor, buttonStyle, asLink }) 
             <Row
               key={link.id ?? i}
               {...(asLink ? { href: linkHref(link), target: "_blank", rel: "noreferrer" } : {})}
-              className="flex items-center gap-3.5 px-4 py-3.5 transition-transform hover:-translate-y-0.5"
+              className="bio-link-row flex items-center gap-3.5 px-4 py-3.5 hover:-translate-y-0.5"
               style={{ backgroundColor: boxColor, borderRadius: radius }}
             >
               <div

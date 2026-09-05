@@ -55,18 +55,18 @@ export function ProfileReminder({ onNavigate }) {
             Add your name, photo, and brokerage so they show up on every post.
           </p>
         </div>
-        <button onClick={hideForSession} aria-label="Hide for now" style={{ color: UI.inkSoft, flexShrink: 0 }}>
+        <button onClick={hideForSession} aria-label="Hide for now" className="press-fx flex items-center justify-center" style={{ color: UI.inkSoft, flexShrink: 0, width: 44, height: 44, margin: "-14px -14px -14px 0" }}>
           <X size={16} />
         </button>
       </div>
       <button
         onClick={() => onNavigate("profile")}
-        className="w-full mt-2 rounded-lg py-2.5 font-body text-sm font-semibold"
-        style={{ background: ACCENT, color: WHITE }}
+        className="press-fx w-full mt-2 rounded-lg font-body text-sm font-semibold"
+        style={{ minHeight: 44, background: ACCENT, color: WHITE }}
       >
         Complete your profile
       </button>
-      <button onClick={dismissForGood} disabled={busy} className="w-full mt-2 text-center font-body text-xs underline" style={{ color: UI.inkSoft }}>
+      <button onClick={dismissForGood} disabled={busy} className="press-fx w-full mt-2 text-center font-body text-xs underline" style={{ color: UI.inkSoft, minHeight: 44 }}>
         Don't remind me again
       </button>
     </div>
