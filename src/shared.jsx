@@ -849,6 +849,16 @@ export function GlobalStyles() {
       .press-fx {
         transition: transform 120ms ease, filter 120ms ease;
       }
+      /* Native-feeling modal: slides up from the bottom like a real sheet on
+         phones (where centered-fade dialogs read as "web popup"), and
+         settles into a plain centered fade once there's room for it. */
+      @keyframes modal-fade-in { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes modal-sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+      .modal-backdrop { animation: modal-fade-in 180ms ease-out; }
+      .modal-sheet { animation: modal-sheet-up 220ms cubic-bezier(0.32, 0.72, 0, 1); }
+      @media (min-width: 640px) {
+        .modal-sheet { animation: modal-fade-in 150ms ease-out; }
+      }
     `}</style>
   );
 }
