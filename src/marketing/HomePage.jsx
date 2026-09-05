@@ -90,11 +90,6 @@ export function PostCard({ category, headline, color = PRIMARY, rotate = 0, top,
   );
 }
 
-// Kept as no-ops for AboutPage compatibility — the busy floating-decoration
-// look didn't fit the calmer redesign, so HomePage no longer places any.
-export function FloatingDot() { return null; }
-export function FloatingSparkle() { return null; }
-
 // A flat, single-color house illustration — gives each example post a bit
 // of real color and a sense of a real listing behind it, without pulling in
 // a photo library or breaking the page's plain, hand-drawn feel.

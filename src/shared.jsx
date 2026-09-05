@@ -9,6 +9,46 @@ export function isMobileDevice() {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
+// The other sizes in the social set, previewed as small live thumbnails
+// alongside the main canvas in both ListingTool and CommunityTool.
+export const THUMB_ASPECTS = ["square", "story", "landscape"];
+
+// Every post-builder form (ListingTool, CommunityTool, DescriptionTool)
+// wires its text inputs up the same way: `onChange={update("fieldName")}`.
+export function makeFieldUpdater(setForm) {
+  return (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+}
+
+// Triggers a browser download of a blob via a throwaway <a download> link —
+// the one DOM trick every "save this generated image" flow in the app needs
+// (ListingTool/CommunityTool's Download button, their "download all sizes",
+// and the Facebook share fallback below).
+export function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.download = filename;
+  link.href = url;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// Every "export this canvas" flow needs the same toBlob-as-a-promise step.
+export function canvasToPngBlob(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
+  });
+}
+
+// Shown when a cross-origin headshot/logo taints the canvas and blocks
+// reading it back out as an image — same wording used by both the download
+// and Facebook-share flows in ListingTool/CommunityTool, just naming
+// whichever action ("download"/"image") the agent actually asked for.
+export function canvasBlockedMessage(action) {
+  return `The ${action} was blocked because the headshot or logo comes from a site that doesn't allow this. Save that image to your device and re-upload it in the Headshot/Logo box above, then try again.`;
+}
+
 // Facebook's share dialog only takes a URL (it scrapes that page's own
 // og:image) — it can't accept a locally-generated image directly, so a
 // real "post this exact graphic to Facebook" button isn't possible without
@@ -25,14 +65,7 @@ export async function shareImageToFacebook(blob, filename) {
       return { shared: true };
     }
   }
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.download = filename;
-  link.href = url;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  downloadBlob(blob, filename);
   window.open("https://www.facebook.com/", "_blank", "noopener,noreferrer");
   return { shared: false, downloaded: true };
 }

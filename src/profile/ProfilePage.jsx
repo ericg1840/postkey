@@ -538,6 +538,14 @@ function AccountSection() {
   );
 }
 
+const PROFILE_TABS = [
+  { id: "brand", label: "Brand" },
+  { id: "drafts", label: "Drafts" },
+  { id: "planned", label: "Planned Posts" },
+  { id: "posts", label: "Past Posts" },
+  { id: "account", label: "Account" },
+];
+
 export function ProfilePage({ onSwitchTool, onGoHome }) {
   const { user, brandKit, logout, saveBrandKit } = useAuth();
   const [tab, setTab] = useState("brand"); // brand | drafts | planned | posts | account
@@ -552,61 +560,20 @@ export function ProfilePage({ onSwitchTool, onGoHome }) {
         </p>
 
         <div className="flex items-center gap-1 p-1 rounded-full mb-6 w-fit" style={{ background: UI.stone }}>
-          <button
-            onClick={() => setTab("brand")}
-            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
-            style={{
-              background: tab === "brand" ? UI.card : "transparent",
-              color: tab === "brand" ? UI.ink : UI.inkSoft,
-              boxShadow: tab === "brand" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
-            }}
-          >
-            Brand
-          </button>
-          <button
-            onClick={() => setTab("drafts")}
-            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
-            style={{
-              background: tab === "drafts" ? UI.card : "transparent",
-              color: tab === "drafts" ? UI.ink : UI.inkSoft,
-              boxShadow: tab === "drafts" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
-            }}
-          >
-            Drafts
-          </button>
-          <button
-            onClick={() => setTab("planned")}
-            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
-            style={{
-              background: tab === "planned" ? UI.card : "transparent",
-              color: tab === "planned" ? UI.ink : UI.inkSoft,
-              boxShadow: tab === "planned" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
-            }}
-          >
-            Planned Posts
-          </button>
-          <button
-            onClick={() => setTab("posts")}
-            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
-            style={{
-              background: tab === "posts" ? UI.card : "transparent",
-              color: tab === "posts" ? UI.ink : UI.inkSoft,
-              boxShadow: tab === "posts" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
-            }}
-          >
-            Past Posts
-          </button>
-          <button
-            onClick={() => setTab("account")}
-            className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
-            style={{
-              background: tab === "account" ? UI.card : "transparent",
-              color: tab === "account" ? UI.ink : UI.inkSoft,
-              boxShadow: tab === "account" ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
-            }}
-          >
-            Account
-          </button>
+          {PROFILE_TABS.map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className="px-4 py-1.5 rounded-full font-body text-xs font-semibold transition"
+              style={{
+                background: tab === id ? UI.card : "transparent",
+                color: tab === id ? UI.ink : UI.inkSoft,
+                boxShadow: tab === id ? "0 1px 3px rgba(27,36,48,0.15)" : "none",
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         <div className="rounded-2xl border p-5 sm:p-8" style={{ background: UI.card, borderColor: UI.line }}>

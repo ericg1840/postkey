@@ -11,6 +11,8 @@ import {
   Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord, firstNameOf,
   peekPostHandoff, clearPostHandoff, shareImageToFacebook,
   peekDraftHandoff, clearDraftHandoff, loadPostDrafts, SaveForLaterButton,
+  canvasToPngBlob, downloadBlob, canvasBlockedMessage, THUMB_ASPECTS,
+  makeFieldUpdater,
 } from "./shared.jsx";
 import { useAuth, api } from "./auth/AuthContext.jsx";
 
@@ -286,7 +288,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
   const headshot = useAgentAsset(DEFAULT_HEADSHOT_URL, "Headshot", brandKit?.headshotUrl);
   const logo = useAgentAsset(DEFAULT_LOGO_URL, "Brokerage logo", brandKit?.logoUrl);
 
-  const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const update = makeFieldUpdater(setForm);
 
   useEffect(() => { clearPostHandoff(); clearDraftHandoff(); }, []);
 
@@ -1096,7 +1098,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
   // Small live previews of the other sizes in the social set, so the promise
   // of "we'll generate every size" is visible before anyone downloads.
-  const THUMB_ASPECTS = ["square", "story", "landscape"];
   const thumbRefs = useRef({});
   useEffect(() => {
     if (!fontsReady) return;
@@ -1140,9 +1141,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const filename = `${safeName}-${form.template}.png`;
 
     try {
-      const blob = await new Promise((resolve, reject) => {
-        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
-      });
+      const blob = await canvasToPngBlob(canvas);
       savePostToHistory(canvas);
 
       // On phones, the native share sheet is far more reliable than a download link —
@@ -1156,14 +1155,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         }
       }
 
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.download = filename;
-      link.href = url;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      downloadBlob(blob, filename);
     } catch (e) {
       if (e && e.name === "AbortError") {
         // user cancelled the share sheet — not an error
@@ -1172,9 +1164,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           window.open(canvas.toDataURL("image/png"), "_blank");
           setDownloadError("Opened the image in a new tab — press and hold it, then choose Save Image.");
         } catch (e2) {
-          setDownloadError(
-            "The download was blocked because the headshot or logo comes from a site that doesn't allow this. Save that image to your device and re-upload it in the Headshot/Logo box above, then try again."
-          );
+          setDownloadError(canvasBlockedMessage("download"));
         }
       }
     }
@@ -1192,9 +1182,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const filename = `${safeName}-${form.template}.png`;
 
     try {
-      const blob = await new Promise((resolve, reject) => {
-        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
-      });
+      const blob = await canvasToPngBlob(canvas);
       savePostToHistory(canvas);
       const result = await shareImageToFacebook(blob, filename);
       if (!result.shared) {
@@ -1202,9 +1190,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       }
     } catch (e) {
       if (!e || e.name !== "AbortError") {
-        setDownloadError(
-          "The image was blocked because the headshot or logo comes from a site that doesn't allow this. Save that image to your device and re-upload it in the Headshot/Logo box above, then try again."
-        );
+        setDownloadError(canvasBlockedMessage("image"));
       }
     }
     setSharingFacebook(false);
@@ -1224,17 +1210,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     for (const aspectKey of Object.keys(ASPECTS)) {
       drawToCanvas(offscreen, aspectKey);
       if (aspectKey === "square") savePostToHistory(offscreen);
-      const blob = await new Promise((resolve, reject) => {
-        offscreen.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.download = `${safeName}-${form.template}-${aspectKey}.png`;
-      link.href = url;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      const blob = await canvasToPngBlob(offscreen);
+      downloadBlob(blob, `${safeName}-${form.template}-${aspectKey}.png`);
       await new Promise((r) => setTimeout(r, 400));
     }
     setDownloadingAll(false);
