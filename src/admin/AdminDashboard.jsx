@@ -44,6 +44,7 @@ function describeEvent(eventType, details) {
     case "password_reset_triggered": return "password reset email sent";
     case "account_deleted": return "account deleted by admin";
     case "page_view": return `viewed their public Key Link page${d.handle ? ` (/u/${d.handle})` : ""}`;
+    case "welcome_email_failed": return `welcome email failed to send${d.error ? ` — ${d.error}` : ""}`;
     default: return "";
   }
 }
