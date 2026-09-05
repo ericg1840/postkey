@@ -678,7 +678,7 @@ export function UploadBox({ label, icon: Icon, state, hint, large = false, requi
           <div className={`flex items-center gap-2 font-body text-sm min-w-0 ${large ? "" : "flex-1"}`}>
             <span className="truncate">{isDefault ? `${state.name} (default)` : state.name}</span>
             {!isDefault && state.source !== "loading" && (
-              <button onClick={(e) => { e.stopPropagation(); state.clear(); }} style={{ color: UI.inkSoft, flexShrink: 0 }} title="Reset to default">
+              <button onClick={(e) => { e.stopPropagation(); state.clear(); }} className="press-fx flex items-center justify-center" style={{ color: UI.inkSoft, flexShrink: 0, minWidth: 44, minHeight: 44, margin: "-11px -11px -11px 0" }} title="Reset to default">
                 <X size={13} />
               </button>
             )}
