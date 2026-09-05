@@ -899,15 +899,15 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
         >
           {[
             { key: "listings", label: "Listings" },
-            { key: "community", label: "Community" },
+            { key: "community", label: "Local" },
             { key: "calendar", label: "Planner" },
-            { key: "description", label: "Description" },
-            { key: "bio", label: "Key Link" },
+            { key: "description", label: "Captions" },
+            { key: "bio", label: "Bio" },
           ].map((tab) => (
             <button
               key={tab.key}
               onClick={() => onSwitch(tab.key)}
-              className="press-fx flex-shrink-0 flex items-center justify-center px-4 rounded-full font-body text-xs font-bold"
+              className="press-fx flex-shrink-0 flex items-center justify-center px-2.5 rounded-full font-body text-xs font-bold"
               style={{
                 minHeight: 44,
                 background: active === tab.key ? ACCENT : "transparent",
