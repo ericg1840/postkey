@@ -26,15 +26,15 @@ export function AboutPage({ onBack, onGetStarted, onLogIn }) {
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <button
               onClick={onLogIn}
-              className="font-body text-xs sm:text-sm font-semibold rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2 transition whitespace-nowrap"
-              style={{ color: AUTH.ink, background: "#F1EFE8" }}
+              className="press-fx font-body text-xs sm:text-sm font-semibold rounded-full px-2.5 sm:px-4 transition whitespace-nowrap"
+              style={{ color: AUTH.ink, background: "#F1EFE8", minHeight: 44 }}
             >
               Log in
             </button>
             <button
               onClick={onGetStarted}
-              className="font-body text-xs sm:text-sm font-semibold rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2 transition hover:opacity-88 whitespace-nowrap"
-              style={{ background: PRIMARY, color: "#FFFFFF" }}
+              className="press-fx font-body text-xs sm:text-sm font-semibold rounded-full px-2.5 sm:px-4 transition hover:opacity-88 whitespace-nowrap"
+              style={{ background: PRIMARY, color: "#FFFFFF", minHeight: 44 }}
             >
               <span className="sm:hidden">Start Free</span>
               <span className="hidden sm:inline">Get Started Free</span>

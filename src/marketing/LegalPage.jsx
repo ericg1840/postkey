@@ -118,7 +118,7 @@ export function LegalPage({ variant, onBack }) {
             <Logo size={26} />
             <span className="font-display font-bold text-base sm:text-lg whitespace-nowrap" style={{ color: AUTH.ink }}>PostKey</span>
           </button>
-          <button onClick={onBack} className="flex items-center gap-1.5 font-body text-sm font-semibold" style={{ color: AUTH.muted }}>
+          <button onClick={onBack} className="press-fx flex items-center gap-1.5 font-body text-sm font-semibold px-1" style={{ color: AUTH.muted, minHeight: 44 }}>
             <ArrowLeft size={15} /> Back to home
           </button>
         </div>
@@ -131,7 +131,7 @@ export function LegalPage({ variant, onBack }) {
       </main>
 
       <footer className="max-w-6xl mx-auto px-6 pt-10 pb-8 border-t" style={{ borderColor: AUTH.border }}>
-        <button onClick={onBack} className="font-body text-xs font-semibold flex items-center gap-1.5" style={{ color: AUTH.muted }}>
+        <button onClick={onBack} className="press-fx font-body text-xs font-semibold flex items-center gap-1.5 -ml-1 px-1" style={{ color: AUTH.muted, minHeight: 44 }}>
           <ArrowLeft size={13} /> Back to home
         </button>
         <p className="font-body text-xs mt-6" style={{ color: AUTH.muted }}>© {new Date().getFullYear()} PostKey. All rights reserved.</p>
