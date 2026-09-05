@@ -1,7 +1,7 @@
 import { Key, Smartphone, Laptop, Palette, Lock, Clock, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { AUTH } from "../auth/AuthShell.jsx";
 import { ACCENT_PRESETS, Logo } from "../shared.jsx";
-import { PostCard, FloatingDot, FloatingSparkle, BrandKitPreview } from "./HomePage.jsx";
+import { PostCard, BrandKitPreview } from "./HomePage.jsx";
 
 const PRIMARY = ACCENT_PRESETS[1];
 
@@ -165,9 +165,6 @@ export function AboutPage({ onBack, onGetStarted, onLogIn }) {
           className="max-w-5xl mx-auto rounded-3xl relative overflow-hidden py-14 px-6 sm:px-14"
           style={{ background: AUTH.ink }}
         >
-          <FloatingSparkle top={20} left={40} size={20} color={ACCENT_PRESETS[3]} rotate={-8} />
-          <FloatingSparkle bottom={24} left={"46%"} size={16} color={ACCENT_PRESETS[1]} rotate={14} />
-          <FloatingDot top={30} right={60} size={10} color={PRIMARY} />
           <div className="relative grid lg:grid-cols-2 gap-10 items-center">
             <div className="text-center lg:text-left">
               <h2 className="font-display font-bold text-2xl sm:text-3xl" style={{ color: "#FFFFFF" }}>

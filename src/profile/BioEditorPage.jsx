@@ -50,17 +50,12 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [handle, setHandle] = useState(DEFAULTS.handle);
+  // Every field below is always read/written/reset together as one bundle
+  // (the fetch on mount, save(), and resetToDefault() each touch all of
+  // them), so they live in one object instead of a state variable apiece.
+  const [profile, setProfile] = useState({ ...DEFAULTS });
+  const setField = (key) => (value) => setProfile((p) => ({ ...p, [key]: value }));
   const [handleError, setHandleError] = useState("");
-  const [tagline, setTagline] = useState(DEFAULTS.tagline);
-  const [brokerage, setBrokerage] = useState(DEFAULTS.brokerage);
-  const [bgColor, setBgColor] = useState(DEFAULTS.bgColor);
-  const [boxColor, setBoxColor] = useState(DEFAULTS.boxColor);
-  const [nameFont, setNameFont] = useState(DEFAULTS.nameFont);
-  const [nameSize, setNameSize] = useState(DEFAULTS.nameSize);
-  const [buttonStyle, setButtonStyle] = useState(DEFAULTS.buttonStyle);
-  const [bgImageUrl, setBgImageUrl] = useState(DEFAULTS.bgImageUrl);
-  const [bgTint, setBgTint] = useState(DEFAULTS.bgTint);
   const [bgImageError, setBgImageError] = useState("");
   const [links, setLinks] = useState([]);
   const [contentMenuOpen, setContentMenuOpen] = useState(false);
@@ -79,16 +74,18 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || "Couldn't load your Key Link page.");
         if (cancelled) return;
-        setHandle(data.profile?.handle || DEFAULTS.handle);
-        setTagline(data.profile?.tagline || DEFAULTS.tagline);
-        setBrokerage(data.profile?.brokerage || brandKit?.brokerageName || DEFAULTS.brokerage);
-        setBgColor(data.profile?.bgColor || DEFAULTS.bgColor);
-        setBoxColor(data.profile?.boxColor || DEFAULTS.boxColor);
-        setNameFont(data.profile?.nameFont || DEFAULTS.nameFont);
-        setNameSize(data.profile?.nameSize || DEFAULTS.nameSize);
-        setButtonStyle(data.profile?.buttonStyle || DEFAULTS.buttonStyle);
-        setBgImageUrl(data.profile?.bgImageUrl || DEFAULTS.bgImageUrl);
-        setBgTint(data.profile?.bgTint ?? DEFAULTS.bgTint);
+        setProfile({
+          handle: data.profile?.handle || DEFAULTS.handle,
+          tagline: data.profile?.tagline || DEFAULTS.tagline,
+          brokerage: data.profile?.brokerage || brandKit?.brokerageName || DEFAULTS.brokerage,
+          bgColor: data.profile?.bgColor || DEFAULTS.bgColor,
+          boxColor: data.profile?.boxColor || DEFAULTS.boxColor,
+          nameFont: data.profile?.nameFont || DEFAULTS.nameFont,
+          nameSize: data.profile?.nameSize || DEFAULTS.nameSize,
+          buttonStyle: data.profile?.buttonStyle || DEFAULTS.buttonStyle,
+          bgImageUrl: data.profile?.bgImageUrl || DEFAULTS.bgImageUrl,
+          bgTint: data.profile?.bgTint ?? DEFAULTS.bgTint,
+        });
         setLinks(data.links || []);
       } catch (err) {
         if (!cancelled) setLoadError(err.message);
@@ -108,7 +105,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
     (t) => t.id === "custom" || !links.some((l) => l.type === t.id)
   );
   const availableSocialTypes = SOCIAL_LINK_TYPES.filter((t) => !links.some((l) => l.type === t.id));
-  const publicUrl = handle ? `${window.location.origin}/u/${handle}` : "";
+  const publicUrl = profile.handle ? `${window.location.origin}/u/${profile.handle}` : "";
 
   function addLink(type) {
     setLinks((prev) => [
@@ -165,7 +162,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
     setBgImageError("");
     try {
       const dataUrl = await resizeImageToDataUrl(file);
-      setBgImageUrl(dataUrl);
+      setField("bgImageUrl")(dataUrl);
     } catch (err) {
       setBgImageError(err.message);
     }
@@ -173,12 +170,12 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
 
   function onHandleChange(v) {
     const clean = v.toLowerCase().replace(/[^a-z0-9-]/g, "");
-    setHandle(clean);
+    setField("handle")(clean);
     setHandleError(clean && !HANDLE_RE.test(clean) ? "Lowercase letters, numbers, and hyphens only." : "");
   }
 
   async function save() {
-    if (handle && !HANDLE_RE.test(handle)) { setHandleError("Lowercase letters, numbers, and hyphens only."); return; }
+    if (profile.handle && !HANDLE_RE.test(profile.handle)) { setHandleError("Lowercase letters, numbers, and hyphens only."); return; }
     setSaveStatus("saving");
     setSaveError("");
     try {
@@ -186,7 +183,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ handle, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, bgImageUrl, bgTint, links }),
+        body: JSON.stringify({ ...profile, links }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Couldn't save.");
@@ -203,13 +200,16 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
 
   function resetToDefault() {
     if (!window.confirm("Reset colors, fonts, and layout to defaults? Your links and handle are kept. This won't save until you click Save Changes.")) return;
-    setBgColor(DEFAULTS.bgColor);
-    setBoxColor(DEFAULTS.boxColor);
-    setNameFont(DEFAULTS.nameFont);
-    setNameSize(DEFAULTS.nameSize);
-    setButtonStyle(DEFAULTS.buttonStyle);
-    setBgImageUrl(DEFAULTS.bgImageUrl);
-    setBgTint(DEFAULTS.bgTint);
+    setProfile((p) => ({
+      ...p,
+      bgColor: DEFAULTS.bgColor,
+      boxColor: DEFAULTS.boxColor,
+      nameFont: DEFAULTS.nameFont,
+      nameSize: DEFAULTS.nameSize,
+      buttonStyle: DEFAULTS.buttonStyle,
+      bgImageUrl: DEFAULTS.bgImageUrl,
+      bgTint: DEFAULTS.bgTint,
+    }));
     setSaveStatus("idle");
   }
 
@@ -298,14 +298,14 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                     </div>
                     <div>
                       <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Brokerage / Company</label>
-                      <input value={brokerage} onChange={(e) => setBrokerage(e.target.value)} placeholder="Coastal Living Realty" className="input" />
+                      <input value={profile.brokerage} onChange={(e) => setField("brokerage")(e.target.value)} placeholder="Coastal Living Realty" className="input" />
                     </div>
                     <div className="sm:col-span-2">
                       <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Your link</label>
                       <div className="flex items-center gap-2 rounded-lg px-2.5 border" style={{ borderColor: handleError ? ERROR : UI.line, background: UI.card }}>
                         <span className="font-body text-sm flex-shrink-0" style={{ color: UI.inkSoft }}>{window.location.host}/u/</span>
                         <input
-                          value={handle}
+                          value={profile.handle}
                           onChange={(e) => onHandleChange(e.target.value)}
                           placeholder="janedoe"
                           className="font-body flex-1 bg-transparent text-sm outline-none py-2 min-w-0"
@@ -316,19 +316,19 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                         <p className="font-body text-xs mt-1" style={{ color: ERROR }}>{handleError}</p>
                       ) : (
                         <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>
-                          {handle ? "This is the link you'll share." : "Pick a link so you can share and preview your page — save to claim it."}
+                          {profile.handle ? "This is the link you'll share." : "Pick a link so you can share and preview your page — save to claim it."}
                         </p>
                       )}
                     </div>
                     <div className="sm:col-span-2">
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="font-mono text-xs uppercase tracking-wide" style={{ color: UI.inkSoft }}>Tagline / Bio</label>
-                        <span className="font-mono text-[10px]" style={{ color: UI.inkSoft }}>{tagline.length}/{TAGLINE_MAX}</span>
+                        <span className="font-mono text-[10px]" style={{ color: UI.inkSoft }}>{profile.tagline.length}/{TAGLINE_MAX}</span>
                       </div>
                       <input
-                        value={tagline}
+                        value={profile.tagline}
                         maxLength={TAGLINE_MAX}
-                        onChange={(e) => setTagline(e.target.value)}
+                        onChange={(e) => setField("tagline")(e.target.value)}
                         placeholder="Helping buyers and sellers in your area."
                         className="input"
                       />
@@ -348,12 +348,12 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                     <button
                       key={t.id}
                       type="button"
-                      onClick={() => { setBgColor(t.bg); setBoxColor(t.box); }}
+                      onClick={() => setProfile((p) => ({ ...p, bgColor: t.bg, boxColor: t.box }))}
                       className="font-body text-sm rounded-lg px-3.5 py-2 border transition"
                       style={{
-                        borderColor: bgColor === t.bg && boxColor === t.box ? ACCENT : UI.line,
-                        color: bgColor === t.bg && boxColor === t.box ? ACCENT : UI.ink,
-                        fontWeight: bgColor === t.bg && boxColor === t.box ? 700 : 400,
+                        borderColor: profile.bgColor === t.bg && profile.boxColor === t.box ? ACCENT : UI.line,
+                        color: profile.bgColor === t.bg && profile.boxColor === t.box ? ACCENT : UI.ink,
+                        fontWeight: profile.bgColor === t.bg && profile.boxColor === t.box ? 700 : 400,
                       }}
                     >
                       {t.label}
@@ -362,18 +362,18 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  <ColorField label="Background" value={bgColor} onChange={setBgColor} />
-                  <ColorField label="Buttons" value={boxColor} onChange={setBoxColor} />
+                  <ColorField label="Background" value={profile.bgColor} onChange={setField("bgColor")} />
+                  <ColorField label="Buttons" value={profile.boxColor} onChange={setField("boxColor")} />
                 </div>
 
                 <p className="font-mono text-xs uppercase tracking-wide mb-2" style={{ color: UI.inkSoft }}>Background image (optional)</p>
-                {bgImageUrl ? (
+                {profile.bgImageUrl ? (
                   <div className="rounded-xl overflow-hidden mb-2 relative" style={{ height: 100 }}>
-                    <img src={bgImageUrl} alt="" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0" style={{ background: bgColor, opacity: bgTint / 100 }} />
+                    <img src={profile.bgImageUrl} alt="" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0" style={{ background: profile.bgColor, opacity: profile.bgTint / 100 }} />
                     <button
                       type="button"
-                      onClick={() => setBgImageUrl("")}
+                      onClick={() => setField("bgImageUrl")("")}
                       className="absolute top-2 right-2 rounded-full p-1"
                       style={{ background: "rgba(0,0,0,0.5)", color: "#FFFFFF" }}
                       aria-label="Remove background image"
@@ -391,18 +391,18 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   </label>
                 )}
                 {bgImageError && <p className="font-body text-[11px] mb-2" style={{ color: ERROR }}>{bgImageError}</p>}
-                {bgImageUrl && (
+                {profile.bgImageUrl && (
                   <div className="mb-4">
                     <label className="font-mono text-xs uppercase tracking-wide flex items-center justify-between mb-1.5" style={{ color: UI.inkSoft }}>
                       <span>Tint intensity</span>
-                      <span>{bgTint}%</span>
+                      <span>{profile.bgTint}%</span>
                     </label>
                     <input
                       type="range"
                       min="0"
                       max="90"
-                      value={bgTint}
-                      onChange={(e) => setBgTint(Number(e.target.value))}
+                      value={profile.bgTint}
+                      onChange={(e) => setField("bgTint")(Number(e.target.value))}
                       className="w-full"
                       style={{ accentColor: ACCENT }}
                     />
@@ -415,12 +415,12 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                     <button
                       key={b.id}
                       type="button"
-                      onClick={() => setButtonStyle(b.id)}
+                      onClick={() => setField("buttonStyle")(b.id)}
                       className="font-body text-sm px-3.5 py-2 border transition flex-1"
                       style={{
-                        borderColor: buttonStyle === b.id ? ACCENT : UI.line,
-                        color: buttonStyle === b.id ? ACCENT : UI.ink,
-                        fontWeight: buttonStyle === b.id ? 700 : 400,
+                        borderColor: profile.buttonStyle === b.id ? ACCENT : UI.line,
+                        color: profile.buttonStyle === b.id ? ACCENT : UI.ink,
+                        fontWeight: profile.buttonStyle === b.id ? 700 : 400,
                         borderRadius: b.radius === 999 ? 999 : b.radius,
                       }}
                     >
@@ -432,14 +432,14 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Font</label>
-                    <select className="input" value={nameFont} onChange={(e) => setNameFont(e.target.value)}>
+                    <select className="input" value={profile.nameFont} onChange={(e) => setField("nameFont")(e.target.value)}>
                       <option value="">Default (PostKey Serif)</option>
                       {SCRIPT_FONTS.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Name size</label>
-                    <select className="input" value={nameSize} onChange={(e) => setNameSize(e.target.value)}>
+                    <select className="input" value={profile.nameSize} onChange={(e) => setField("nameSize")(e.target.value)}>
                       {NAME_SIZES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                     </select>
                   </div>
@@ -585,9 +585,9 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   <div className="w-24 h-5 rounded-full mx-auto mb-1" style={{ background: "#1A1D22" }} />
                   <div
                     className="rounded-[1.9rem] overflow-hidden min-h-[560px] px-6 py-8 flex flex-col items-center transition-colors duration-200"
-                    style={bgStyle(bgColor, bgImageUrl, bgTint)}
+                    style={bgStyle(profile.bgColor, profile.bgImageUrl, profile.bgTint)}
                   >
-                    <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links }} />
+                    <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, links, ...profile }} />
                   </div>
                 </div>
               ) : (
@@ -604,10 +604,10 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   </div>
                   <div
                     className="rounded-xl overflow-hidden min-h-[560px] px-6 py-10 flex flex-col items-center transition-colors duration-200"
-                    style={bgStyle(bgColor, bgImageUrl, bgTint)}
+                    style={bgStyle(profile.bgColor, profile.bgImageUrl, profile.bgTint)}
                   >
                     <div className="w-full max-w-sm">
-                      <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links }} />
+                      <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, links, ...profile }} />
                     </div>
                   </div>
                 </div>

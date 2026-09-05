@@ -1,41 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
-const STANDALONE = false;
-const STANDALONE_STORAGE_KEY = "postkey_standalone_brandkit";
-
 const AuthContext = createContext(null);
-
-function StandaloneAuthProvider({ children }) {
-  const [brandKit, setBrandKit] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(STANDALONE_STORAGE_KEY)) || { onboarded: true };
-    } catch {
-      return { onboarded: true };
-    }
-  });
-
-  const saveBrandKit = async (kit) => {
-    const next = { ...kit, onboarded: true };
-    setBrandKit(next);
-    try {
-      localStorage.setItem(STANDALONE_STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // localStorage unavailable (private browsing, etc) — brand kit just won't persist across refreshes.
-    }
-  };
-
-  const value = {
-    user: { id: "guest", email: "", fullName: brandKit?.agentName || "" },
-    brandKit,
-    loading: false,
-    saveBrandKit,
-    changePassword: async () => {
-      throw new Error("Password change isn't available in this preview.");
-    },
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
 
 export async function api(path, options) {
   const res = await fetch(path, {
@@ -106,7 +71,7 @@ function LiveAuthProvider({ children }) {
   );
 }
 
-export const AuthProvider = STANDALONE ? StandaloneAuthProvider : LiveAuthProvider;
+export const AuthProvider = LiveAuthProvider;
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
