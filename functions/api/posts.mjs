@@ -1,5 +1,6 @@
 import { getDb } from "../_lib/db.mjs";
 import { getUserIdFromRequest, json } from "../_lib/auth.mjs";
+import { logEvent } from "../_lib/activity.mjs";
 
 // Data-URL PNGs land here, same storage pattern as brand_kits' headshot/logo
 // — cap comfortably above what the canvas sizes in ListingTool actually
@@ -47,6 +48,9 @@ export async function onRequestPost({ request, env }) {
     VALUES (${userId}, ${category}, ${headline}, ${template}, ${imageData})
     RETURNING id, category, headline, template, image_data, created_at
   `;
+
+  await logEvent(db, userId, "post_created", { category, template, headline }).catch(() => {});
+
   return json({
     post: {
       id: row.id,
