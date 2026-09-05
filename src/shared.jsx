@@ -859,6 +859,15 @@ export function GlobalStyles() {
       @media (min-width: 640px) {
         .modal-sheet { animation: modal-fade-in 150ms ease-out; }
       }
+      /* Hover-reveal overlays (e.g. a photo's download/delete actions) have
+         no equivalent on touch — there's no hover to reveal them — so they
+         only fade in on pointers that actually support hover; everywhere
+         else they stay visible all the time. */
+      .hover-reveal { opacity: 1; }
+      @media (hover: hover) and (pointer: fine) {
+        .hover-reveal { opacity: 0; }
+        .group:hover .hover-reveal { opacity: 1; }
+      }
     `}</style>
   );
 }
