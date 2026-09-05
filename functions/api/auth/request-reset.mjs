@@ -1,6 +1,7 @@
 import { getDb } from "../../_lib/db.mjs";
 import { createResetToken, json } from "../../_lib/auth.mjs";
 import { sendEmail, preheader } from "../../_lib/email.mjs";
+import { checkRateLimit, getClientIp } from "../../_lib/rateLimit.mjs";
 
 async function sendResetEmail(toEmail, resetUrl, env) {
   await sendEmail(
@@ -54,6 +55,15 @@ export async function onRequestPost({ request, env }) {
   if (!email) return genericResponse;
 
   const db = getDb(env);
+
+  // Checked before the account-existence lookup and behind the same
+  // generic response either way, so a rate-limited request still can't be
+  // used to tell whether an email has an account.
+  const ip = getClientIp(request);
+  const ipOk = await checkRateLimit(db, `reset:ip:${ip}`, { max: 10, windowMinutes: 60 });
+  const emailOk = await checkRateLimit(db, `reset:email:${email}`, { max: 3, windowMinutes: 60 });
+  if (!ipOk || !emailOk) return genericResponse;
+
   const [user] = await db.sql`SELECT id FROM users WHERE email = ${email}`;
   if (!user) return genericResponse; // don't reveal whether the account exists
 
