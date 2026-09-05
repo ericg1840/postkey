@@ -105,26 +105,34 @@ export async function onRequestPut({ request, env }) {
   );
 
   await db.sql`DELETE FROM bio_links WHERE user_id = ${userId}`;
-  for (let i = 0; i < links.length; i++) {
-    const l = links[i];
+  if (links.length > 0) {
+    // One INSERT ... SELECT FROM unnest() with parallel arrays instead of
+    // one INSERT per link — was N sequential HTTP round trips to Neon,
+    // now a single round trip regardless of link count.
     await db.sql`
       INSERT INTO bio_links (user_id, type, label, url, sort_order, address, price, beds, baths, photo_url)
-      VALUES (
-        ${userId}, ${l.type}, ${String(l.label || "").slice(0, 200)}, ${String(l.url || "").slice(0, 2000)}, ${i},
-        ${l.address ? String(l.address).slice(0, 200) : null},
-        ${l.price ? String(l.price).slice(0, 50) : null},
-        ${l.beds ? String(l.beds).slice(0, 20) : null},
-        ${l.baths ? String(l.baths).slice(0, 20) : null},
-        ${l.photoUrl ? String(l.photoUrl).slice(0, 1000) : null}
+      SELECT * FROM unnest(
+        ${links.map(() => userId)}::int[],
+        ${links.map((l) => l.type)}::text[],
+        ${links.map((l) => String(l.label || "").slice(0, 200))}::text[],
+        ${links.map((l) => String(l.url || "").slice(0, 2000))}::text[],
+        ${links.map((_, i) => i)}::int[],
+        ${links.map((l) => (l.address ? String(l.address).slice(0, 200) : null))}::text[],
+        ${links.map((l) => (l.price ? String(l.price).slice(0, 50) : null))}::text[],
+        ${links.map((l) => (l.beds ? String(l.beds).slice(0, 20) : null))}::text[],
+        ${links.map((l) => (l.baths ? String(l.baths).slice(0, 20) : null))}::text[],
+        ${links.map((l) => (l.photoUrl ? String(l.photoUrl).slice(0, 1000) : null))}::text[]
       )
     `;
   }
 
   const newListings = links.filter((l) => l.type === "zillow" && !existingZillowUrls.has(String(l.url || "").slice(0, 2000)));
-  for (const listing of newListings) {
-    await logEvent(db, userId, "listing_created", { address: listing.address || "", url: listing.url || "" });
-  }
-  await logEvent(db, userId, "link_updated", { linkCount: links.length });
+  await Promise.all([
+    ...newListings.map((listing) =>
+      logEvent(db, userId, "listing_created", { address: listing.address || "", url: listing.url || "" })
+    ),
+    logEvent(db, userId, "link_updated", { linkCount: links.length }),
+  ]);
 
   return json({ ok: true });
 }

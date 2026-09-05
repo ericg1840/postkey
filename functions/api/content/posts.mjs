@@ -81,33 +81,48 @@ export async function onRequestPatch({ request, env }) {
   const body = await request.json().catch(() => null);
   if (!body) return json({ error: "Invalid request." }, { status: 400 });
 
-  const db = getDb(env);
+  let status = null;
   if (body.status !== undefined) {
     if (body.status !== "confirmed" && body.status !== "suggested") {
       return json({ error: "Invalid status." }, { status: 400 });
     }
-    await db.sql`UPDATE content_posts SET status = ${body.status} WHERE id = ${id} AND user_id = ${userId}`;
-  }
-  if (body.posted !== undefined) {
-    await db.sql`UPDATE content_posts SET posted = ${!!body.posted} WHERE id = ${id} AND user_id = ${userId}`;
-  }
-  if (body.title !== undefined) {
-    const title = String(body.title || "").trim().slice(0, 200);
-    if (!title) return json({ error: "Title is required." }, { status: 400 });
-    await db.sql`UPDATE content_posts SET title = ${title} WHERE id = ${id} AND user_id = ${userId}`;
-  }
-  if (body.date !== undefined) {
-    if (!DATE_RE.test(body.date)) return json({ error: "Invalid date." }, { status: 400 });
-    await db.sql`UPDATE content_posts SET date = ${body.date} WHERE id = ${id} AND user_id = ${userId}`;
-  }
-  if (body.category !== undefined) {
-    if (!CATEGORIES.has(body.category)) return json({ error: "Invalid category." }, { status: 400 });
-    await db.sql`UPDATE content_posts SET category = ${body.category} WHERE id = ${id} AND user_id = ${userId}`;
+    status = body.status;
   }
 
+  let title = null;
+  if (body.title !== undefined) {
+    title = String(body.title || "").trim().slice(0, 200);
+    if (!title) return json({ error: "Title is required." }, { status: 400 });
+  }
+
+  let date = null;
+  if (body.date !== undefined) {
+    if (!DATE_RE.test(body.date)) return json({ error: "Invalid date." }, { status: 400 });
+    date = body.date;
+  }
+
+  let category = null;
+  if (body.category !== undefined) {
+    if (!CATEGORIES.has(body.category)) return json({ error: "Invalid category." }, { status: 400 });
+    category = body.category;
+  }
+
+  const posted = body.posted !== undefined ? !!body.posted : null;
+
+  // Single statement covering every field the request touched — COALESCE
+  // falls back to the existing column value for anything left null above,
+  // so one UPDATE (plus the RETURNING) replaces what used to be up to
+  // five sequential round trips per save.
+  const db = getDb(env);
   const [row] = await db.sql`
-    SELECT id, date, title, category, status, source, posted
-    FROM content_posts WHERE id = ${id} AND user_id = ${userId}
+    UPDATE content_posts SET
+      status = COALESCE(${status}, status),
+      posted = COALESCE(${posted}, posted),
+      title = COALESCE(${title}, title),
+      date = COALESCE(${date}, date),
+      category = COALESCE(${category}, category)
+    WHERE id = ${id} AND user_id = ${userId}
+    RETURNING id, date, title, category, status, source, posted
   `;
   if (!row) return json({ error: "Post not found." }, { status: 404 });
   return json({ post: toPost(row) });

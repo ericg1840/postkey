@@ -193,7 +193,13 @@ export function BioLinksList({ links, bgColor, boxColor, buttonStyle, asLink }) 
                 className="overflow-hidden block"
                 style={{ backgroundColor: boxColor, borderRadius: radius === 999 ? 24 : radius }}
               >
-                <img src={link.photoUrl} alt="" className="w-full h-44 object-cover" />
+                <img
+                  src={link.photoUrl}
+                  alt=""
+                  className="w-full h-44 object-cover"
+                  loading={i === 0 ? "eager" : "lazy"}
+                  decoding="async"
+                />
                 <div className="p-4">
                   <span
                     className="font-mono inline-flex items-center gap-1 text-[10px] tracking-[0.08em] uppercase px-2.5 py-1 rounded-full mb-2.5 shadow-sm"

@@ -1,24 +1,29 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { Key } from "lucide-react";
 import { GlobalStyles } from "./shared.jsx";
-import { ListingTool } from "./ListingTool.jsx";
-import { CommunityTool } from "./CommunityTool.jsx";
-import { ContentCalendar } from "./ContentCalendar.jsx";
-import { DescriptionTool } from "./DescriptionTool.jsx";
 import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
 import { AuthScreen } from "./auth/AuthScreen.jsx";
 import { ResetPasswordScreen } from "./auth/ResetPasswordScreen.jsx";
-import { OnboardingWizard } from "./onboarding/OnboardingWizard.jsx";
 import { ProfileReminder } from "./onboarding/ProfileReminder.jsx";
-import { ProfilePage } from "./profile/ProfilePage.jsx";
-import { HelpPage } from "./HelpPage.jsx";
-import { BioEditorPage } from "./profile/BioEditorPage.jsx";
 import { PublicBioPage } from "./profile/PublicBioPage.jsx";
 import { AUTH } from "./auth/AuthShell.jsx";
-import { AdminDashboard } from "./admin/AdminDashboard.jsx";
-import { HomePage } from "./marketing/HomePage.jsx";
-import { AboutPage } from "./marketing/AboutPage.jsx";
-import { LegalPage } from "./marketing/LegalPage.jsx";
+
+// Only one of these is ever on screen at a time (either gated behind auth,
+// or a rarely-visited route like /admin or the marketing pages), so they're
+// loaded as separate chunks on demand instead of all being part of the one
+// bundle every visitor downloads before anything can render.
+const ListingTool = lazy(() => import("./ListingTool.jsx").then((m) => ({ default: m.ListingTool })));
+const CommunityTool = lazy(() => import("./CommunityTool.jsx").then((m) => ({ default: m.CommunityTool })));
+const ContentCalendar = lazy(() => import("./ContentCalendar.jsx").then((m) => ({ default: m.ContentCalendar })));
+const DescriptionTool = lazy(() => import("./DescriptionTool.jsx").then((m) => ({ default: m.DescriptionTool })));
+const ProfilePage = lazy(() => import("./profile/ProfilePage.jsx").then((m) => ({ default: m.ProfilePage })));
+const HelpPage = lazy(() => import("./HelpPage.jsx").then((m) => ({ default: m.HelpPage })));
+const BioEditorPage = lazy(() => import("./profile/BioEditorPage.jsx").then((m) => ({ default: m.BioEditorPage })));
+const OnboardingWizard = lazy(() => import("./onboarding/OnboardingWizard.jsx").then((m) => ({ default: m.OnboardingWizard })));
+const AdminDashboard = lazy(() => import("./admin/AdminDashboard.jsx").then((m) => ({ default: m.AdminDashboard })));
+const HomePage = lazy(() => import("./marketing/HomePage.jsx").then((m) => ({ default: m.HomePage })));
+const AboutPage = lazy(() => import("./marketing/AboutPage.jsx").then((m) => ({ default: m.AboutPage })));
+const LegalPage = lazy(() => import("./marketing/LegalPage.jsx").then((m) => ({ default: m.LegalPage })));
 
 function LoadingScreen() {
   return (
@@ -174,7 +179,9 @@ export default function App() {
   return (
     <AuthProvider>
       <GlobalStyles />
-      <AppShell />
+      <Suspense fallback={<LoadingScreen />}>
+        <AppShell />
+      </Suspense>
     </AuthProvider>
   );
 }
