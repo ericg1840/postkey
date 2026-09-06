@@ -9,6 +9,14 @@ export async function api(path, options) {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
+  // A route worker/index.mjs doesn't know about falls through to the static
+  // site handler, which (thanks to the SPA fallback) returns index.html with
+  // a 200 — silently treating that as "success" with no data previously sent
+  // the caller an empty object instead of a clear error, which crashed
+  // further downstream wherever the response shape was assumed.
+  if (!(res.headers.get("content-type") || "").includes("application/json")) {
+    throw new Error(`${path} isn't wired up on the server yet.`);
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Something went wrong. Please try again.");
   return data;

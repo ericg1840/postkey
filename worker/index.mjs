@@ -24,6 +24,8 @@ import * as adminUsersExport from "../functions/api/admin/users-export.mjs";
 import * as adminUserAction from "../functions/api/admin/user-action.mjs";
 import * as adminUserActivity from "../functions/api/admin/user-activity.mjs";
 import * as adminActivityLog from "../functions/api/admin/activity-log.mjs";
+import * as adminAnalytics from "../functions/api/admin/analytics.mjs";
+import * as track from "../functions/api/track.mjs";
 
 const ROUTES = {
   "/api/auth/login": { POST: login.onRequestPost },
@@ -50,6 +52,8 @@ const ROUTES = {
   "/api/admin/user-action": { POST: adminUserAction.onRequestPost },
   "/api/admin/user-activity": { GET: adminUserActivity.onRequestGet },
   "/api/admin/activity-log": { GET: adminActivityLog.onRequestGet },
+  "/api/admin/analytics": { GET: adminAnalytics.onRequestGet },
+  "/api/track": { POST: track.onRequestPost },
 };
 
 export default {
