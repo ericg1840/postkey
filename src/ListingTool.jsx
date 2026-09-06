@@ -129,7 +129,6 @@ const DEFAULTS = {
   beds3: "3",
   baths3: "3",
   roundupSubtitle: "Take a look at our new luxury listings",
-  roundupCta: "Link in bio",
   roundupBg: "#23271E",
   spotlightEyebrow: "Now on the market",
   spotlightCardBg: "#161B26",
@@ -1143,19 +1142,21 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const heroX = leftColW + w * 0.02;
     const heroW = w - heroX - pad;
 
-    // ---- Left column: headline, subtitle, "Link in bio" CTA ----
+    // ---- Left column: headline, subtitle ----
     let headSize = heroBlockH * 0.2;
     ctx.font = `400 ${headSize}px "Playfair Display", serif`;
     const headMaxW = leftColW - pad;
     const w1w = ctx.measureText(form.word1).width;
+    ctx.font = scriptFontCss(form.scriptFont, headSize);
     const scriptw = ctx.measureText(form.script.replace(/!+$/, "")).width;
     const widest = Math.max(w1w, scriptw);
     if (widest > headMaxW) headSize *= headMaxW / widest;
-    ctx.font = `400 ${headSize}px "Playfair Display", serif`;
     const lineGap = headSize * 1.06;
     const line1Y = heroBlockH * 0.32;
+    ctx.font = `400 ${headSize}px "Playfair Display", serif`;
     ctx.fillStyle = textColor;
     ctx.fillText(form.word1, pad, line1Y);
+    ctx.font = scriptFontCss(form.scriptFont, headSize);
     ctx.fillStyle = form.accentColor;
     ctx.fillText(form.script.replace(/!+$/, ""), pad, line1Y + lineGap);
 
@@ -1165,26 +1166,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const subtitleLines = wrapText(ctx, form.roundupSubtitle, headMaxW).slice(0, 2);
     let subtitleY = line1Y + lineGap + subtitleSize * 1.5;
     subtitleLines.forEach((line, i) => ctx.fillText(line, pad, subtitleY + i * subtitleSize * 1.35));
-
-    let ctaY = subtitleY + subtitleLines.length * subtitleSize * 1.35 + heroBlockH * 0.08;
-    const ctaSize = heroBlockH * 0.075;
-    ctx.font = `700 ${ctaSize}px "Public Sans", sans-serif`;
-    const ctaText = form.roundupCta.toUpperCase();
-    const ctaPadX = ctaSize, ctaPadY = ctaSize * 0.75;
-    const ctaW = Math.min(headMaxW, ctx.measureText(ctaText).width + ctaPadX * 2);
-    const ctaH = ctaSize + ctaPadY * 2;
-    // A long subtitle (2 lines) can push the CTA box past the hero row's
-    // bottom edge, into the photo row below — clamp instead of overlapping.
-    ctaY = Math.min(ctaY, heroBlockH * 0.94 - ctaH);
-    ctx.strokeStyle = form.accentColor;
-    ctx.lineWidth = Math.max(1.5, w * 0.0022);
-    ctx.strokeRect(pad, ctaY, ctaW, ctaH);
-    ctx.fillStyle = form.accentColor;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(ctaText, pad + ctaW / 2, ctaY + ctaH / 2 + ctaSize * 0.03);
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
 
     // ---- Numbered tag drawn straddling a photo's right (or bottom, for the
     // narrower two-up tiles) edge — the "01"/"02"/"03" tab from the mock. ----
@@ -1375,7 +1356,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     let headSize = fs * 0.065;
     ctx.font = `800 ${headSize}px "Playfair Display", serif`;
     const w1w = ctx.measureText(form.word1).width;
-    ctx.font = `italic 500 ${headSize}px "Playfair Display", serif`;
+    ctx.font = scriptFontCss(form.scriptFont, headSize);
     const scriptWord = form.script.replace(/!+$/, "") + ".";
     const scriptw = ctx.measureText(scriptWord).width;
     const headMaxW = w - pad * 2;
@@ -1384,7 +1365,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillStyle = cardTextColor;
     ctx.fillText(form.word1, pad, cy);
     const w1wFinal = ctx.measureText(form.word1).width;
-    ctx.font = `italic 500 ${headSize}px "Playfair Display", serif`;
+    ctx.font = scriptFontCss(form.scriptFont, headSize);
     ctx.fillStyle = form.accentColor;
     ctx.fillText(scriptWord, pad + w1wFinal + headSize * 0.2, cy);
 
@@ -1668,7 +1649,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
   const goToStep = (n) => {
     setMobileStep(n);
     const el = sectionRefs.current[n];
-    if (el && window.matchMedia("(min-width: 1024px)").matches) {
+    if (el && window.matchMedia("(min-width: 768px)").matches) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
@@ -1684,14 +1665,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-10">
         {/* PAGE HEADER */}
-        <div className={mobileStep === 1 ? "mb-3 sm:mb-6" : "hidden lg:block lg:mb-6"}>
+        <div className={mobileStep === 1 ? "mb-3 sm:mb-6" : "hidden md:block md:mb-6"}>
           <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Create a Post</h1>
           <p className="font-body text-sm mt-1 hidden sm:block" style={{ color: UI.inkSoft }}>Your photos. Your brand. Done.</p>
         </div>
 
 
         {/* STEP 1 — full page width, no preview alongside it */}
-        <div className={`${mobileStep === 1 ? "" : "hidden"} lg:block mb-8 lg:mb-10`}>
+        <div className={`${mobileStep === 1 ? "" : "hidden"} md:block mb-8 md:mb-10`}>
           <section ref={(el) => { sectionRefs.current[1] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
             <StepHeading n={1} title="What are you creating?" subtitle="Choose the type of post — this decides which fields you'll fill in next." color={ACCENT_PRESETS[0]} />
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -1726,7 +1707,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           <button
             type="button"
             onClick={() => goToStep(2)}
-            className="press-fx lg:hidden w-full mt-6 rounded-lg font-body font-semibold text-sm transition"
+            className="press-fx md:hidden w-full mt-6 rounded-lg font-body font-semibold text-sm transition"
             style={{ background: ACCENT, color: WHITE, minHeight: 44 }}
           >
             Continue to Details &amp; Design
@@ -1734,10 +1715,10 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         </div>
 
         {/* MAIN GRID: controls + preview */}
-        <div className="grid lg:grid-cols-[55fr_45fr] gap-8 items-start">
+        <div className="grid md:grid-cols-[55fr_45fr] gap-8 items-start">
           {/* LEFT: CONTROLS */}
-          <div className={mobileStep === 1 || mobileStep === 3 ? "hidden lg:grid lg:gap-6 lg:col-start-1" : "grid gap-6 lg:col-start-1"}>
-            <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
+          <div className={mobileStep === 1 || mobileStep === 3 ? "hidden md:grid md:gap-6 md:col-start-1" : "grid gap-6 md:col-start-1"}>
+            <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} md:contents`}>
             <section ref={(el) => { sectionRefs.current[2] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
               <StepHeading n={2} title="Add your listing & choose a design" subtitle="Pick a look first — it decides how many photos you'll need — then fill in the rest." />
 
@@ -1995,10 +1976,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SUBTITLE</span>
                     <input className="input" value={form.roundupSubtitle} onChange={update("roundupSubtitle")} placeholder="Take a look at our new luxury listings" />
                   </label>
-                  <label className="block md:col-span-2">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CALL-TO-ACTION</span>
-                    <input className="input" value={form.roundupCta} onChange={update("roundupCta")} placeholder="Link in bio" />
-                  </label>
                   <div className="md:col-span-2">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BACKGROUND COLOR</span>
                     <ColorSwatchPicker value={form.roundupBg} onChange={(v) => setForm((f) => ({ ...f, roundupBg: v }))} presets={BG_PRESETS} size="1.75rem" />
@@ -2082,7 +2059,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               </button>
             </div>
 
-            <div className="lg:hidden flex items-center gap-2">
+            <div className="md:hidden flex items-center gap-2">
               <button type="button" onClick={() => goToStep(1)}
                 className="press-fx px-4 rounded-lg border font-body font-semibold text-sm transition"
                 style={{ borderColor: UI.line, color: UI.ink, minHeight: 44 }}>
@@ -2098,10 +2075,10 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           </div>
 
           {/* RIGHT: PREVIEW */}
-          <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "lg:sticky lg:col-start-2 lg:row-span-full" : "hidden lg:block lg:sticky lg:col-start-2 lg:row-span-full"} style={{ top: "calc(82px + 1.5rem)", scrollMarginTop: "calc(82px + 1.5rem)" }}>
+          <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "md:sticky md:col-start-2 md:row-span-full" : "hidden md:block md:sticky md:col-start-2 md:row-span-full"} style={{ top: "calc(82px + 1.5rem)", scrollMarginTop: "calc(82px + 1.5rem)" }}>
             {mobileStep === 3 && (
               <button type="button" onClick={() => goToStep(2)}
-                className="press-fx lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2 -ml-2 px-2"
+                className="press-fx md:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2 -ml-2 px-2"
                 style={{ color: UI.inkSoft, minHeight: 44 }}>
                 ← Back to Details &amp; Design
               </button>
@@ -2173,7 +2150,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
             </div>
 
             {/* SOCIAL SET PREVIEW — under the preview card, same column */}
-            <div className="hidden lg:block mt-6 rounded-2xl border" style={{ background: UI.card, borderColor: UI.line }}>
+            <div className="hidden md:block mt-6 rounded-2xl border" style={{ background: UI.card, borderColor: UI.line }}>
               <button
                 type="button"
                 onClick={() => setShowSocialSetPreview((s) => !s)}
@@ -2220,7 +2197,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
             </div>
           </div>
 
-        <div className="flex items-start gap-3 mt-6 p-4 rounded-xl lg:col-start-1" style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}>
+        <div className="flex items-start gap-3 mt-6 p-4 rounded-xl md:col-start-1" style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}>
           <Lightbulb size={18} color={UI.inkSoft} className="flex-shrink-0 mt-0.5" />
           <div>
             <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Tip: {tip.lead} </span>
@@ -2228,7 +2205,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           </div>
         </div>
 
-        <div className="hidden lg:block lg:col-start-1">
+        <div className="hidden md:block md:col-start-1">
         <div className="mt-8">
           <PrivacyBadge />
         </div>
