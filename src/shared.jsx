@@ -347,6 +347,27 @@ export function mixWithWhite(hex, amount) {
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
 
+export function mixWithBlack(hex, amount) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const mix = (c) => Math.round(c * (1 - amount));
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
+
+// Relative-luminance check (WCAG formula) — used to flip a layout's text
+// from white-on-dark to black-on-light when someone picks a light custom
+// background color, instead of baking "dark background" into the layout.
+export function isLightColor(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const [rl, gl, bl] = [r, g, b].map((c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  const luminance = 0.2126 * rl + 0.7152 * gl + 0.0722 * bl;
+  return luminance > 0.55;
+}
+
 export function drawCover(ctx, img, dx, dy, dW, dH, focusX = 0.5, focusY = 0.5, zoom = 1) {
   const imgRatio = img.width / img.height;
   const boxRatio = dW / dH;
