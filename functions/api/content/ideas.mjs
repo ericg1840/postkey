@@ -1,5 +1,6 @@
 import { getDb } from "../../_lib/db.mjs";
 import { getUserIdFromRequest, json } from "../../_lib/auth.mjs";
+import { logEvent } from "../../_lib/activity.mjs";
 
 const CATEGORIES = new Set(["community", "listing", "promo", "bts"]);
 
@@ -83,5 +84,6 @@ export async function onRequestPost({ request, env }) {
     VALUES (${userId}, ${title}, ${category}, ${targetDate})
     RETURNING id, title, category, target_date, added_at
   `;
+  await logEvent(db, userId, "content_idea_added", { category }).catch(() => {});
   return json({ idea: toIdea(row) });
 }
