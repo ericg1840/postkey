@@ -1282,7 +1282,23 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillText(stamp, w * 0.955, h * 0.03 + photoH * 0.026);
     ctx.textAlign = "left";
 
+    // ---- Stats card ----
+    // Text sizes below are fractions of `fs` (the shorter of w/h), not of
+    // cardH — cardH alone balloons on a tall Story canvas and would blow
+    // the headline/price text out past the card's actual (fixed) width.
+    const cardBg = form.spotlightCardBg;
+    ctx.fillStyle = cardBg;
+    ctx.fillRect(0, photoH, w, cardH);
+    // Flips the card's text from white-on-dark to black-on-light when
+    // someone picks a light custom background instead of the dark default.
+    const cardIsLight = isLightColor(cardBg);
+    const cardTextColor = cardIsLight ? BLACK : WHITE;
+    const cardSoft = (amt) => (cardIsLight ? `rgba(0,0,0,${amt})` : `rgba(255,255,255,${amt})`);
+
     // ---- Agent avatar (bottom-right of photo, straddling the card boundary) ----
+    // Drawn after the card fill (not before) so the card's background
+    // doesn't paint over the lower half of the circle where it dips below
+    // the photo/card line.
     if (headshot.img) {
       const d = photoH * 0.24;
       const cx = w * 0.87, cy = photoH - d * 0.1;
@@ -1302,19 +1318,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.lineWidth = Math.max(3, w * 0.006);
       ctx.stroke();
     }
-
-    // ---- Stats card ----
-    // Text sizes below are fractions of `fs` (the shorter of w/h), not of
-    // cardH — cardH alone balloons on a tall Story canvas and would blow
-    // the headline/price text out past the card's actual (fixed) width.
-    const cardBg = form.spotlightCardBg;
-    ctx.fillStyle = cardBg;
-    ctx.fillRect(0, photoH, w, cardH);
-    // Flips the card's text from white-on-dark to black-on-light when
-    // someone picks a light custom background instead of the dark default.
-    const cardIsLight = isLightColor(cardBg);
-    const cardTextColor = cardIsLight ? BLACK : WHITE;
-    const cardSoft = (amt) => (cardIsLight ? `rgba(0,0,0,${amt})` : `rgba(255,255,255,${amt})`);
     const pad = w * 0.06;
     const fs = Math.min(w, h);
     let cy = photoH + cardH * 0.13;
