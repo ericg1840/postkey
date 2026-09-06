@@ -8,6 +8,7 @@ import { ProfileReminder } from "./onboarding/ProfileReminder.jsx";
 import { PublicBioPage } from "./profile/PublicBioPage.jsx";
 import { AUTH } from "./auth/AuthShell.jsx";
 import { trackPageView } from "./marketing/track.mjs";
+import { ErrorBoundary } from "./ErrorBoundary.jsx";
 
 // Only one of these is ever on screen at a time (either gated behind auth,
 // or a rarely-visited route like /admin or the marketing pages), so they're
@@ -199,9 +200,11 @@ export default function App() {
   return (
     <AuthProvider>
       <GlobalStyles />
-      <Suspense fallback={<LoadingScreen />}>
-        <AppShell />
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingScreen />}>
+          <AppShell />
+        </Suspense>
+      </ErrorBoundary>
     </AuthProvider>
   );
 }
