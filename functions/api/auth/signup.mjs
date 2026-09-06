@@ -80,6 +80,8 @@ export async function onRequestPost({ request, env }) {
   const email = (body?.email || "").trim().toLowerCase();
   const password = body?.password || "";
   const fullName = (body?.fullName || "").trim();
+  const anonIdRaw = String(body?.anonId || "");
+  const anonId = /^[a-zA-Z0-9-]{1,64}$/.test(anonIdRaw) ? anonIdRaw : null;
 
   if (!email || !email.includes("@")) return json({ error: "Enter a valid email." }, { status: 400 });
   if (password.length < 8) return json({ error: "Password must be at least 8 characters." }, { status: 400 });
@@ -97,7 +99,7 @@ export async function onRequestPost({ request, env }) {
   `;
   await db.sql`INSERT INTO brand_kits (user_id, agent_name) VALUES (${user.id}, ${fullName})`;
   await db.sql`INSERT INTO subscriptions (user_id, tier, status, monthly_amount_cents) VALUES (${user.id}, 'free', 'active', 0)`;
-  await logEvent(db, user.id, "signup", { email: user.email });
+  await logEvent(db, user.id, "signup", { email: user.email, anonId });
 
   const token = createSessionToken(user.id, env);
 

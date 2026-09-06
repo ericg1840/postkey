@@ -25,6 +25,10 @@ export async function onRequestGet({ request, env }) {
     [{ created_first_post }],
     [{ became_paid }],
     featureRows,
+    [{ home_viewers }],
+    [{ signup_page_viewers }],
+    [{ tracked_signups }],
+    topPageRows,
   ] = await Promise.all([
     db.sql`SELECT COUNT(*)::int AS total_signups FROM users`,
     db.sql`SELECT COUNT(*)::int AS onboarded FROM brand_kits WHERE onboarded = true`,
@@ -35,6 +39,31 @@ export async function onRequestGet({ request, env }) {
       FROM activity_events
       WHERE event_type = ANY(${Object.keys(FEATURE_LABELS)}) AND created_at >= now() - interval '30 days'
       GROUP BY event_type
+    `,
+    // Marketing-site funnel: anonymous visitors are joined to a completed
+    // signup by the anonId the browser beacon sends on every pageview and
+    // that AuthContext.signup() attaches to the signup event's details.
+    db.sql`
+      SELECT COUNT(DISTINCT details->>'anonId')::int AS home_viewers
+      FROM activity_events
+      WHERE event_type = 'marketing_page_view' AND details->>'path' = 'home' AND created_at >= now() - interval '30 days'
+    `,
+    db.sql`
+      SELECT COUNT(DISTINCT details->>'anonId')::int AS signup_page_viewers
+      FROM activity_events
+      WHERE event_type = 'marketing_page_view' AND details->>'path' = 'signup' AND created_at >= now() - interval '30 days'
+    `,
+    db.sql`
+      SELECT COUNT(*)::int AS tracked_signups
+      FROM activity_events
+      WHERE event_type = 'signup' AND details->>'anonId' IS NOT NULL AND created_at >= now() - interval '30 days'
+    `,
+    db.sql`
+      SELECT details->>'path' AS path, COUNT(*)::int AS views, COUNT(DISTINCT details->>'anonId')::int AS visitors
+      FROM activity_events
+      WHERE event_type = 'marketing_page_view' AND created_at >= now() - interval '30 days'
+      GROUP BY details->>'path'
+      ORDER BY views DESC
     `,
   ]);
 
@@ -66,5 +95,21 @@ export async function onRequestGet({ request, env }) {
     }))
     .sort((a, b) => b.events30d - a.events30d);
 
-  return json({ funnel, featureUsage });
+  const marketingStages = [
+    { key: "viewed_home", label: "Viewed the homepage", count: home_viewers },
+    { key: "viewed_signup", label: "Opened the signup form", count: signup_page_viewers },
+    { key: "signed_up", label: "Completed signup", count: tracked_signups },
+  ];
+  const marketingFunnel = marketingStages.map((stage, i) => ({
+    ...stage,
+    pctOfTotal: home_viewers > 0 ? Math.round((stage.count / home_viewers) * 100) : 0,
+    pctOfPrevious: i === 0 || marketingStages[i - 1].count === 0
+      ? 100
+      : Math.round((stage.count / marketingStages[i - 1].count) * 100),
+  }));
+
+  const PAGE_LABELS = { home: "Homepage", about: "About", privacy: "Privacy policy", terms: "Terms", login: "Log in", signup: "Sign up" };
+  const topPages = topPageRows.map((r) => ({ path: r.path, label: PAGE_LABELS[r.path] || r.path, views: r.views, visitors: r.visitors }));
+
+  return json({ funnel, featureUsage, marketingFunnel, topPages });
 }
