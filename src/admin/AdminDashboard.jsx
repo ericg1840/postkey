@@ -353,13 +353,13 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
   );
 }
 
-function FunnelChart({ funnel }) {
+function FunnelChart({ funnel, title = "Where people drop off" }) {
   const maxCount = funnel[0]?.count || 1;
   return (
     <div className="rounded-2xl border p-5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
       <div className="flex items-center gap-2 mb-4">
         <TrendingDown size={18} color={UI.ink} />
-        <h2 className="font-display font-bold text-lg" style={{ color: UI.ink }}>Where people drop off</h2>
+        <h2 className="font-display font-bold text-lg" style={{ color: UI.ink }}>{title}</h2>
       </div>
       <div className="grid gap-3">
         {funnel.map((stage, i) => (
@@ -376,6 +376,34 @@ function FunnelChart({ funnel }) {
                 className="h-full rounded-full"
                 style={{ width: `${maxCount > 0 ? (stage.count / maxCount) * 100 : 0}%`, background: ACCENT }}
               />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TopPages({ topPages }) {
+  const maxViews = Math.max(1, ...topPages.map((p) => p.views));
+  return (
+    <div className="rounded-2xl border p-5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
+      <div className="flex items-center gap-2 mb-4">
+        <Eye size={18} color={UI.ink} />
+        <h2 className="font-display font-bold text-lg" style={{ color: UI.ink }}>Top marketing pages (30d)</h2>
+      </div>
+      {topPages.length === 0 && <p className="font-body text-sm" style={{ color: UI.inkSoft }}>No marketing site traffic in the last 30 days.</p>}
+      <div className="grid gap-3">
+        {topPages.map((p) => (
+          <div key={p.path}>
+            <div className="flex items-baseline justify-between mb-1 font-body text-sm">
+              <span style={{ color: UI.ink }}>{p.label}</span>
+              <span style={{ color: UI.inkSoft }}>
+                {p.views.toLocaleString()} view{p.views === 1 ? "" : "s"} · {p.visitors.toLocaleString()} visitor{p.visitors === 1 ? "" : "s"}
+              </span>
+            </div>
+            <div className="rounded-full overflow-hidden" style={{ background: UI.stone, height: 10 }}>
+              <div className="h-full rounded-full" style={{ width: `${(p.views / maxViews) * 100}%`, background: UI.ink }} />
             </div>
           </div>
         ))}
@@ -564,6 +592,8 @@ export function AdminDashboard({ onExit }) {
         {analyticsError && <p className="font-body text-sm" style={{ color: ERROR }}>{analyticsError}</p>}
         {analytics && (
           <div className="grid lg:grid-cols-2 gap-6">
+            <FunnelChart funnel={analytics.marketingFunnel} title="Where visitors drop off before signing up" />
+            <TopPages topPages={analytics.topPages} />
             <FunnelChart funnel={analytics.funnel} />
             <FeatureUsage featureUsage={analytics.featureUsage} />
           </div>

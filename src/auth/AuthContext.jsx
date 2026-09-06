@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { getAnonId } from "../marketing/track.mjs";
 
 const AuthContext = createContext(null);
 
@@ -30,7 +31,10 @@ function LiveAuthProvider({ children }) {
   }, [refresh]);
 
   const signup = async (email, password, fullName) => {
-    const data = await api("/api/auth/signup", { method: "POST", body: JSON.stringify({ email, password, fullName }) });
+    const data = await api("/api/auth/signup", {
+      method: "POST",
+      body: JSON.stringify({ email, password, fullName, anonId: getAnonId() }),
+    });
     await refresh();
     return data;
   };
