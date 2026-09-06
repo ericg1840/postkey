@@ -80,6 +80,16 @@ const TIPS = [
   { lead: "Set up your brand kit once.", text: "Save your headshot, logo, and contact info so every future post is one click away." },
 ];
 
+// yyyy-mm-dd (from a native date input) -> "March 15" — built from the raw
+// parts rather than `new Date(dateStr)` so it can't shift a day off in
+// timezones behind UTC.
+function formatListingDate(dateStr) {
+  if (!dateStr) return "";
+  const [y, m, d] = dateStr.split("-").map(Number);
+  if (!y || !m || !d) return "";
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "long", day: "numeric" });
+}
+
 const DEFAULTS = {
   layout: "bold",
   template: "sold",
@@ -89,6 +99,7 @@ const DEFAULTS = {
   bigHeadline: "JUST LISTED",
   banner: "",
   highlight: "",
+  listingDate: "",
   address: "419 Tall Oaks Dr, Warminster",
   beds: "4",
   baths: "4",
@@ -314,6 +325,20 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       modernHeadline: t.script.replace(/!+$/, ""),
       ribbonLabel: t.ribbon,
       ribbonIcon: TEMPLATE_RIBBON_ICON[key] || "house",
+      listingDate: "",
+    }));
+  };
+
+  // Coming Soon's one extra field — picking a date rewrites the highlight
+  // line (Bold layout) and adds a third line to the ribbon banner (Ribbon
+  // layout) instead of needing its own drawing code in every layout.
+  const applyListingDate = (dateStr) => {
+    const formatted = formatListingDate(dateStr);
+    setForm((f) => ({
+      ...f,
+      listingDate: dateStr,
+      highlight: formatted ? `Available ${formatted}` : "",
+      ribbonLabel: formatted ? `COMING\nSOON\n${formatted.toUpperCase()}` : TEMPLATES.coming_soon.ribbon,
     }));
   };
 
@@ -1359,6 +1384,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   <label className="block">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
                     <input className="input" value={form.address} onChange={update("address")} />
+                  </label>
+                )}
+
+                {form.template === "coming_soon" && (
+                  <label className="block mt-3">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>AVAILABLE STARTING (optional)</span>
+                    <input type="date" className="input" value={form.listingDate} onChange={(e) => applyListingDate(e.target.value)} />
+                    <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Adds the date to your highlight line and ribbon banner.</span>
                   </label>
                 )}
 
