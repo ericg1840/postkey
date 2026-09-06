@@ -25,10 +25,12 @@ const STYLE_OPTIONS = [
   { key: "modern", label: "Modern", description: "Script headline with photo strip" },
   { key: "signature", label: "Signature", description: "Full photo, script overlay, CTA bar" },
   { key: "ribbon", label: "Ribbon", description: "Corner ribbon banner with full photo" },
+  { key: "roundup", label: "Roundup", description: "Show off three listings in one post" },
+  { key: "spotlight", label: "Spotlight", description: "Hero card treatment for one property" },
 ];
 
 // Layouts built around a single hero photo instead of a 3-photo strip/collage.
-const SINGLE_PHOTO_LAYOUTS = ["bold", "signature", "ribbon"];
+const SINGLE_PHOTO_LAYOUTS = ["bold", "signature", "ribbon", "spotlight"];
 
 // "What are you posting?" — the event, independent of which visual Style
 // draws it. Applying one fills in every layout's headline representation
@@ -113,6 +115,15 @@ const DEFAULTS = {
   ribbonLabel: "SOLD",
   ribbonIcon: "key",
   photoTint: 0,
+  address2: "812 Willow Creek Ln, Warminster",
+  beds2: "3",
+  baths2: "2",
+  address3: "56 Founders Way, Warminster",
+  beds3: "3",
+  baths3: "3",
+  roundupSubtitle: "Take a look at our new luxury listings",
+  roundupCta: "Link in bio",
+  spotlightEyebrow: "Now on the market",
   agentName: "Your Name, Realtor",
   agentPhone: "(555) 123-4567",
   agentEmail: "you@example.com",
@@ -1068,6 +1079,343 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     drawContactBand(ctx, w, photoH, contactH, form, headshot, logo);
   };
 
+  // ---- Roundup layout: dark backdrop, serif "New listings" headline + CTA
+  // on the left, a hero photo tagged "01" on the right, then two more
+  // photos tagged "02"/"03" below — one post showing off three listings
+  // instead of one. ----
+  const drawRoundupLayout = (ctx, w, h) => {
+    const bg = "#23271E";
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    const pad = w * 0.055;
+    const contactH = Math.min(w, h) * 0.135;
+    const contentH = h - contactH;
+    const heroBlockH = contentH * 0.5;
+    const pairBlockH = contentH - heroBlockH;
+
+    const heroCaptionH = heroBlockH * 0.32;
+    const heroPhotoH = heroBlockH - heroCaptionH;
+    const leftColW = w * 0.44;
+    const heroX = leftColW + w * 0.02;
+    const heroW = w - heroX - pad;
+
+    // ---- Left column: headline, subtitle, "Link in bio" CTA ----
+    let headSize = heroBlockH * 0.2;
+    ctx.font = `400 ${headSize}px "Playfair Display", serif`;
+    const headMaxW = leftColW - pad;
+    const w1w = ctx.measureText(form.word1).width;
+    const scriptw = ctx.measureText(form.script.replace(/!+$/, "")).width;
+    const widest = Math.max(w1w, scriptw);
+    if (widest > headMaxW) headSize *= headMaxW / widest;
+    ctx.font = `400 ${headSize}px "Playfair Display", serif`;
+    const lineGap = headSize * 1.06;
+    const line1Y = heroBlockH * 0.32;
+    ctx.fillStyle = WHITE;
+    ctx.fillText(form.word1, pad, line1Y);
+    ctx.fillStyle = form.accentColor;
+    ctx.fillText(form.script.replace(/!+$/, ""), pad, line1Y + lineGap);
+
+    const subtitleSize = heroBlockH * 0.062;
+    ctx.font = `500 ${subtitleSize}px "Public Sans", sans-serif`;
+    ctx.fillStyle = mixWithWhite(form.accentColor, 0.45);
+    const subtitleLines = wrapText(ctx, form.roundupSubtitle, headMaxW).slice(0, 2);
+    let subtitleY = line1Y + lineGap + subtitleSize * 1.5;
+    subtitleLines.forEach((line, i) => ctx.fillText(line, pad, subtitleY + i * subtitleSize * 1.35));
+
+    let ctaY = subtitleY + subtitleLines.length * subtitleSize * 1.35 + heroBlockH * 0.08;
+    const ctaSize = heroBlockH * 0.075;
+    ctx.font = `700 ${ctaSize}px "Public Sans", sans-serif`;
+    const ctaText = form.roundupCta.toUpperCase();
+    const ctaPadX = ctaSize, ctaPadY = ctaSize * 0.75;
+    const ctaW = Math.min(headMaxW, ctx.measureText(ctaText).width + ctaPadX * 2);
+    const ctaH = ctaSize + ctaPadY * 2;
+    // A long subtitle (2 lines) can push the CTA box past the hero row's
+    // bottom edge, into the photo row below — clamp instead of overlapping.
+    ctaY = Math.min(ctaY, heroBlockH * 0.94 - ctaH);
+    ctx.strokeStyle = form.accentColor;
+    ctx.lineWidth = Math.max(1.5, w * 0.0022);
+    ctx.strokeRect(pad, ctaY, ctaW, ctaH);
+    ctx.fillStyle = form.accentColor;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(ctaText, pad + ctaW / 2, ctaY + ctaH / 2 + ctaSize * 0.03);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+
+    // ---- Numbered tag drawn straddling a photo's right (or bottom, for the
+    // narrower two-up tiles) edge — the "01"/"02"/"03" tab from the mock. ----
+    const drawTag = (num, x, y, tileW, tileH) => {
+      const tagW = Math.min(tileW * 0.22, tileH * 0.4);
+      const tagH = tileH * 0.24;
+      const tagX = x + tileW - tagW / 2;
+      const tagY = y + tileH / 2 - tagH / 2;
+      ctx.fillStyle = form.accentColor;
+      ctx.fillRect(tagX, tagY, tagW, tagH);
+      ctx.fillStyle = WHITE;
+      ctx.font = `italic 700 ${tagH * 0.4}px "Playfair Display", serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(num, tagX + tagW / 2, tagY + tagH / 2 + tagH * 0.02);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+    };
+
+    // `availH` bounds the whole caption (address + rule + beds/baths) so the
+    // same helper stays legible whether it's sizing the wider hero caption
+    // or the tighter two-up caption below it.
+    const drawCaption = (x, y0, width, availH, address, beds, baths) => {
+      const y = y0 + availH * 0.08;
+      let addrSize = availH * 0.3;
+      ctx.font = `600 ${addrSize}px "Public Sans", sans-serif`;
+      const addrW = ctx.measureText(address).width;
+      if (addrW > width) addrSize *= width / addrW;
+      ctx.font = `600 ${addrSize}px "Public Sans", sans-serif`;
+      ctx.fillStyle = WHITE;
+      ctx.fillText(address, x, y + addrSize);
+
+      const ruleY = y + addrSize * 1.45;
+      ctx.strokeStyle = mixWithWhite(form.accentColor, 0.3);
+      ctx.lineWidth = Math.max(1, w * 0.0018);
+      ctx.beginPath();
+      ctx.moveTo(x, ruleY);
+      ctx.lineTo(x + width, ruleY);
+      ctx.stroke();
+
+      const statsText = [beds && `${beds} Bedrooms`, baths && `${baths} Bathrooms`].filter(Boolean).join(", ");
+      let statsSize = availH * 0.24;
+      ctx.font = `500 ${statsSize}px "Public Sans", sans-serif`;
+      const statsW = ctx.measureText(statsText).width;
+      if (statsW > width) statsSize *= width / statsW;
+      ctx.font = `500 ${statsSize}px "Public Sans", sans-serif`;
+      ctx.fillStyle = mixWithWhite(form.accentColor, 0.45);
+      ctx.fillText(statsText, x, ruleY + statsSize * 1.4);
+    };
+
+    // ---- Hero photo (listing 1), tagged 01 ----
+    if (photo.img) drawCover(ctx, photo.img, heroX, 0, heroW, heroPhotoH, photo.focus.x, photo.focus.y, photo.zoom);
+    else { ctx.fillStyle = "#3A4034"; ctx.fillRect(heroX, 0, heroW, heroPhotoH); }
+    drawTag("01", heroX, 0, heroW, heroPhotoH);
+    drawCaption(heroX, heroPhotoH, heroW, heroCaptionH, form.address, form.beds, form.baths);
+
+    // ---- Bottom pair (listings 2 & 3), tagged 02/03 ----
+    const pairY0 = heroBlockH;
+    const gap = w * 0.03;
+    const tileW = (w - pad * 2 - gap) / 2;
+    const pairCaptionH = pairBlockH * 0.4;
+    const tileH = pairBlockH - pairCaptionH;
+    const tile2X = pad;
+    const tile3X = pad + tileW + gap;
+
+    if (photo2.img) drawCover(ctx, photo2.img, tile2X, pairY0, tileW, tileH);
+    else { ctx.fillStyle = "#3A4034"; ctx.fillRect(tile2X, pairY0, tileW, tileH); }
+    drawTag("02", tile2X, pairY0, tileW, tileH);
+
+    if (photo3.img) drawCover(ctx, photo3.img, tile3X, pairY0, tileW, tileH);
+    else { ctx.fillStyle = "#3A4034"; ctx.fillRect(tile3X, pairY0, tileW, tileH); }
+    drawTag("03", tile3X, pairY0, tileW, tileH);
+
+    const pairCaptionY = pairY0 + tileH;
+    drawCaption(tile2X, pairCaptionY, tileW, pairCaptionH, form.address2, form.beds2, form.baths2);
+    drawCaption(tile3X, pairCaptionY, tileW, pairCaptionH, form.address3, form.beds3, form.baths3);
+
+    // ---- Contact band (brokerage-required, shared across every layout) ----
+    drawContactBand(ctx, w, contentH, contactH, form, headshot, logo);
+  };
+
+  // ---- Spotlight layout: full-bleed hero photo with a status pill,
+  // timestamp, and agent avatar, followed by a dark stats card built
+  // around one property — a hero treatment for a single listing. ----
+  const drawSpotlightLayout = (ctx, w, h) => {
+    const contactH = Math.min(w, h) * 0.135;
+    const cardH = h * 0.34;
+    const photoH = h - cardH - contactH;
+
+    // ---- Photo ----
+    if (photo.img) drawCover(ctx, photo.img, 0, 0, w, photoH, photo.focus.x, photo.focus.y, photo.zoom);
+    else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(0, 0, w, photoH); }
+
+    // ---- Status pill (top-left) ----
+    const pillText = (TEMPLATES[form.template]?.label || "New Listing").toUpperCase();
+    const pillSize = photoH * 0.032;
+    ctx.font = `700 ${pillSize}px "Public Sans", sans-serif`;
+    const dotR = pillSize * 0.28;
+    const pillPadX = pillSize * 0.9;
+    const pillTextW = ctx.measureText(pillText).width;
+    const pillH = pillSize * 2.2;
+    const pillW = dotR * 2 + pillSize * 0.6 + pillTextW + pillPadX * 2;
+    const pillX = w * 0.045, pillY = h * 0.03;
+    ctx.save();
+    ctx.fillStyle = "rgba(20,20,20,0.55)";
+    roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = form.accentColor;
+    ctx.beginPath();
+    ctx.arc(pillX + pillPadX + dotR, pillY + pillH / 2, dotR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = WHITE;
+    ctx.textBaseline = "middle";
+    ctx.fillText(pillText, pillX + pillPadX + dotR * 2 + pillSize * 0.6, pillY + pillH / 2 + pillSize * 0.02);
+    ctx.textBaseline = "alphabetic";
+
+    // ---- Timestamp (top-right) ----
+    const stamp = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).replace(",", " ·").toUpperCase();
+    ctx.font = `600 ${photoH * 0.026}px "Public Sans", sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.textAlign = "right";
+    ctx.fillText(stamp, w * 0.955, h * 0.03 + photoH * 0.026);
+    ctx.textAlign = "left";
+
+    // ---- Agent avatar (bottom-right of photo, straddling the card boundary) ----
+    if (headshot.img) {
+      const d = photoH * 0.24;
+      const cx = w * 0.87, cy = photoH - d * 0.1;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, d / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      const img = headshot.img;
+      const shortSide = Math.min(img.width, img.height);
+      const crop = shortSide * 0.9;
+      ctx.drawImage(img, (img.width - crop) / 2, (img.height - crop) / 2, crop, crop, cx - d / 2, cy - d / 2, d, d);
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(cx, cy, d / 2, 0, Math.PI * 2);
+      ctx.strokeStyle = WHITE;
+      ctx.lineWidth = Math.max(3, w * 0.006);
+      ctx.stroke();
+    }
+
+    // ---- Dark stats card ----
+    // Text sizes below are fractions of `fs` (the shorter of w/h), not of
+    // cardH — cardH alone balloons on a tall Story canvas and would blow
+    // the headline/price text out past the card's actual (fixed) width.
+    const cardBg = "#161B26";
+    ctx.fillStyle = cardBg;
+    ctx.fillRect(0, photoH, w, cardH);
+    const pad = w * 0.06;
+    const fs = Math.min(w, h);
+    let cy = photoH + cardH * 0.13;
+
+    ctx.font = `700 ${fs * 0.021}px "Public Sans", sans-serif`;
+    ctx.fillStyle = form.accentColor;
+    ctx.fillText(form.spotlightEyebrow.toUpperCase(), pad, cy);
+    const eyebrowW = Math.min(w * 0.14, ctx.measureText(form.spotlightEyebrow).width);
+    cy += cardH * 0.07;
+    ctx.strokeStyle = form.accentColor;
+    ctx.lineWidth = Math.max(1.5, w * 0.002);
+    ctx.beginPath();
+    ctx.moveTo(pad, cy);
+    ctx.lineTo(pad + eyebrowW, cy);
+    ctx.stroke();
+
+    cy += cardH * 0.16;
+    let headSize = fs * 0.065;
+    ctx.font = `800 ${headSize}px "Playfair Display", serif`;
+    const w1w = ctx.measureText(form.word1).width;
+    ctx.font = `italic 500 ${headSize}px "Playfair Display", serif`;
+    const scriptWord = form.script.replace(/!+$/, "") + ".";
+    const scriptw = ctx.measureText(scriptWord).width;
+    const headMaxW = w - pad * 2;
+    if (w1w + headSize * 0.2 + scriptw > headMaxW) headSize *= headMaxW / (w1w + headSize * 0.2 + scriptw);
+    ctx.font = `800 ${headSize}px "Playfair Display", serif`;
+    ctx.fillStyle = WHITE;
+    ctx.fillText(form.word1, pad, cy);
+    const w1wFinal = ctx.measureText(form.word1).width;
+    ctx.font = `italic 500 ${headSize}px "Playfair Display", serif`;
+    ctx.fillStyle = form.accentColor;
+    ctx.fillText(scriptWord, pad + w1wFinal + headSize * 0.2, cy);
+
+    cy += cardH * 0.13;
+    ctx.font = `500 ${fs * 0.018}px "Public Sans", sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.fillText(form.address, pad, cy);
+
+    cy += cardH * 0.1;
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = Math.max(1, w * 0.0015);
+    ctx.beginPath();
+    ctx.moveTo(pad, cy);
+    ctx.lineTo(w - pad, cy);
+    ctx.stroke();
+
+    const statsY0 = cy;
+    const statsH = cardH * 0.2;
+    const stats = [
+      { value: form.beds, label: "BEDROOMS" },
+      { value: form.baths, label: "BATHROOMS" },
+      { value: form.sqft, label: "SQUARE FEET" },
+    ].filter((s) => s.value);
+    const colW = (w - pad * 2) / stats.length;
+    stats.forEach((s, i) => {
+      const cx = pad + colW * i;
+      ctx.font = `700 ${fs * 0.034}px "Playfair Display", serif`;
+      ctx.fillStyle = form.accentColor;
+      ctx.fillText(s.value, cx, statsY0 + statsH * 0.55);
+      ctx.font = `600 ${fs * 0.0122}px "Public Sans", sans-serif`;
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.fillText(s.label, cx, statsY0 + statsH * 0.85);
+      if (i > 0) {
+        ctx.strokeStyle = "rgba(255,255,255,0.18)";
+        ctx.beginPath();
+        ctx.moveTo(cx - colW * 0.12, statsY0);
+        ctx.lineTo(cx - colW * 0.12, statsY0 + statsH);
+        ctx.stroke();
+      }
+    });
+
+    const rowY0 = photoH + cardH - cardH * 0.02;
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.beginPath();
+    ctx.moveTo(pad, rowY0 - cardH * 0.19);
+    ctx.lineTo(w - pad, rowY0 - cardH * 0.19);
+    ctx.stroke();
+
+    // CTA sized/positioned first so the price line can shrink to leave room
+    // for it instead of the two colliding on a wide price + long CTA combo.
+    let ctaX = w - pad;
+    if (form.ctaMessage) {
+      const ctaText = form.ctaMessage.toUpperCase();
+      const ctaSize = fs * 0.017;
+      ctx.font = `700 ${ctaSize}px "Public Sans", sans-serif`;
+      const ctaPadX = ctaSize, ctaPadY = ctaSize * 0.75;
+      const ctaW = Math.min(w * 0.62, ctx.measureText(ctaText).width + ctaPadX * 2);
+      const ctaH2 = ctaSize + ctaPadY * 2;
+      ctaX = w - pad - ctaW;
+      const ctaY = rowY0 - ctaH2 * 0.7;
+      ctx.fillStyle = form.accentColor;
+      roundRect(ctx, ctaX, ctaY, ctaW, ctaH2, ctaH2 / 2);
+      ctx.fill();
+      ctx.fillStyle = WHITE;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(ctaText, ctaX + ctaW / 2, ctaY + ctaH2 / 2 + ctaSize * 0.03);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+    }
+
+    if (form.price) {
+      const priceMaxW = ctaX - pad - w * 0.03;
+      ctx.font = `600 ${fs * 0.0153}px "Public Sans", sans-serif`;
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.fillText("LISTED AT", pad, rowY0 - cardH * 0.09);
+      let priceSize = fs * 0.0306;
+      ctx.font = `800 ${priceSize}px "Public Sans", sans-serif`;
+      const priceW = ctx.measureText(form.price).width;
+      if (priceW > priceMaxW) priceSize *= priceMaxW / priceW;
+      ctx.font = `800 ${priceSize}px "Public Sans", sans-serif`;
+      ctx.fillStyle = WHITE;
+      ctx.fillText(form.price, pad, rowY0);
+    }
+
+    // ---- Contact band (brokerage-required, shared across every layout) ----
+    // The agent's headshot already appears on the photo above, so skip the
+    // redundant circle here.
+    drawContactBand(ctx, w, photoH + cardH, contactH, form, headshot, logo, false);
+  };
+
   const drawToCanvas = (canvas, aspectKey) => {
     const { w, h } = ASPECTS[aspectKey];
     canvas.width = w; canvas.height = h;
@@ -1079,6 +1427,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     else if (form.layout === "modern") drawModernLayout(ctx, w, h);
     else if (form.layout === "signature") drawSignatureLayout(ctx, w, h);
     else if (form.layout === "ribbon") drawRibbonLayout(ctx, w, h);
+    else if (form.layout === "roundup") drawRoundupLayout(ctx, w, h);
+    else if (form.layout === "spotlight") drawSpotlightLayout(ctx, w, h);
     else drawBoldLayout(ctx, w, h);
   };
 
@@ -1103,6 +1453,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     else if (layoutKey === "modern") drawModernLayout(ctx, w, h);
     else if (layoutKey === "signature") drawSignatureLayout(ctx, w, h);
     else if (layoutKey === "ribbon") drawRibbonLayout(ctx, w, h);
+    else if (layoutKey === "roundup") drawRoundupLayout(ctx, w, h);
+    else if (layoutKey === "spotlight") drawSpotlightLayout(ctx, w, h);
     else drawBoldLayout(ctx, w, h);
     // A real listing photo is busy/dark at full opacity and, shrunk to
     // thumbnail size, drowns out the very layout differences (band
@@ -1410,11 +1762,47 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   </label>
                 </div>
 
-                {(form.layout === "editorial" || form.layout === "modern") && (
+                {(form.layout === "editorial" || form.layout === "modern" || form.layout === "spotlight") && (
                   <label className="block mt-3">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
                     <input className="input" value={form.sqft} onChange={update("sqft")} />
                   </label>
+                )}
+
+                {form.layout === "roundup" && (
+                  <>
+                    <span className="font-mono text-xs block mb-1.5 mt-4" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LISTING 2</span>
+                    <label className="block">
+                      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
+                      <input className="input" value={form.address2} onChange={update("address2")} />
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
+                        <input className="input" value={form.beds2} onChange={update("beds2")} />
+                      </label>
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
+                        <input className="input" value={form.baths2} onChange={update("baths2")} />
+                      </label>
+                    </div>
+
+                    <span className="font-mono text-xs block mb-1.5 mt-4" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LISTING 3</span>
+                    <label className="block">
+                      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
+                      <input className="input" value={form.address3} onChange={update("address3")} />
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
+                        <input className="input" value={form.beds3} onChange={update("beds3")} />
+                      </label>
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
+                        <input className="input" value={form.baths3} onChange={update("baths3")} />
+                      </label>
+                    </div>
+                  </>
                 )}
               </div>
             </section>
@@ -1457,15 +1845,15 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 </select>
               </label>
 
-              {(form.layout === "bold" || form.layout === "signature") && (
+              {(form.layout === "bold" || form.layout === "signature" || form.layout === "roundup" || form.layout === "spotlight") && (
                 <label className="block md:col-span-2">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
                   <input className="input" value={`${form.word1} ${form.script}`.trim()}
                     onChange={(e) => {
                       const { lead, emphasis } = splitHeadlineLastWord(e.target.value);
                       setForm((f) => ({ ...f, word1: lead, script: emphasis }));
-                    }} placeholder="Just SOLD!" />
-                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The last word gets your accent color and accent font.</span>
+                    }} placeholder={form.layout === "roundup" ? "New listings!" : form.layout === "spotlight" ? "Ridge Residence!" : "Just SOLD!"} />
+                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The last word gets your accent color{form.layout === "bold" || form.layout === "signature" ? " and accent font" : ""}.</span>
                 </label>
               )}
 
@@ -1495,11 +1883,32 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 </label>
               )}
 
-              {form.layout === "signature" && (
+              {(form.layout === "signature" || form.layout === "spotlight") && (
                 <label className="block md:col-span-2">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CALL-TO-ACTION MESSAGE</span>
-                  <input className="input" value={form.ctaMessage} onChange={update("ctaMessage")} placeholder="Let's talk about your home goals!" />
+                  <input className="input" value={form.ctaMessage} onChange={update("ctaMessage")} placeholder={form.layout === "spotlight" ? "Tap for tour" : "Let's talk about your home goals!"} />
+                  {form.layout === "spotlight" && <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Shown as a button on the stats card. Leave blank to hide it.</span>}
                 </label>
+              )}
+
+              {form.layout === "spotlight" && (
+                <label className="block md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>EYEBROW LABEL</span>
+                  <input className="input" value={form.spotlightEyebrow} onChange={update("spotlightEyebrow")} placeholder="Now on the market" />
+                </label>
+              )}
+
+              {form.layout === "roundup" && (
+                <>
+                  <label className="block md:col-span-2">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SUBTITLE</span>
+                    <input className="input" value={form.roundupSubtitle} onChange={update("roundupSubtitle")} placeholder="Take a look at our new luxury listings" />
+                  </label>
+                  <label className="block md:col-span-2">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CALL-TO-ACTION</span>
+                    <input className="input" value={form.roundupCta} onChange={update("roundupCta")} placeholder="Link in bio" />
+                  </label>
+                </>
               )}
 
               {form.layout === "ribbon" && (
