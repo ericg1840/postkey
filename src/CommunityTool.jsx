@@ -136,9 +136,9 @@ const TEMPLATES = {
 // selector once "Local & Trending" is chosen here.
 const STYLES = {
   card: { label: "Local & Trending", description: "Restaurants, local favorites & more" },
-  testimonial: { label: "Client Love", description: "Testimonials & client stories" },
+  testimonial: { label: "Client Testimonial", description: "Reviews & client stories" },
   tips: { label: "Tip List", description: "Title band + list over a photo" },
-  stats: { label: "Big Number List", description: "Big numeral + icon list" },
+  stats: { label: "Market Stats", description: "Big number + supporting stats" },
   checklist: { label: "Checklist", description: "Headline card + checkmarks" },
   quote: { label: "Quote Card", description: "Big pull-quote + your message" },
   poll: { label: "This or That", description: "Two-option compare card" },
@@ -427,14 +427,23 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     ctx.fillStyle = "rgba(20,14,10,0.45)";
     ctx.fillRect(0, 0, w, h - contactH);
 
-    const numSize = h * 0.3;
+    // Shrink to fit — a bare digit like "5" never needed this, but a market
+    // stat like "$450,000" is several times wider at the same font size and
+    // would otherwise run off the canvas.
+    const numMaxW = w * 0.55;
+    let numSize = h * 0.3;
     ctx.font = `900 ${numSize}px "Playfair Display", serif`;
+    let numW = ctx.measureText(form.bigNumber).width;
+    if (numW > numMaxW) {
+      numSize *= numMaxW / numW;
+      ctx.font = `900 ${numSize}px "Playfair Display", serif`;
+      numW = ctx.measureText(form.bigNumber).width;
+    }
     ctx.fillStyle = WHITE;
     ctx.textAlign = "left";
     const numX = w * 0.07;
     const numY = h * 0.4;
     ctx.fillText(form.bigNumber, numX, numY);
-    const numW = ctx.measureText(form.bigNumber).width;
 
     const headX = numX + numW + w * 0.04;
     const headSize = h * 0.032;
@@ -919,7 +928,24 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
   // details instead of leaving the agent to notice and scroll themselves.
   // Mobile keeps its explicit "Continue to Make It Yours" step as-is.
   const selectStyle = (key) => {
-    setForm((f) => ({ ...f, style: key }));
+    setForm((f) => {
+      // Market Stats shares its fields (subject/bigNumber/listItems) with
+      // Tip List and Checklist, so the very first switch to it would
+      // otherwise show those styles' leftover defaults ("The Kettle & Vine",
+      // a bare "5") instead of anything resembling a market update. Only
+      // seed it once — if any of the three has already been edited, leave
+      // it alone rather than clobbering what the agent typed.
+      if (key === "stats" && f.subject === DEFAULTS.subject && f.bigNumber === DEFAULTS.bigNumber && f.listItems === DEFAULTS.listItems) {
+        return {
+          ...f,
+          style: key,
+          subject: "This Month in Your Market",
+          bigNumber: "$450,000",
+          listItems: "32 Days on Market\n145 New Listings\n3.2 Months of Inventory",
+        };
+      }
+      return { ...f, style: key };
+    });
     const el = sectionRefs.current[2];
     if (el && window.matchMedia("(min-width: 1024px)").matches) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1195,14 +1221,19 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
                       {form.style === "tips" ? "TITLE" : "HEADLINE"}
                     </span>
-                    <input className="input" value={form.subject} onChange={update("subject")} placeholder="Summer Open House Tips" />
+                    <input
+                      className="input"
+                      value={form.subject}
+                      onChange={update("subject")}
+                      placeholder={form.style === "stats" ? "This Month in Your Market" : "Summer Open House Tips"}
+                    />
                   </label>
                 )}
 
                 {form.style === "stats" && (
                   <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BIG NUMBER</span>
-                    <input className="input" value={form.bigNumber} onChange={update("bigNumber")} placeholder="5" />
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>MEDIAN SALE PRICE</span>
+                    <input className="input" value={form.bigNumber} onChange={update("bigNumber")} placeholder="$450,000" />
                   </label>
                 )}
 
@@ -1211,7 +1242,15 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>
                       LIST ITEMS (one per line)
                     </span>
-                    <textarea className="input" rows={4} value={form.listItems} onChange={update("listItems")} placeholder={"Turn on the AC\nOffer cold refreshments\nHighlight outdoor spaces"} />
+                    <textarea
+                      className="input"
+                      rows={4}
+                      value={form.listItems}
+                      onChange={update("listItems")}
+                      placeholder={form.style === "stats"
+                        ? "32 Days on Market\n145 New Listings\n3.2 Months of Inventory"
+                        : "Turn on the AC\nOffer cold refreshments\nHighlight outdoor spaces"}
+                    />
                   </label>
                 )}
 
