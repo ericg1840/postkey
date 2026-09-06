@@ -6,7 +6,7 @@ import {
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, ColorSwatchPicker, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
-  mixWithWhite, drawCover, wrapText, roundRect, archedRect, drawContactBand,
+  mixWithWhite, mixWithBlack, isLightColor, drawCover, wrapText, roundRect, archedRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, PhotoReposition, TopNav, isMobileDevice,
   Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord, firstNameOf,
   peekPostHandoff, clearPostHandoff, shareImageToFacebook,
@@ -59,6 +59,13 @@ const RIBBON_ICONS = [
   { key: "check", label: "Checkmark" },
   { key: "calendar", label: "Calendar" },
 ];
+
+// Background swatches for Roundup/Spotlight — spans dark-to-light instead
+// of the vivid ACCENT_PRESETS hues, since this picks a large backdrop/card
+// fill rather than a small highlight color. Text automatically flips
+// light/dark to stay legible against whichever of these (or a custom hex)
+// gets picked.
+const BG_PRESETS = ["#23271E", "#161B26", "#111111", "#3A1220", "#FFFFFF", "#F1EAD8"];
 
 const TEMPLATE_RIBBON_ICON = {
   sold: "key",
@@ -123,7 +130,9 @@ const DEFAULTS = {
   baths3: "3",
   roundupSubtitle: "Take a look at our new luxury listings",
   roundupCta: "Link in bio",
+  roundupBg: "#23271E",
   spotlightEyebrow: "Now on the market",
+  spotlightCardBg: "#161B26",
   agentName: "Your Name, Realtor",
   agentPhone: "(555) 123-4567",
   agentEmail: "you@example.com",
@@ -1084,9 +1093,15 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
   // photos tagged "02"/"03" below — one post showing off three listings
   // instead of one. ----
   const drawRoundupLayout = (ctx, w, h) => {
-    const bg = "#23271E";
+    const bg = form.roundupBg;
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
+    // Flips headline/caption text and tints when someone picks a light
+    // background instead of the default dark one, so it stays legible.
+    const isLight = isLightColor(bg);
+    const textColor = isLight ? BLACK : WHITE;
+    const tint = (amt) => (isLight ? mixWithBlack(form.accentColor, amt) : mixWithWhite(form.accentColor, amt));
+    const placeholderColor = isLight ? "#D8CFC9" : "#3A4034";
 
     const pad = w * 0.055;
     const contactH = Math.min(w, h) * 0.135;
@@ -1111,14 +1126,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.font = `400 ${headSize}px "Playfair Display", serif`;
     const lineGap = headSize * 1.06;
     const line1Y = heroBlockH * 0.32;
-    ctx.fillStyle = WHITE;
+    ctx.fillStyle = textColor;
     ctx.fillText(form.word1, pad, line1Y);
     ctx.fillStyle = form.accentColor;
     ctx.fillText(form.script.replace(/!+$/, ""), pad, line1Y + lineGap);
 
     const subtitleSize = heroBlockH * 0.062;
     ctx.font = `500 ${subtitleSize}px "Public Sans", sans-serif`;
-    ctx.fillStyle = mixWithWhite(form.accentColor, 0.45);
+    ctx.fillStyle = tint(0.45);
     const subtitleLines = wrapText(ctx, form.roundupSubtitle, headMaxW).slice(0, 2);
     let subtitleY = line1Y + lineGap + subtitleSize * 1.5;
     subtitleLines.forEach((line, i) => ctx.fillText(line, pad, subtitleY + i * subtitleSize * 1.35));
@@ -1171,11 +1186,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       const addrW = ctx.measureText(address).width;
       if (addrW > width) addrSize *= width / addrW;
       ctx.font = `600 ${addrSize}px "Public Sans", sans-serif`;
-      ctx.fillStyle = WHITE;
+      ctx.fillStyle = textColor;
       ctx.fillText(address, x, y + addrSize);
 
       const ruleY = y + addrSize * 1.45;
-      ctx.strokeStyle = mixWithWhite(form.accentColor, 0.3);
+      ctx.strokeStyle = tint(0.3);
       ctx.lineWidth = Math.max(1, w * 0.0018);
       ctx.beginPath();
       ctx.moveTo(x, ruleY);
@@ -1188,13 +1203,13 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       const statsW = ctx.measureText(statsText).width;
       if (statsW > width) statsSize *= width / statsW;
       ctx.font = `500 ${statsSize}px "Public Sans", sans-serif`;
-      ctx.fillStyle = mixWithWhite(form.accentColor, 0.45);
+      ctx.fillStyle = tint(0.45);
       ctx.fillText(statsText, x, ruleY + statsSize * 1.4);
     };
 
     // ---- Hero photo (listing 1), tagged 01 ----
     if (photo.img) drawCover(ctx, photo.img, heroX, 0, heroW, heroPhotoH, photo.focus.x, photo.focus.y, photo.zoom);
-    else { ctx.fillStyle = "#3A4034"; ctx.fillRect(heroX, 0, heroW, heroPhotoH); }
+    else { ctx.fillStyle = placeholderColor; ctx.fillRect(heroX, 0, heroW, heroPhotoH); }
     drawTag("01", heroX, 0, heroW, heroPhotoH);
     drawCaption(heroX, heroPhotoH, heroW, heroCaptionH, form.address, form.beds, form.baths);
 
@@ -1208,11 +1223,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const tile3X = pad + tileW + gap;
 
     if (photo2.img) drawCover(ctx, photo2.img, tile2X, pairY0, tileW, tileH);
-    else { ctx.fillStyle = "#3A4034"; ctx.fillRect(tile2X, pairY0, tileW, tileH); }
+    else { ctx.fillStyle = placeholderColor; ctx.fillRect(tile2X, pairY0, tileW, tileH); }
     drawTag("02", tile2X, pairY0, tileW, tileH);
 
     if (photo3.img) drawCover(ctx, photo3.img, tile3X, pairY0, tileW, tileH);
-    else { ctx.fillStyle = "#3A4034"; ctx.fillRect(tile3X, pairY0, tileW, tileH); }
+    else { ctx.fillStyle = placeholderColor; ctx.fillRect(tile3X, pairY0, tileW, tileH); }
     drawTag("03", tile3X, pairY0, tileW, tileH);
 
     const pairCaptionY = pairY0 + tileH;
@@ -1288,13 +1303,18 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.stroke();
     }
 
-    // ---- Dark stats card ----
+    // ---- Stats card ----
     // Text sizes below are fractions of `fs` (the shorter of w/h), not of
     // cardH — cardH alone balloons on a tall Story canvas and would blow
     // the headline/price text out past the card's actual (fixed) width.
-    const cardBg = "#161B26";
+    const cardBg = form.spotlightCardBg;
     ctx.fillStyle = cardBg;
     ctx.fillRect(0, photoH, w, cardH);
+    // Flips the card's text from white-on-dark to black-on-light when
+    // someone picks a light custom background instead of the dark default.
+    const cardIsLight = isLightColor(cardBg);
+    const cardTextColor = cardIsLight ? BLACK : WHITE;
+    const cardSoft = (amt) => (cardIsLight ? `rgba(0,0,0,${amt})` : `rgba(255,255,255,${amt})`);
     const pad = w * 0.06;
     const fs = Math.min(w, h);
     let cy = photoH + cardH * 0.13;
@@ -1321,7 +1341,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const headMaxW = w - pad * 2;
     if (w1w + headSize * 0.2 + scriptw > headMaxW) headSize *= headMaxW / (w1w + headSize * 0.2 + scriptw);
     ctx.font = `800 ${headSize}px "Playfair Display", serif`;
-    ctx.fillStyle = WHITE;
+    ctx.fillStyle = cardTextColor;
     ctx.fillText(form.word1, pad, cy);
     const w1wFinal = ctx.measureText(form.word1).width;
     ctx.font = `italic 500 ${headSize}px "Playfair Display", serif`;
@@ -1330,11 +1350,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
     cy += cardH * 0.13;
     ctx.font = `500 ${fs * 0.018}px "Public Sans", sans-serif`;
-    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.fillStyle = cardSoft(0.75);
     ctx.fillText(form.address, pad, cy);
 
     cy += cardH * 0.1;
-    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.strokeStyle = cardSoft(0.18);
     ctx.lineWidth = Math.max(1, w * 0.0015);
     ctx.beginPath();
     ctx.moveTo(pad, cy);
@@ -1355,10 +1375,10 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.fillStyle = form.accentColor;
       ctx.fillText(s.value, cx, statsY0 + statsH * 0.55);
       ctx.font = `600 ${fs * 0.0122}px "Public Sans", sans-serif`;
-      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.fillStyle = cardSoft(0.55);
       ctx.fillText(s.label, cx, statsY0 + statsH * 0.85);
       if (i > 0) {
-        ctx.strokeStyle = "rgba(255,255,255,0.18)";
+        ctx.strokeStyle = cardSoft(0.18);
         ctx.beginPath();
         ctx.moveTo(cx - colW * 0.12, statsY0);
         ctx.lineTo(cx - colW * 0.12, statsY0 + statsH);
@@ -1367,7 +1387,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     });
 
     const rowY0 = photoH + cardH - cardH * 0.02;
-    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.strokeStyle = cardSoft(0.18);
     ctx.beginPath();
     ctx.moveTo(pad, rowY0 - cardH * 0.19);
     ctx.lineTo(w - pad, rowY0 - cardH * 0.19);
@@ -1399,14 +1419,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     if (form.price) {
       const priceMaxW = ctaX - pad - w * 0.03;
       ctx.font = `600 ${fs * 0.0153}px "Public Sans", sans-serif`;
-      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.fillStyle = cardSoft(0.5);
       ctx.fillText("LISTED AT", pad, rowY0 - cardH * 0.09);
       let priceSize = fs * 0.0306;
       ctx.font = `800 ${priceSize}px "Public Sans", sans-serif`;
       const priceW = ctx.measureText(form.price).width;
       if (priceW > priceMaxW) priceSize *= priceMaxW / priceW;
       ctx.font = `800 ${priceSize}px "Public Sans", sans-serif`;
-      ctx.fillStyle = WHITE;
+      ctx.fillStyle = cardTextColor;
       ctx.fillText(form.price, pad, rowY0);
     }
 
@@ -1892,10 +1912,17 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               )}
 
               {form.layout === "spotlight" && (
-                <label className="block md:col-span-2">
-                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>EYEBROW LABEL</span>
-                  <input className="input" value={form.spotlightEyebrow} onChange={update("spotlightEyebrow")} placeholder="Now on the market" />
-                </label>
+                <>
+                  <label className="block md:col-span-2">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>EYEBROW LABEL</span>
+                    <input className="input" value={form.spotlightEyebrow} onChange={update("spotlightEyebrow")} placeholder="Now on the market" />
+                  </label>
+                  <div className="md:col-span-2">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>STATS CARD BACKGROUND</span>
+                    <ColorSwatchPicker value={form.spotlightCardBg} onChange={(v) => setForm((f) => ({ ...f, spotlightCardBg: v }))} presets={BG_PRESETS} size="1.75rem" />
+                    <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Text switches to dark automatically on a light background.</span>
+                  </div>
+                </>
               )}
 
               {form.layout === "roundup" && (
@@ -1908,6 +1935,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CALL-TO-ACTION</span>
                     <input className="input" value={form.roundupCta} onChange={update("roundupCta")} placeholder="Link in bio" />
                   </label>
+                  <div className="md:col-span-2">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BACKGROUND COLOR</span>
+                    <ColorSwatchPicker value={form.roundupBg} onChange={(v) => setForm((f) => ({ ...f, roundupBg: v }))} presets={BG_PRESETS} size="1.75rem" />
+                    <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Text switches to dark automatically on a light background.</span>
+                  </div>
                 </>
               )}
 
