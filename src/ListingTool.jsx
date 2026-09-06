@@ -6,7 +6,7 @@ import {
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, ColorSwatchPicker, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
-  mixWithWhite, mixWithBlack, isLightColor, drawCover, wrapText, roundRect, archedRect, drawContactBand,
+  mixWithWhite, mixWithBlack, isLightColor, hexToRgba, drawCover, wrapText, roundRect, archedRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, PhotoReposition, TopNav, isMobileDevice,
   Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord, firstNameOf,
   peekPostHandoff, clearPostHandoff, shareImageToFacebook,
@@ -1278,6 +1278,15 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     if (photo.img) drawCover(ctx, photo.img, 0, 0, w, photoH, photo.focus.x, photo.focus.y, photo.zoom);
     else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(0, 0, w, photoH); }
 
+    // Soften the hard photo/card seam by fading the card's background color
+    // up into the bottom of the photo.
+    const fadeH = photoH * 0.22;
+    const photoFade = ctx.createLinearGradient(0, photoH - fadeH, 0, photoH);
+    photoFade.addColorStop(0, hexToRgba(form.spotlightCardBg, 0));
+    photoFade.addColorStop(1, hexToRgba(form.spotlightCardBg, 1));
+    ctx.fillStyle = photoFade;
+    ctx.fillRect(0, photoH - fadeH, w, fadeH);
+
     // ---- Status pill (top-left) ----
     const pillText = (TEMPLATES[form.template]?.label || "New Listing").toUpperCase();
     const pillSize = photoH * 0.032;
@@ -1435,7 +1444,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       const ctaW = Math.min(w * 0.62, ctx.measureText(ctaText).width + ctaPadX * 2);
       const ctaH2 = ctaSize + ctaPadY * 2;
       ctaX = w - pad - ctaW;
-      const ctaY = rowY0 - ctaH2 * 0.7;
+      const ctaY = rowY0 - ctaH2 * 0.95;
       ctx.fillStyle = form.accentColor;
       roundRect(ctx, ctaX, ctaY, ctaW, ctaH2, ctaH2 / 2);
       ctx.fill();
