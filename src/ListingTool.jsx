@@ -1666,6 +1666,53 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 />
               </div>
             </div>
+
+            {/* SOCIAL SET PREVIEW — under the preview card, same column */}
+            <div className="hidden lg:block mt-6 rounded-2xl border" style={{ background: UI.card, borderColor: UI.line }}>
+              <button
+                type="button"
+                onClick={() => setShowSocialSetPreview((s) => !s)}
+                className="w-full flex items-center justify-between gap-3 p-5 text-left"
+              >
+                <div>
+                  <h3 className="font-body text-base font-semibold flex items-center gap-2" style={{ color: UI.ink }}>
+                    Download your complete social set
+                    <span className="font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.04em", color: WHITE, background: ACCENT, padding: "1px 6px", borderRadius: 999 }}>NEW</span>
+                  </h3>
+                  <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>We'll generate multiple sizes for all your platforms.</p>
+                </div>
+                <ChevronDown size={18} style={{ color: UI.inkSoft, transform: showSocialSetPreview ? "rotate(180deg)" : "none", transition: "transform 0.15s", flexShrink: 0 }} />
+              </button>
+              {/* Canvases stay mounted (just visually hidden) so the existing
+                  draw effect — which only fires on form/photo/font changes, not
+                  on mount — doesn't need to know about the collapse state. */}
+              <div className={showSocialSetPreview ? "px-5 pb-5 border-t" : "hidden"} style={{ borderColor: UI.line }}>
+                <div className="flex justify-end pt-4">
+                  <button
+                    onClick={downloadAllSizes}
+                    disabled={downloadingAll}
+                    className="flex items-center gap-1.5 py-2 px-4 rounded-lg border font-body text-xs font-semibold transition disabled:opacity-60"
+                    style={{ borderColor: UI.line, color: UI.ink }}
+                  >
+                    {downloadingAll ? "Preparing…" : "Download All"}
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
+                  {THUMB_ASPECTS.map((key) => (
+                    <div key={key}>
+                      <div className="rounded-lg border overflow-hidden flex items-center justify-center p-2" style={{ background: UI.stone, borderColor: UI.line }}>
+                        <canvas
+                          ref={(el) => { thumbRefs.current[key] = el; }}
+                          style={{ display: "block", width: "100%", height: "auto", borderRadius: "3px" }}
+                        />
+                      </div>
+                      <p className="font-body text-xs font-semibold mt-2" style={{ color: UI.ink }}>{ASPECTS[key].label}</p>
+                      <p className="font-mono text-xs" style={{ color: UI.inkSoft }}>{ASPECTS[key].w} x {ASPECTS[key].h}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
         <div className="flex items-start gap-3 mt-6 p-4 rounded-xl lg:col-start-1" style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}>
@@ -1679,53 +1726,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         <div className="hidden lg:block lg:col-start-1">
         <div className="mt-8">
           <PrivacyBadge />
-        </div>
-
-        {/* SOCIAL SET PREVIEW */}
-        <div className="mt-10 rounded-2xl border" style={{ background: UI.card, borderColor: UI.line }}>
-          <button
-            type="button"
-            onClick={() => setShowSocialSetPreview((s) => !s)}
-            className="w-full flex items-center justify-between gap-3 p-5 text-left"
-          >
-            <div>
-              <h3 className="font-body text-base font-semibold flex items-center gap-2" style={{ color: UI.ink }}>
-                Download your complete social set
-                <span className="font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.04em", color: WHITE, background: ACCENT, padding: "1px 6px", borderRadius: 999 }}>NEW</span>
-              </h3>
-              <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>We'll generate multiple sizes for all your platforms.</p>
-            </div>
-            <ChevronDown size={18} style={{ color: UI.inkSoft, transform: showSocialSetPreview ? "rotate(180deg)" : "none", transition: "transform 0.15s", flexShrink: 0 }} />
-          </button>
-          {/* Canvases stay mounted (just visually hidden) so the existing
-              draw effect — which only fires on form/photo/font changes, not
-              on mount — doesn't need to know about the collapse state. */}
-          <div className={showSocialSetPreview ? "px-5 pb-5 border-t" : "hidden"} style={{ borderColor: UI.line }}>
-            <div className="flex justify-end pt-4">
-              <button
-                onClick={downloadAllSizes}
-                disabled={downloadingAll}
-                className="flex items-center gap-1.5 py-2 px-4 rounded-lg border font-body text-xs font-semibold transition disabled:opacity-60"
-                style={{ borderColor: UI.line, color: UI.ink }}
-              >
-                {downloadingAll ? "Preparing…" : "Download All"}
-              </button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
-              {THUMB_ASPECTS.map((key) => (
-                <div key={key}>
-                  <div className="rounded-lg border overflow-hidden flex items-center justify-center p-2" style={{ background: UI.stone, borderColor: UI.line }}>
-                    <canvas
-                      ref={(el) => { thumbRefs.current[key] = el; }}
-                      style={{ display: "block", width: "100%", height: "auto", borderRadius: "3px" }}
-                    />
-                  </div>
-                  <p className="font-body text-xs font-semibold mt-2" style={{ color: UI.ink }}>{ASPECTS[key].label}</p>
-                  <p className="font-mono text-xs" style={{ color: UI.inkSoft }}>{ASPECTS[key].w} x {ASPECTS[key].h}</p>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
         </div>
         </div>
