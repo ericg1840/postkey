@@ -69,6 +69,7 @@ export async function onRequestPost({ request, env }) {
   try {
     await sendResetEmail(email, resetUrl, env);
   } catch (err) {
+    console.error("Reset email failed", err);
     return json({ error: "Couldn't send the reset email. Please try again shortly." }, { status: 502 });
   }
 

@@ -95,7 +95,8 @@ export async function onRequestPost({ request, env }) {
     const resetUrl = `${origin}/?resetToken=${token}&resetEmail=${encodeURIComponent(targetUser.email)}`;
     try {
       await sendAdminResetEmail(targetUser.email, resetUrl, env);
-    } catch {
+    } catch (err) {
+      console.error("Admin-triggered reset email failed", err);
       return json({ error: "Couldn't send the reset email. Please try again shortly." }, { status: 502 });
     }
     await logEvent(db, userId, "password_reset_triggered", { email: targetUser.email, triggeredByAdmin: true });
