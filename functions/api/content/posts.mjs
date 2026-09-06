@@ -1,5 +1,6 @@
 import { getDb } from "../../_lib/db.mjs";
 import { getUserIdFromRequest, json } from "../../_lib/auth.mjs";
+import { logEvent } from "../../_lib/activity.mjs";
 
 const CATEGORIES = new Set(["community", "listing", "promo", "bts"]);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -68,6 +69,7 @@ export async function onRequestPost({ request, env }) {
     VALUES (${userId}, ${date}, ${title}, ${category}, ${status}, ${source})
     RETURNING id, date, title, category, status, source, posted
   `;
+  await logEvent(db, userId, "content_post_added", { category, status, source }).catch(() => {});
   return json({ post: toPost(row) });
 }
 

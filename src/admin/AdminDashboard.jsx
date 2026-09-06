@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Users, CreditCard, DollarSign, UserPlus, Download, MoreVertical, X, ArrowLeft, Activity, Image, Link2, Eye, CheckCircle2, Search } from "lucide-react";
+import { Users, CreditCard, DollarSign, UserPlus, Download, MoreVertical, X, ArrowLeft, Activity, Image, Link2, Eye, CheckCircle2, Search, TrendingDown, BarChart3 } from "lucide-react";
 import { UI, ACCENT, WHITE, ERROR } from "../shared.jsx";
 import { api } from "../auth/AuthContext.jsx";
 
@@ -353,6 +353,67 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
   );
 }
 
+function FunnelChart({ funnel }) {
+  const maxCount = funnel[0]?.count || 1;
+  return (
+    <div className="rounded-2xl border p-5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
+      <div className="flex items-center gap-2 mb-4">
+        <TrendingDown size={18} color={UI.ink} />
+        <h2 className="font-display font-bold text-lg" style={{ color: UI.ink }}>Where people drop off</h2>
+      </div>
+      <div className="grid gap-3">
+        {funnel.map((stage, i) => (
+          <div key={stage.key}>
+            <div className="flex items-baseline justify-between mb-1 font-body text-sm">
+              <span style={{ color: UI.ink }}>{stage.label}</span>
+              <span style={{ color: UI.inkSoft }}>
+                {stage.count.toLocaleString()} · {stage.pctOfTotal}%
+                {i > 0 && <span className="font-mono text-xs"> ({stage.pctOfPrevious}% of prior step)</span>}
+              </span>
+            </div>
+            <div className="rounded-full overflow-hidden" style={{ background: UI.stone, height: 10 }}>
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${maxCount > 0 ? (stage.count / maxCount) * 100 : 0}%`, background: ACCENT }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FeatureUsage({ featureUsage }) {
+  const maxEvents = Math.max(1, ...featureUsage.map((f) => f.events30d));
+  return (
+    <div className="rounded-2xl border p-5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 size={18} color={UI.ink} />
+        <h2 className="font-display font-bold text-lg" style={{ color: UI.ink }}>Most used features (30d)</h2>
+      </div>
+      {featureUsage.every((f) => f.events30d === 0) && (
+        <p className="font-body text-sm" style={{ color: UI.inkSoft }}>No feature activity in the last 30 days.</p>
+      )}
+      <div className="grid gap-3">
+        {featureUsage.filter((f) => f.events30d > 0).map((f) => (
+          <div key={f.eventType}>
+            <div className="flex items-baseline justify-between mb-1 font-body text-sm">
+              <span style={{ color: UI.ink }}>{f.label}</span>
+              <span style={{ color: UI.inkSoft }}>
+                {f.events30d.toLocaleString()} uses · {f.users30d.toLocaleString()} user{f.users30d === 1 ? "" : "s"}
+              </span>
+            </div>
+            <div className="rounded-full overflow-hidden" style={{ background: UI.stone, height: 10 }}>
+              <div className="h-full rounded-full" style={{ width: `${(f.events30d / maxEvents) * 100}%`, background: UI.ink }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ActivityFeed({ refreshKey }) {
   const [events, setEvents] = useState(null);
   const [error, setError] = useState("");
@@ -391,6 +452,8 @@ function ActivityFeed({ refreshKey }) {
 
 export function AdminDashboard({ onExit }) {
   const [stats, setStats] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsError, setAnalyticsError] = useState("");
   const [users, setUsers] = useState(null);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -405,6 +468,7 @@ export function AdminDashboard({ onExit }) {
 
   useEffect(() => {
     api("/api/admin/stats").then(setStats).catch((e) => setError(e.message));
+    api("/api/admin/analytics").then(setAnalytics).catch((e) => setAnalyticsError(e.message));
   }, [feedKey]);
 
   const loadUsers = useCallback(() => {
@@ -495,6 +559,15 @@ export function AdminDashboard({ onExit }) {
             <StatCard icon={Search} label="Zillow pulls total" value={stats ? stats.zillowPullsTotal.toLocaleString() : "…"} />
           </div>
         </div>
+
+        {/* Funnel + feature usage */}
+        {analyticsError && <p className="font-body text-sm" style={{ color: ERROR }}>{analyticsError}</p>}
+        {analytics && (
+          <div className="grid lg:grid-cols-2 gap-6">
+            <FunnelChart funnel={analytics.funnel} />
+            <FeatureUsage featureUsage={analytics.featureUsage} />
+          </div>
+        )}
 
         <div className="rounded-2xl border p-4 sm:p-5 flex flex-wrap items-center gap-3" style={{ background: UI.card, borderColor: UI.line }}>
           <input
