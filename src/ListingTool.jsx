@@ -133,6 +133,9 @@ const DEFAULTS = {
   roundupBg: "#23271E",
   spotlightEyebrow: "Now on the market",
   spotlightCardBg: "#161B26",
+  editorialBg: "#FFFFFF",
+  collageBg: "#F7F4EF",
+  modernBg: "#FFFFFF",
   agentName: "Your Name, Realtor",
   agentPhone: "(555) 123-4567",
   agentEmail: "you@example.com",
@@ -532,8 +535,16 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
   // ---- Editorial layout: single dominant photo, centered headline, stats row, arched photo strip ----
   const drawEditorialLayout = (ctx, w, h) => {
-    ctx.fillStyle = WHITE;
+    const bg = form.editorialBg;
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
+    // Flips ink/muted text (and empty-photo placeholders) to white/light
+    // when someone picks a dark background instead of the default white.
+    const isLight = isLightColor(bg);
+    const textColor = isLight ? UI.ink : WHITE;
+    const mutedColor = isLight ? UI.inkSoft : "rgba(255,255,255,0.65)";
+    const placeholderColor = isLight ? "#D8CFC9" : "#3A3A3A";
+    const stripPlaceholder = isLight ? "#E5DCD6" : "#3D3935";
 
     const topBarH = h * 0.07;
     ctx.textAlign = "left";
@@ -547,16 +558,16 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       const after = brokerageUpper.slice(mainLineIdx + "MAIN LINE".length);
       const totalW = ctx.measureText(before + highlight + after).width;
       let cx = w / 2 - totalW / 2;
-      ctx.fillStyle = UI.ink;
+      ctx.fillStyle = textColor;
       ctx.fillText(before, cx, brokerageY);
       cx += ctx.measureText(before).width;
       ctx.fillStyle = "#0043FF";
       ctx.fillText(highlight, cx, brokerageY);
       cx += ctx.measureText(highlight).width;
-      ctx.fillStyle = UI.ink;
+      ctx.fillStyle = textColor;
       ctx.fillText(after, cx, brokerageY);
     } else {
-      ctx.fillStyle = UI.ink;
+      ctx.fillStyle = textColor;
       ctx.textAlign = "center";
       ctx.fillText(brokerageUpper, w / 2, brokerageY);
     }
@@ -566,13 +577,13 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const heroY = topBarH;
     if (photo.img) drawCover(ctx, photo.img, 0, heroY, w, heroH, photo.focus.x, photo.focus.y, photo.zoom);
     else {
-      ctx.fillStyle = "#D8CFC9";
+      ctx.fillStyle = placeholderColor;
       ctx.fillRect(0, heroY, w, heroH);
     }
 
     const headlineY0 = heroY + heroH;
     const headlineH = h * 0.1;
-    ctx.fillStyle = WHITE;
+    ctx.fillStyle = bg;
     ctx.fillRect(0, headlineY0, w, headlineH);
     ctx.fillStyle = form.accentColor;
     ctx.font = scriptFontCss(form.scriptFont, headlineH * 0.44);
@@ -580,12 +591,12 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillText(form.bigHeadline.toUpperCase(), w / 2, headlineY0 + headlineH * 0.55);
 
     ctx.font = `500 ${headlineH * 0.2}px "Montserrat", sans-serif`;
-    ctx.fillStyle = UI.inkSoft;
+    ctx.fillStyle = mutedColor;
     ctx.fillText(form.address, w / 2, headlineY0 + headlineH * 0.85);
 
     const statsY0 = headlineY0 + headlineH;
     const statsH = h * 0.06;
-    ctx.fillStyle = WHITE;
+    ctx.fillStyle = bg;
     ctx.fillRect(0, statsY0, w, statsH);
     ctx.font = `700 ${statsH * 0.36}px "Montserrat", sans-serif`;
     const statsParts = [`${form.beds} bd`, `${form.baths} ba`, `${form.sqft} sf`].filter(Boolean).join("     ");
@@ -594,7 +605,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.textAlign = "left";
     const totalW = ctx.measureText(statsParts + gapText + priceText).width;
     let cursorX = w / 2 - totalW / 2;
-    ctx.fillStyle = UI.ink;
+    ctx.fillStyle = textColor;
     ctx.fillText(statsParts, cursorX, statsY0 + statsH * 0.62);
     cursorX += ctx.measureText(statsParts + gapText).width;
     ctx.fillStyle = form.accentColor;
@@ -617,7 +628,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       } else {
         ctx.save();
         archedRect(ctx, tx, stripY0, tileW, stripH);
-        ctx.fillStyle = "#E5DCD6";
+        ctx.fillStyle = stripPlaceholder;
         ctx.fill();
         ctx.restore();
       }
@@ -630,11 +641,18 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
   // ---- Collage layout: bold top headline, offset photo collage, script signature ----
   const drawCollageLayout = (ctx, w, h) => {
-    ctx.fillStyle = "#F7F4EF";
+    const bg = form.collageBg;
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
+    // Flips headline/stats text (and empty-photo placeholders) to white/light
+    // when someone picks a dark background instead of the default off-white.
+    const isLight = isLightColor(bg);
+    const textColor = isLight ? BLACK : WHITE;
+    const placeholderColor = isLight ? "#D8CFC9" : "#3A3A3A";
+    const sidePlaceholder = isLight ? "#DED4CC" : "#403C38";
 
     const topH = h * 0.16;
-    ctx.fillStyle = "#000000";
+    ctx.fillStyle = textColor;
     ctx.textAlign = "center";
     const spacedHeadline = form.bigHeadline.toUpperCase().split("").join("\u2009");
     let headSize = topH * 0.5;
@@ -664,7 +682,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const sideTileH = (collageH - w * 0.02) / 2;
 
     if (photo.img) drawCover(ctx, photo.img, pad, collageY0, mainW, collageH, photo.focus.x, photo.focus.y, photo.zoom);
-    else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(pad, collageY0, mainW, collageH); }
+    else { ctx.fillStyle = placeholderColor; ctx.fillRect(pad, collageY0, mainW, collageH); }
 
     if (form.address) {
       const bubbleFont = w * 0.024;
@@ -687,11 +705,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     }
 
     if (photo2.img) drawCover(ctx, photo2.img, sideX, collageY0, sideW, sideTileH);
-    else { ctx.fillStyle = "#DED4CC"; ctx.fillRect(sideX, collageY0, sideW, sideTileH); }
+    else { ctx.fillStyle = sidePlaceholder; ctx.fillRect(sideX, collageY0, sideW, sideTileH); }
 
     const tile2Y = collageY0 + sideTileH + w * 0.02;
     if (photo3.img) drawCover(ctx, photo3.img, sideX, tile2Y, sideW, sideTileH);
-    else { ctx.fillStyle = "#DED4CC"; ctx.fillRect(sideX, tile2Y, sideW, sideTileH); }
+    else { ctx.fillStyle = sidePlaceholder; ctx.fillRect(sideX, tile2Y, sideW, sideTileH); }
 
     if (hasStats) {
       const statY0 = collageY0 + collageH;
@@ -704,7 +722,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.stroke();
 
       ctx.font = `700 ${statBandH * 0.32}px "Montserrat", sans-serif`;
-      ctx.fillStyle = UI.ink;
+      ctx.fillStyle = textColor;
       ctx.textAlign = "center";
       ctx.fillText(statParts.join("   ·   "), w / 2, statY0 + statBandH * 0.76);
       ctx.textAlign = "left";
@@ -715,8 +733,18 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
   // ---- Modern layout: script + serif headline, stat line, 4-up photo strip (incl. headshot), black message bar ----
   const drawModernLayout = (ctx, w, h) => {
-    ctx.fillStyle = WHITE;
+    const bg = form.modernBg;
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
+    // Flips headline/stats text (and empty-photo placeholders) to white/light
+    // when someone picks a dark background instead of the default white. The
+    // bottom message bar stays black/white regardless — it's a fixed accent
+    // bar, not part of the page background.
+    const isLight = isLightColor(bg);
+    const textColor = isLight ? UI.ink : WHITE;
+    const mutedColor = isLight ? UI.inkSoft : "rgba(255,255,255,0.65)";
+    const placeholderColor = isLight ? "#D8CFC9" : "#3A3A3A";
+    const stripPlaceholder = isLight ? "#E5DCD6" : "#3D3935";
 
     // Fixed-height bands from the bottom up; the hero photo takes whatever's left.
     // "Just Sold" has nothing left to invite more details about, so it skips
@@ -730,7 +758,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const heroH = h - headlineH - stripGap - stripH - contactH - barH;
 
     if (photo.img) drawCover(ctx, photo.img, 0, 0, w, heroH, photo.focus.x, photo.focus.y, photo.zoom);
-    else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(0, 0, w, heroH); }
+    else { ctx.fillStyle = placeholderColor; ctx.fillRect(0, 0, w, heroH); }
 
     // ---- Headline: cursive "just" + letter-spaced serif "LISTED" ----
     const headlineY0 = heroH;
@@ -765,7 +793,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillText(form.modernScript, hx, hy);
     hx += scriptW + gap;
     ctx.font = `700 ${capsSize}px "Playfair Display", serif`;
-    ctx.fillStyle = UI.ink;
+    ctx.fillStyle = textColor;
     ctx.fillText(spacedCaps(), hx, hy);
 
     // ---- Stat line (beds/baths/sqft, plus price in the accent color) ----
@@ -778,7 +806,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const totalStatsW = ctx.measureText(statsText + gapText + priceText).width;
     ctx.textAlign = "left";
     let statsCursorX = w / 2 - totalStatsW / 2;
-    ctx.fillStyle = UI.inkSoft;
+    ctx.fillStyle = mutedColor;
     ctx.fillText(statsText, statsCursorX, statsY);
     statsCursorX += ctx.measureText(statsText + gapText).width;
     ctx.fillStyle = form.accentColor;
@@ -800,11 +828,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     tiles.forEach((p, i) => {
       const tx = i * tileW;
       if (p.img) drawCover(ctx, p.img, tx, stripY0, tileW, stripH);
-      else { ctx.fillStyle = "#E5DCD6"; ctx.fillRect(tx, stripY0, tileW, stripH); }
+      else { ctx.fillStyle = stripPlaceholder; ctx.fillRect(tx, stripY0, tileW, stripH); }
     });
     const headshotX = tileW * 3;
     if (headshot.img) drawCover(ctx, headshot.img, headshotX, stripY0, tileW, stripH);
-    else { ctx.fillStyle = "#E5DCD6"; ctx.fillRect(headshotX, stripY0, tileW, stripH); }
+    else { ctx.fillStyle = stripPlaceholder; ctx.fillRect(headshotX, stripY0, tileW, stripH); }
 
     // ---- Contact band (brokerage-required, shared across every layout) ----
     // The agent's photo is already the 4th strip tile above, so skip the
@@ -1887,6 +1915,22 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 </label>
               )}
 
+              {form.layout === "editorial" && (
+                <div className="md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BACKGROUND COLOR</span>
+                  <ColorSwatchPicker value={form.editorialBg} onChange={(v) => setForm((f) => ({ ...f, editorialBg: v }))} presets={BG_PRESETS} size="1.75rem" />
+                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Text switches to light automatically on a dark background.</span>
+                </div>
+              )}
+
+              {form.layout === "collage" && (
+                <div className="md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BACKGROUND COLOR</span>
+                  <ColorSwatchPicker value={form.collageBg} onChange={(v) => setForm((f) => ({ ...f, collageBg: v }))} presets={BG_PRESETS} size="1.75rem" />
+                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Text switches to light automatically on a dark background.</span>
+                </div>
+              )}
+
               {form.layout === "modern" && (
                 <label className="block md:col-span-2">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
@@ -1904,6 +1948,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BOTTOM BAR MESSAGE</span>
                   <input className="input" value={form.bottomMessage} onChange={update("bottomMessage")} placeholder="Message for more details" />
                 </label>
+              )}
+
+              {form.layout === "modern" && (
+                <div className="md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BACKGROUND COLOR</span>
+                  <ColorSwatchPicker value={form.modernBg} onChange={(v) => setForm((f) => ({ ...f, modernBg: v }))} presets={BG_PRESETS} size="1.75rem" />
+                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Text switches to light automatically on a dark background.</span>
+                </div>
               )}
 
               {(form.layout === "signature" || form.layout === "spotlight") && (
