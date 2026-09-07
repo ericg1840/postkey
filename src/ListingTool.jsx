@@ -25,7 +25,7 @@ const STYLE_OPTIONS = [
   { key: "modern", label: "Modern", description: "Script headline with photo strip" },
   { key: "signature", label: "Signature", description: "Full photo, script overlay, CTA bar" },
   { key: "ribbon", label: "Ribbon", description: "Corner ribbon banner with full photo" },
-  { key: "roundup", label: "Roundup", description: "Show off three listings in one post" },
+  { key: "roundup", label: "Roundup", description: "Show off your latest settlements" },
   { key: "spotlight", label: "Spotlight", description: "Hero card treatment for one property" },
 ];
 
@@ -125,9 +125,11 @@ const DEFAULTS = {
   address2: "812 Willow Creek Ln, Warminster",
   beds2: "3",
   baths2: "2",
+  price2: "$1,850,000",
   address3: "56 Founders Way, Warminster",
   beds3: "3",
   baths3: "3",
+  price3: "$2,010,000",
   roundupSubtitle: "Take a look at our new luxury listings",
   roundupBg: "#23271E",
   spotlightEyebrow: "Now on the market",
@@ -1185,12 +1187,24 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.textBaseline = "alphabetic";
     };
 
-    // `availH` bounds the whole caption (address + rule + beds/baths) so the
-    // same helper stays legible whether it's sizing the wider hero caption
-    // or the tighter two-up caption below it.
-    const drawCaption = (x, y0, width, availH, address, beds, baths) => {
-      const y = y0 + availH * 0.08;
-      let addrSize = availH * 0.3;
+    // `availH` bounds the whole caption (price + address + rule + beds/baths)
+    // so the same helper stays legible whether it's sizing the wider hero
+    // caption or the tighter two-up caption below it.
+    const drawCaption = (x, y0, width, availH, address, beds, baths, price) => {
+      let y = y0 + availH * 0.08;
+
+      if (price) {
+        let priceSize = availH * 0.22;
+        ctx.font = `800 ${priceSize}px "Public Sans", sans-serif`;
+        const priceW = ctx.measureText(price).width;
+        if (priceW > width) priceSize *= width / priceW;
+        ctx.font = `800 ${priceSize}px "Public Sans", sans-serif`;
+        ctx.fillStyle = form.accentColor;
+        ctx.fillText(price, x, y + priceSize);
+        y += priceSize * 1.4;
+      }
+
+      let addrSize = availH * (price ? 0.24 : 0.3);
       ctx.font = `600 ${addrSize}px "Public Sans", sans-serif`;
       const addrW = ctx.measureText(address).width;
       if (addrW > width) addrSize *= width / addrW;
@@ -1207,7 +1221,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.stroke();
 
       const statsText = [beds && `${beds} Bedrooms`, baths && `${baths} Bathrooms`].filter(Boolean).join(", ");
-      let statsSize = availH * 0.24;
+      let statsSize = availH * (price ? 0.2 : 0.24);
       ctx.font = `500 ${statsSize}px "Public Sans", sans-serif`;
       const statsW = ctx.measureText(statsText).width;
       if (statsW > width) statsSize *= width / statsW;
@@ -1220,7 +1234,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     if (photo.img) drawCover(ctx, photo.img, heroX, 0, heroW, heroPhotoH, photo.focus.x, photo.focus.y, photo.zoom);
     else { ctx.fillStyle = placeholderColor; ctx.fillRect(heroX, 0, heroW, heroPhotoH); }
     drawTag("01", heroX, 0, heroW, heroPhotoH);
-    drawCaption(heroX, heroPhotoH, heroW, heroCaptionH, form.address, form.beds, form.baths);
+    drawCaption(heroX, heroPhotoH, heroW, heroCaptionH, form.address, form.beds, form.baths, form.price);
 
     // ---- Bottom pair (listings 2 & 3), tagged 02/03 ----
     const pairY0 = heroBlockH;
@@ -1240,8 +1254,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     drawTag("03", tile3X, pairY0, tileW, tileH);
 
     const pairCaptionY = pairY0 + tileH;
-    drawCaption(tile2X, pairCaptionY, tileW, pairCaptionH, form.address2, form.beds2, form.baths2);
-    drawCaption(tile3X, pairCaptionY, tileW, pairCaptionH, form.address3, form.beds3, form.baths3);
+    drawCaption(tile2X, pairCaptionY, tileW, pairCaptionH, form.address2, form.beds2, form.baths2, form.price2);
+    drawCaption(tile3X, pairCaptionY, tileW, pairCaptionH, form.address3, form.beds3, form.baths3, form.price3);
 
     // ---- Contact band (brokerage-required, shared across every layout) ----
     drawContactBand(ctx, w, contentH, contactH, form, headshot, logo);
@@ -1740,7 +1754,10 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                         style={{ display: "block", width: "100%", height: "auto" }}
                       />
                     </div>
-                    <span className="font-body text-xs font-semibold block px-2.5 py-2" style={{ color: UI.ink }}>{label}</span>
+                    <span className="block px-2.5 pt-2">
+                      <span className="font-body text-xs font-semibold block" style={{ color: UI.ink }}>{label}</span>
+                      <span className="font-body text-xs block mt-0.5 pb-1.5" style={{ color: UI.inkSoft }}>{description}</span>
+                    </span>
                   </button>
                 ))}
               </div>
@@ -1817,7 +1834,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                       <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
                       <input className="input" value={form.address2} onChange={update("address2")} />
                     </label>
-                    <div className="grid grid-cols-2 gap-2 mt-3">
+                    <div className="grid grid-cols-3 gap-2 mt-3">
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PRICE</span>
+                        <input className="input" value={form.price2} onChange={update("price2")} />
+                      </label>
                       <label className="block">
                         <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
                         <input className="input" value={form.beds2} onChange={update("beds2")} />
@@ -1833,7 +1854,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                       <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
                       <input className="input" value={form.address3} onChange={update("address3")} />
                     </label>
-                    <div className="grid grid-cols-2 gap-2 mt-3">
+                    <div className="grid grid-cols-3 gap-2 mt-3">
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PRICE</span>
+                        <input className="input" value={form.price3} onChange={update("price3")} />
+                      </label>
                       <label className="block">
                         <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
                         <input className="input" value={form.beds3} onChange={update("beds3")} />
