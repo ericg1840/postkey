@@ -347,6 +347,33 @@ export function mixWithWhite(hex, amount) {
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
 
+export function hexToRgba(hex, alpha) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+export function mixWithBlack(hex, amount) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const mix = (c) => Math.round(c * (1 - amount));
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
+
+// Relative-luminance check (WCAG formula) — used to flip a layout's text
+// from white-on-dark to black-on-light when someone picks a light custom
+// background color, instead of baking "dark background" into the layout.
+export function isLightColor(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const [rl, gl, bl] = [r, g, b].map((c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  const luminance = 0.2126 * rl + 0.7152 * gl + 0.0722 * bl;
+  return luminance > 0.55;
+}
+
 export function drawCover(ctx, img, dx, dy, dW, dH, focusX = 0.5, focusY = 0.5, zoom = 1) {
   const imgRatio = img.width / img.height;
   const boxRatio = dW / dH;
@@ -575,6 +602,41 @@ export function useUploadedImage() {
   return { img, name, load, clear, focus, setFocus, zoom, setZoom };
 }
 
+// Headshots and logos are the only uploads that get persisted (as data URLs
+// on the brand kit) and handed back on every single page load by
+// /api/auth/me — so a straight-off-the-phone 8MP photo would sit in front of
+// every app start forever, at ~1.3x its file size once base64'd. They're
+// only ever drawn a couple hundred pixels wide in the contact band, so cap
+// the stored copy well above that and leave anything already smaller alone.
+const AGENT_ASSET_MAX_DIM = 640;
+
+function downscaleDataUrl(dataUrl, type) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      const longest = Math.max(image.width, image.height);
+      if (longest <= AGENT_ASSET_MAX_DIM) return resolve(dataUrl);
+      const scale = AGENT_ASSET_MAX_DIM / longest;
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      try {
+        // JPEG only for source photos — a logo is usually a transparent PNG,
+        // and re-encoding that as JPEG would fill the transparency in black.
+        resolve(type === "image/jpeg" ? canvas.toDataURL("image/jpeg", 0.9) : canvas.toDataURL("image/png"));
+      } catch {
+        resolve(dataUrl);
+      }
+    };
+    // Unreadable/animated formats the canvas can't take: keep the original
+    // rather than dropping the upload on the floor.
+    image.onerror = () => resolve(dataUrl);
+    image.src = dataUrl;
+  });
+}
+
 // Loads a default hosted image (e.g. a standing headshot/logo) but still lets the
 // agent swap in a different file any time — upload always takes priority over the
 // default. If initialCustomUrl is given (e.g. loaded from a saved brand kit), that
@@ -604,11 +666,12 @@ export function useAgentAsset(defaultUrl, defaultLabel, initialCustomUrl) {
   const load = (file) => {
     if (!file || !file.type.startsWith("image/")) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
+      const dataUrl = await downscaleDataUrl(e.target.result, file.type);
       const image = new Image();
       image.onload = () => setImg(image);
-      image.src = e.target.result;
-      setUrl(e.target.result);
+      image.src = dataUrl;
+      setUrl(dataUrl);
     };
     setName(file.name);
     setSource("custom");
@@ -1057,7 +1120,11 @@ export const POST_DRAFTS_STORAGE_KEY = "postkey_post_drafts";
 export function loadPostDrafts() {
   try {
     const raw = localStorage.getItem(POST_DRAFTS_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    // Valid JSON that isn't an array (a half-written key, an older format)
+    // would otherwise blow up every caller's .find()/.map() rather than
+    // degrading to "no drafts yet".
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }

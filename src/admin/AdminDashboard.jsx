@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Users, CreditCard, DollarSign, UserPlus, Download, MoreVertical, X, ArrowLeft } from "lucide-react";
+import { Users, CreditCard, DollarSign, UserPlus, Download, MoreVertical, X, ArrowLeft, Activity, Image, Link2, Eye, CheckCircle2, Search, TrendingDown, BarChart3 } from "lucide-react";
 import { UI, ACCENT, WHITE, ERROR } from "../shared.jsx";
 import { api } from "../auth/AuthContext.jsx";
 
@@ -104,9 +104,6 @@ function ActionsMenu({ user, onAction }) {
       if (menuRef.current?.contains(e.target) || buttonRef.current?.contains(e.target)) return;
       setOpen(false);
     };
-    // Any ancestor scrolling (the table's own horizontal scroll included)
-    // would leave a portaled menu pointing at empty space — closing it is
-    // simpler and safer than tracking the button's position live.
     const onScrollOrResize = () => setOpen(false);
     document.addEventListener("mousedown", onDocClick);
     window.addEventListener("scroll", onScrollOrResize, true);
@@ -356,6 +353,95 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
   );
 }
 
+function FunnelChart({ funnel, title = "Where people drop off" }) {
+  const maxCount = funnel[0]?.count || 1;
+  return (
+    <div className="rounded-2xl border p-5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
+      <div className="flex items-center gap-2 mb-4">
+        <TrendingDown size={18} color={UI.ink} />
+        <h2 className="font-display font-bold text-lg" style={{ color: UI.ink }}>{title}</h2>
+      </div>
+      <div className="grid gap-3">
+        {funnel.map((stage, i) => (
+          <div key={stage.key}>
+            <div className="flex items-baseline justify-between mb-1 font-body text-sm">
+              <span style={{ color: UI.ink }}>{stage.label}</span>
+              <span style={{ color: UI.inkSoft }}>
+                {stage.count.toLocaleString()} · {stage.pctOfTotal}%
+                {i > 0 && <span className="font-mono text-xs"> ({stage.pctOfPrevious}% of prior step)</span>}
+              </span>
+            </div>
+            <div className="rounded-full overflow-hidden" style={{ background: UI.stone, height: 10 }}>
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${maxCount > 0 ? (stage.count / maxCount) * 100 : 0}%`, background: ACCENT }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TopPages({ topPages }) {
+  const maxViews = Math.max(1, ...topPages.map((p) => p.views));
+  return (
+    <div className="rounded-2xl border p-5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
+      <div className="flex items-center gap-2 mb-4">
+        <Eye size={18} color={UI.ink} />
+        <h2 className="font-display font-bold text-lg" style={{ color: UI.ink }}>Top marketing pages (30d)</h2>
+      </div>
+      {topPages.length === 0 && <p className="font-body text-sm" style={{ color: UI.inkSoft }}>No marketing site traffic in the last 30 days.</p>}
+      <div className="grid gap-3">
+        {topPages.map((p) => (
+          <div key={p.path}>
+            <div className="flex items-baseline justify-between mb-1 font-body text-sm">
+              <span style={{ color: UI.ink }}>{p.label}</span>
+              <span style={{ color: UI.inkSoft }}>
+                {p.views.toLocaleString()} view{p.views === 1 ? "" : "s"} · {p.visitors.toLocaleString()} visitor{p.visitors === 1 ? "" : "s"}
+              </span>
+            </div>
+            <div className="rounded-full overflow-hidden" style={{ background: UI.stone, height: 10 }}>
+              <div className="h-full rounded-full" style={{ width: `${(p.views / maxViews) * 100}%`, background: UI.ink }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FeatureUsage({ featureUsage }) {
+  const maxEvents = Math.max(1, ...featureUsage.map((f) => f.events30d));
+  return (
+    <div className="rounded-2xl border p-5 sm:p-6" style={{ background: UI.card, borderColor: UI.line }}>
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 size={18} color={UI.ink} />
+        <h2 className="font-display font-bold text-lg" style={{ color: UI.ink }}>Most used features (30d)</h2>
+      </div>
+      {featureUsage.every((f) => f.events30d === 0) && (
+        <p className="font-body text-sm" style={{ color: UI.inkSoft }}>No feature activity in the last 30 days.</p>
+      )}
+      <div className="grid gap-3">
+        {featureUsage.filter((f) => f.events30d > 0).map((f) => (
+          <div key={f.eventType}>
+            <div className="flex items-baseline justify-between mb-1 font-body text-sm">
+              <span style={{ color: UI.ink }}>{f.label}</span>
+              <span style={{ color: UI.inkSoft }}>
+                {f.events30d.toLocaleString()} uses · {f.users30d.toLocaleString()} user{f.users30d === 1 ? "" : "s"}
+              </span>
+            </div>
+            <div className="rounded-full overflow-hidden" style={{ background: UI.stone, height: 10 }}>
+              <div className="h-full rounded-full" style={{ width: `${(f.events30d / maxEvents) * 100}%`, background: UI.ink }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ActivityFeed({ refreshKey }) {
   const [events, setEvents] = useState(null);
   const [error, setError] = useState("");
@@ -394,6 +480,8 @@ function ActivityFeed({ refreshKey }) {
 
 export function AdminDashboard({ onExit }) {
   const [stats, setStats] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsError, setAnalyticsError] = useState("");
   const [users, setUsers] = useState(null);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -408,6 +496,7 @@ export function AdminDashboard({ onExit }) {
 
   useEffect(() => {
     api("/api/admin/stats").then(setStats).catch((e) => setError(e.message));
+    api("/api/admin/analytics").then(setAnalytics).catch((e) => setAnalyticsError(e.message));
   }, [feedKey]);
 
   const loadUsers = useCallback(() => {
@@ -452,7 +541,7 @@ export function AdminDashboard({ onExit }) {
   return (
     <div className="min-h-dvh" style={{ background: UI.page }}>
       <header className="sticky top-0 z-30" style={{ borderBottom: `2px solid ${UI.ink}`, background: UI.page }}>
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button onClick={onExit} aria-label="Back to app" className="flex items-center justify-center rounded-lg" style={{ color: UI.ink }}>
               <ArrowLeft size={20} />
@@ -472,12 +561,43 @@ export function AdminDashboard({ onExit }) {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8 grid gap-6">
         {error && <p className="font-body text-sm" style={{ color: ERROR }}>{error}</p>}
 
+        {/* Business metrics */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard icon={Users} label="Total users" value={stats ? stats.totalUsers.toLocaleString() : "…"} />
           <StatCard icon={CreditCard} label="Active subscribers" value={stats ? stats.activeSubscribers.toLocaleString() : "…"} />
           <StatCard icon={DollarSign} label="MRR" value={stats ? formatCents(stats.mrrCents) : "…"} />
           <StatCard icon={UserPlus} label="New signups (mo.)" value={stats ? stats.newSignupsThisMonth.toLocaleString() : "…"} />
         </div>
+
+        {/* Product engagement */}
+        <div>
+          <h2 className="font-display font-bold text-lg mb-3" style={{ color: UI.ink }}>Product engagement</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard icon={Activity} label="Active users (7d)" value={stats ? stats.activeUsers7d.toLocaleString() : "…"} />
+            <StatCard icon={Activity} label="Active users (30d)" value={stats ? stats.activeUsers30d.toLocaleString() : "…"} />
+            <StatCard icon={Image} label="Posts this week" value={stats ? stats.postsThisWeek.toLocaleString() : "…"} />
+            <StatCard icon={Image} label="Posts total" value={stats ? stats.postsTotal.toLocaleString() : "…"} />
+            <StatCard
+              icon={CheckCircle2}
+              label="Onboarded"
+              value={stats ? `${stats.onboardedCount.toLocaleString()} (${stats.onboardedPct}%)` : "…"}
+            />
+            <StatCard icon={Link2} label="Key Link pages" value={stats ? stats.bioPages.toLocaleString() : "…"} />
+            <StatCard icon={Eye} label="Public views (7d)" value={stats ? stats.publicViewsThisWeek.toLocaleString() : "…"} />
+            <StatCard icon={Search} label="Zillow pulls total" value={stats ? stats.zillowPullsTotal.toLocaleString() : "…"} />
+          </div>
+        </div>
+
+        {/* Funnel + feature usage */}
+        {analyticsError && <p className="font-body text-sm" style={{ color: ERROR }}>{analyticsError}</p>}
+        {analytics && (
+          <div className="grid lg:grid-cols-2 gap-6">
+            <FunnelChart funnel={analytics.marketingFunnel} title="Where visitors drop off before signing up" />
+            <TopPages topPages={analytics.topPages} />
+            <FunnelChart funnel={analytics.funnel} />
+            <FeatureUsage featureUsage={analytics.featureUsage} />
+          </div>
+        )}
 
         <div className="rounded-2xl border p-4 sm:p-5 flex flex-wrap items-center gap-3" style={{ background: UI.card, borderColor: UI.line }}>
           <input

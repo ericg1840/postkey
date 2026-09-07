@@ -8,7 +8,26 @@ export async function sendEmail({ to, subject, html, text }, env) {
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({ from, to: [to], subject, html, text }),
   });
-  if (!res.ok) throw new Error(`Resend API error: ${res.status}`);
+  if (!res.ok) {
+    // Resend's error body names the actual problem (unverified domain,
+    // invalid API key, rate limit, ...) — a bare status code isn't enough
+    // to debug from the welcome_email_failed activity event alone.
+    const body = await res.text().catch(() => "");
+    throw new Error(`Resend API error ${res.status}: ${body || "no response body"}`);
+  }
+}
+
+// Anything a user typed (their name, their email address) that gets dropped
+// into an email's HTML has to go through this first — a signup name like
+// `<a href="...">` would otherwise render as real markup inside a message
+// sent from our own domain.
+export function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // Hidden preview text shown next to the subject line in inbox lists. Padded

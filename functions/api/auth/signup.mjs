@@ -1,17 +1,20 @@
 import { getDb } from "../../_lib/db.mjs";
-import { hashPassword, createSessionToken, sessionCookie, json } from "../../_lib/auth.mjs";
-import { sendEmail, preheader } from "../../_lib/email.mjs";
+import { hashPassword, createSessionToken, sessionCookie, json, MAX_PASSWORD_LENGTH } from "../../_lib/auth.mjs";
+import { sendEmail, preheader, escapeHtml } from "../../_lib/email.mjs";
 import { logEvent } from "../../_lib/activity.mjs";
 import { checkRateLimit, getClientIp } from "../../_lib/rateLimit.mjs";
 
 async function sendWelcomeEmail(toEmail, firstName, appUrl, env) {
+  // Their own signup name, so it lands in the HTML body escaped — the plain
+  // text alternative below takes it raw, since there's no markup to break.
+  const safeName = escapeHtml(firstName);
   await sendEmail(
     {
       to: toEmail,
       subject: "Welcome to PostKey!",
       html: `
       <meta charset="utf-8">
-      ${preheader(`Set up your brand kit, ${firstName} &mdash; your first post is a couple of minutes away.`)}
+      ${preheader(`Set up your brand kit, ${safeName} &mdash; your first post is a couple of minutes away.`)}
       <div style="background:#FDFBF7;padding:40px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
         <div style="max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;border:1px solid #EAE4D8;">
           <div style="padding:40px 40px 8px;text-align:center;">
@@ -25,7 +28,7 @@ async function sendWelcomeEmail(toEmail, firstName, appUrl, env) {
                 <td style="padding-left:12px;font-family:Georgia,'Times New Roman',serif;font-size:21px;font-weight:700;color:#1B2430;">PostKey</td>
               </tr>
             </table>
-            <p style="margin:0 0 18px;font-size:15px;color:#1B2430;text-align:left;">Hey ${firstName},</p>
+            <p style="margin:0 0 18px;font-size:15px;color:#1B2430;text-align:left;">Hey ${safeName},</p>
             <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#1B2430;text-align:left;">
               Welcome to PostKey! We built this so you never have to stare at a blank screen wondering what to post &mdash; set up your brand once, and every graphic comes out looking like you.
             </p>
@@ -81,10 +84,14 @@ export async function onRequestPost({ request, env }) {
   const email = (body?.email || "").trim().toLowerCase();
   const password = body?.password || "";
   const fullName = (body?.fullName || "").trim();
+  const anonIdRaw = String(body?.anonId || "");
+  const anonId = /^[a-zA-Z0-9-]{1,64}$/.test(anonIdRaw) ? anonIdRaw : null;
 
-  if (!email || !email.includes("@")) return json({ error: "Enter a valid email." }, { status: 400 });
+  if (!email || !email.includes("@") || email.length > 254) return json({ error: "Enter a valid email." }, { status: 400 });
   if (password.length < 8) return json({ error: "Password must be at least 8 characters." }, { status: 400 });
+  if (password.length > MAX_PASSWORD_LENGTH) return json({ error: `Password must be ${MAX_PASSWORD_LENGTH} characters or fewer.` }, { status: 400 });
   if (!fullName) return json({ error: "Enter your name." }, { status: 400 });
+  if (fullName.length > 120) return json({ error: "That name is too long." }, { status: 400 });
 
   const db = getDb(env);
 
@@ -106,7 +113,7 @@ export async function onRequestPost({ request, env }) {
   `;
   await db.sql`INSERT INTO brand_kits (user_id, agent_name) VALUES (${user.id}, ${fullName})`;
   await db.sql`INSERT INTO subscriptions (user_id, tier, status, monthly_amount_cents) VALUES (${user.id}, 'free', 'active', 0)`;
-  await logEvent(db, user.id, "signup", { email: user.email });
+  await logEvent(db, user.id, "signup", { email: user.email, anonId });
 
   const token = createSessionToken(user.id, env);
 

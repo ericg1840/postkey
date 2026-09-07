@@ -6,7 +6,7 @@ import {
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, ColorSwatchPicker, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
-  mixWithWhite, drawCover, wrapText, roundRect, archedRect, drawContactBand,
+  mixWithWhite, mixWithBlack, isLightColor, hexToRgba, drawCover, wrapText, roundRect, archedRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, PhotoReposition, TopNav, isMobileDevice,
   Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord, firstNameOf,
   peekPostHandoff, clearPostHandoff, shareImageToFacebook,
@@ -25,10 +25,12 @@ const STYLE_OPTIONS = [
   { key: "modern", label: "Modern", description: "Script headline with photo strip" },
   { key: "signature", label: "Signature", description: "Full photo, script overlay, CTA bar" },
   { key: "ribbon", label: "Ribbon", description: "Corner ribbon banner with full photo" },
+  { key: "roundup", label: "Roundup", description: "Show off your latest settlements" },
+  { key: "spotlight", label: "Spotlight", description: "Hero card treatment for one property" },
 ];
 
 // Layouts built around a single hero photo instead of a 3-photo strip/collage.
-const SINGLE_PHOTO_LAYOUTS = ["bold", "signature", "ribbon"];
+const SINGLE_PHOTO_LAYOUTS = ["bold", "signature", "ribbon", "spotlight"];
 
 // "What are you posting?" — the event, independent of which visual Style
 // draws it. Applying one fills in every layout's headline representation
@@ -58,6 +60,13 @@ const RIBBON_ICONS = [
   { key: "calendar", label: "Calendar" },
 ];
 
+// Background swatches for Roundup/Spotlight — spans dark-to-light instead
+// of the vivid ACCENT_PRESETS hues, since this picks a large backdrop/card
+// fill rather than a small highlight color. Text automatically flips
+// light/dark to stay legible against whichever of these (or a custom hex)
+// gets picked.
+const BG_PRESETS = ["#23271E", "#161B26", "#111111", "#3A1220", "#FFFFFF", "#F1EAD8"];
+
 const TEMPLATE_RIBBON_ICON = {
   sold: "key",
   just_listed: "house",
@@ -80,6 +89,16 @@ const TIPS = [
   { lead: "Set up your brand kit once.", text: "Save your headshot, logo, and contact info so every future post is one click away." },
 ];
 
+// yyyy-mm-dd (from a native date input) -> "March 15" — built from the raw
+// parts rather than `new Date(dateStr)` so it can't shift a day off in
+// timezones behind UTC.
+function formatListingDate(dateStr) {
+  if (!dateStr) return "";
+  const [y, m, d] = dateStr.split("-").map(Number);
+  if (!y || !m || !d) return "";
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "long", day: "numeric" });
+}
+
 const DEFAULTS = {
   layout: "bold",
   template: "sold",
@@ -89,6 +108,7 @@ const DEFAULTS = {
   bigHeadline: "JUST LISTED",
   banner: "",
   highlight: "",
+  listingDate: "",
   address: "419 Tall Oaks Dr, Warminster",
   beds: "4",
   baths: "4",
@@ -102,6 +122,21 @@ const DEFAULTS = {
   ribbonLabel: "SOLD",
   ribbonIcon: "key",
   photoTint: 0,
+  address2: "812 Willow Creek Ln, Warminster",
+  beds2: "3",
+  baths2: "2",
+  price2: "$1,850,000",
+  address3: "56 Founders Way, Warminster",
+  beds3: "3",
+  baths3: "3",
+  price3: "$2,010,000",
+  roundupSubtitle: "Take a look at our new luxury listings",
+  roundupBg: "#23271E",
+  spotlightEyebrow: "Now on the market",
+  spotlightCardBg: "#161B26",
+  editorialBg: "#FFFFFF",
+  collageBg: "#F7F4EF",
+  modernBg: "#FFFFFF",
   agentName: "Your Name, Realtor",
   agentPhone: "(555) 123-4567",
   agentEmail: "you@example.com",
@@ -314,6 +349,20 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       modernHeadline: t.script.replace(/!+$/, ""),
       ribbonLabel: t.ribbon,
       ribbonIcon: TEMPLATE_RIBBON_ICON[key] || "house",
+      listingDate: "",
+    }));
+  };
+
+  // Coming Soon's one extra field — picking a date rewrites the highlight
+  // line (Bold layout) and adds a third line to the ribbon banner (Ribbon
+  // layout) instead of needing its own drawing code in every layout.
+  const applyListingDate = (dateStr) => {
+    const formatted = formatListingDate(dateStr);
+    setForm((f) => ({
+      ...f,
+      listingDate: dateStr,
+      highlight: formatted ? `Available ${formatted}` : "",
+      ribbonLabel: formatted ? `COMING\nSOON\n${formatted.toUpperCase()}` : TEMPLATES.coming_soon.ribbon,
     }));
   };
 
@@ -487,8 +536,16 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
   // ---- Editorial layout: single dominant photo, centered headline, stats row, arched photo strip ----
   const drawEditorialLayout = (ctx, w, h) => {
-    ctx.fillStyle = WHITE;
+    const bg = form.editorialBg;
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
+    // Flips ink/muted text (and empty-photo placeholders) to white/light
+    // when someone picks a dark background instead of the default white.
+    const isLight = isLightColor(bg);
+    const textColor = isLight ? UI.ink : WHITE;
+    const mutedColor = isLight ? UI.inkSoft : "rgba(255,255,255,0.65)";
+    const placeholderColor = isLight ? "#D8CFC9" : "#3A3A3A";
+    const stripPlaceholder = isLight ? "#E5DCD6" : "#3D3935";
 
     const topBarH = h * 0.07;
     ctx.textAlign = "left";
@@ -502,16 +559,16 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       const after = brokerageUpper.slice(mainLineIdx + "MAIN LINE".length);
       const totalW = ctx.measureText(before + highlight + after).width;
       let cx = w / 2 - totalW / 2;
-      ctx.fillStyle = UI.ink;
+      ctx.fillStyle = textColor;
       ctx.fillText(before, cx, brokerageY);
       cx += ctx.measureText(before).width;
       ctx.fillStyle = "#0043FF";
       ctx.fillText(highlight, cx, brokerageY);
       cx += ctx.measureText(highlight).width;
-      ctx.fillStyle = UI.ink;
+      ctx.fillStyle = textColor;
       ctx.fillText(after, cx, brokerageY);
     } else {
-      ctx.fillStyle = UI.ink;
+      ctx.fillStyle = textColor;
       ctx.textAlign = "center";
       ctx.fillText(brokerageUpper, w / 2, brokerageY);
     }
@@ -521,13 +578,13 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const heroY = topBarH;
     if (photo.img) drawCover(ctx, photo.img, 0, heroY, w, heroH, photo.focus.x, photo.focus.y, photo.zoom);
     else {
-      ctx.fillStyle = "#D8CFC9";
+      ctx.fillStyle = placeholderColor;
       ctx.fillRect(0, heroY, w, heroH);
     }
 
     const headlineY0 = heroY + heroH;
     const headlineH = h * 0.1;
-    ctx.fillStyle = WHITE;
+    ctx.fillStyle = bg;
     ctx.fillRect(0, headlineY0, w, headlineH);
     ctx.fillStyle = form.accentColor;
     ctx.font = scriptFontCss(form.scriptFont, headlineH * 0.44);
@@ -535,12 +592,12 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillText(form.bigHeadline.toUpperCase(), w / 2, headlineY0 + headlineH * 0.55);
 
     ctx.font = `500 ${headlineH * 0.2}px "Montserrat", sans-serif`;
-    ctx.fillStyle = UI.inkSoft;
+    ctx.fillStyle = mutedColor;
     ctx.fillText(form.address, w / 2, headlineY0 + headlineH * 0.85);
 
     const statsY0 = headlineY0 + headlineH;
     const statsH = h * 0.06;
-    ctx.fillStyle = WHITE;
+    ctx.fillStyle = bg;
     ctx.fillRect(0, statsY0, w, statsH);
     ctx.font = `700 ${statsH * 0.36}px "Montserrat", sans-serif`;
     const statsParts = [`${form.beds} bd`, `${form.baths} ba`, `${form.sqft} sf`].filter(Boolean).join("     ");
@@ -549,7 +606,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.textAlign = "left";
     const totalW = ctx.measureText(statsParts + gapText + priceText).width;
     let cursorX = w / 2 - totalW / 2;
-    ctx.fillStyle = UI.ink;
+    ctx.fillStyle = textColor;
     ctx.fillText(statsParts, cursorX, statsY0 + statsH * 0.62);
     cursorX += ctx.measureText(statsParts + gapText).width;
     ctx.fillStyle = form.accentColor;
@@ -572,7 +629,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       } else {
         ctx.save();
         archedRect(ctx, tx, stripY0, tileW, stripH);
-        ctx.fillStyle = "#E5DCD6";
+        ctx.fillStyle = stripPlaceholder;
         ctx.fill();
         ctx.restore();
       }
@@ -585,11 +642,18 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
   // ---- Collage layout: bold top headline, offset photo collage, script signature ----
   const drawCollageLayout = (ctx, w, h) => {
-    ctx.fillStyle = "#F7F4EF";
+    const bg = form.collageBg;
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
+    // Flips headline/stats text (and empty-photo placeholders) to white/light
+    // when someone picks a dark background instead of the default off-white.
+    const isLight = isLightColor(bg);
+    const textColor = isLight ? BLACK : WHITE;
+    const placeholderColor = isLight ? "#D8CFC9" : "#3A3A3A";
+    const sidePlaceholder = isLight ? "#DED4CC" : "#403C38";
 
     const topH = h * 0.16;
-    ctx.fillStyle = "#000000";
+    ctx.fillStyle = textColor;
     ctx.textAlign = "center";
     const spacedHeadline = form.bigHeadline.toUpperCase().split("").join("\u2009");
     let headSize = topH * 0.5;
@@ -619,7 +683,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const sideTileH = (collageH - w * 0.02) / 2;
 
     if (photo.img) drawCover(ctx, photo.img, pad, collageY0, mainW, collageH, photo.focus.x, photo.focus.y, photo.zoom);
-    else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(pad, collageY0, mainW, collageH); }
+    else { ctx.fillStyle = placeholderColor; ctx.fillRect(pad, collageY0, mainW, collageH); }
 
     if (form.address) {
       const bubbleFont = w * 0.024;
@@ -642,11 +706,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     }
 
     if (photo2.img) drawCover(ctx, photo2.img, sideX, collageY0, sideW, sideTileH);
-    else { ctx.fillStyle = "#DED4CC"; ctx.fillRect(sideX, collageY0, sideW, sideTileH); }
+    else { ctx.fillStyle = sidePlaceholder; ctx.fillRect(sideX, collageY0, sideW, sideTileH); }
 
     const tile2Y = collageY0 + sideTileH + w * 0.02;
     if (photo3.img) drawCover(ctx, photo3.img, sideX, tile2Y, sideW, sideTileH);
-    else { ctx.fillStyle = "#DED4CC"; ctx.fillRect(sideX, tile2Y, sideW, sideTileH); }
+    else { ctx.fillStyle = sidePlaceholder; ctx.fillRect(sideX, tile2Y, sideW, sideTileH); }
 
     if (hasStats) {
       const statY0 = collageY0 + collageH;
@@ -659,7 +723,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.stroke();
 
       ctx.font = `700 ${statBandH * 0.32}px "Montserrat", sans-serif`;
-      ctx.fillStyle = UI.ink;
+      ctx.fillStyle = textColor;
       ctx.textAlign = "center";
       ctx.fillText(statParts.join("   ·   "), w / 2, statY0 + statBandH * 0.76);
       ctx.textAlign = "left";
@@ -670,8 +734,18 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
   // ---- Modern layout: script + serif headline, stat line, 4-up photo strip (incl. headshot), black message bar ----
   const drawModernLayout = (ctx, w, h) => {
-    ctx.fillStyle = WHITE;
+    const bg = form.modernBg;
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
+    // Flips headline/stats text (and empty-photo placeholders) to white/light
+    // when someone picks a dark background instead of the default white. The
+    // bottom message bar stays black/white regardless — it's a fixed accent
+    // bar, not part of the page background.
+    const isLight = isLightColor(bg);
+    const textColor = isLight ? UI.ink : WHITE;
+    const mutedColor = isLight ? UI.inkSoft : "rgba(255,255,255,0.65)";
+    const placeholderColor = isLight ? "#D8CFC9" : "#3A3A3A";
+    const stripPlaceholder = isLight ? "#E5DCD6" : "#3D3935";
 
     // Fixed-height bands from the bottom up; the hero photo takes whatever's left.
     // "Just Sold" has nothing left to invite more details about, so it skips
@@ -685,7 +759,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const heroH = h - headlineH - stripGap - stripH - contactH - barH;
 
     if (photo.img) drawCover(ctx, photo.img, 0, 0, w, heroH, photo.focus.x, photo.focus.y, photo.zoom);
-    else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(0, 0, w, heroH); }
+    else { ctx.fillStyle = placeholderColor; ctx.fillRect(0, 0, w, heroH); }
 
     // ---- Headline: cursive "just" + letter-spaced serif "LISTED" ----
     const headlineY0 = heroH;
@@ -720,7 +794,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillText(form.modernScript, hx, hy);
     hx += scriptW + gap;
     ctx.font = `700 ${capsSize}px "Playfair Display", serif`;
-    ctx.fillStyle = UI.ink;
+    ctx.fillStyle = textColor;
     ctx.fillText(spacedCaps(), hx, hy);
 
     // ---- Stat line (beds/baths/sqft, plus price in the accent color) ----
@@ -733,7 +807,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const totalStatsW = ctx.measureText(statsText + gapText + priceText).width;
     ctx.textAlign = "left";
     let statsCursorX = w / 2 - totalStatsW / 2;
-    ctx.fillStyle = UI.inkSoft;
+    ctx.fillStyle = mutedColor;
     ctx.fillText(statsText, statsCursorX, statsY);
     statsCursorX += ctx.measureText(statsText + gapText).width;
     ctx.fillStyle = form.accentColor;
@@ -755,11 +829,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     tiles.forEach((p, i) => {
       const tx = i * tileW;
       if (p.img) drawCover(ctx, p.img, tx, stripY0, tileW, stripH);
-      else { ctx.fillStyle = "#E5DCD6"; ctx.fillRect(tx, stripY0, tileW, stripH); }
+      else { ctx.fillStyle = stripPlaceholder; ctx.fillRect(tx, stripY0, tileW, stripH); }
     });
     const headshotX = tileW * 3;
     if (headshot.img) drawCover(ctx, headshot.img, headshotX, stripY0, tileW, stripH);
-    else { ctx.fillStyle = "#E5DCD6"; ctx.fillRect(headshotX, stripY0, tileW, stripH); }
+    else { ctx.fillStyle = stripPlaceholder; ctx.fillRect(headshotX, stripY0, tileW, stripH); }
 
     // ---- Contact band (brokerage-required, shared across every layout) ----
     // The agent's photo is already the 4th strip tile above, so skip the
@@ -793,7 +867,12 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
   // photo/bar boundary, agent info on the left, and a CTA + phone/website
   // on the right. ----
   const drawSignatureLayout = (ctx, w, h) => {
-    const contactH = Math.min(w, h) * 0.155;
+    // Taller than the other single-photo layouts' band (0.155 -> 0.195) to
+    // make room for the same brokerage/office/email info drawContactBand
+    // shows elsewhere — Signature's centered-headshot, CTA-quote look is
+    // custom-drawn rather than sharing that helper, but every post still
+    // needs the full set of required agent/brokerage info.
+    const contactH = Math.min(w, h) * 0.195;
     const photoH = h - contactH;
 
     // ---- Photo ----
@@ -911,12 +990,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
 
-    // Right block: user-editable CTA line + phone/website — likewise kept
-    // clear of the headshot circle.
+    // Right block: user-editable CTA line, then the same brokerage/office
+    // info drawContactBand shows on every other layout — right-aligned to
+    // match this block's existing quote/phone stack instead of the shared
+    // helper's left-aligned one.
     const rightX = w * 0.955;
     ctx.textAlign = "right";
     const rightMaxW = Math.min(w * 0.4, rightX - (hasHeadshot ? headshotRightEdge : 0) - w * 0.025);
-    let ctaSize = contactH * 0.14;
+    let ctaSize = contactH * 0.115;
     ctx.font = `italic 600 ${ctaSize}px "Playfair Display", serif`;
     let ctaLines = wrapText(ctx, form.ctaMessage, rightMaxW);
     let attempts = 0;
@@ -934,17 +1015,37 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     }
     ctx.fillStyle = textColor;
     const ctaLineH = ctaSize * 1.15;
-    const ctaY0 = bandY + contactH * 0.32 - (ctaLines.length - 1) * ctaLineH * 0.5;
+    const ctaY0 = bandY + contactH * 0.2 - (ctaLines.length - 1) * ctaLineH * 0.5;
     ctaLines.forEach((line, i) => ctx.fillText(line, rightX, ctaY0 + i * ctaLineH));
 
-    ctx.font = `800 ${contactH * 0.17}px "Montserrat", sans-serif`;
+    ctx.font = `800 ${contactH * 0.135}px "Montserrat", sans-serif`;
     shrinkToFit(form.agentPhone, rightMaxW);
     ctx.fillStyle = form.accentColor;
-    ctx.fillText(form.agentPhone, rightX, bandY + contactH * 0.73);
-    ctx.font = `600 ${contactH * 0.17 * 0.82}px "Montserrat", sans-serif`;
-    shrinkToFit(form.website, rightMaxW);
-    ctx.fillStyle = mutedColor;
-    ctx.fillText(form.website, rightX, bandY + contactH * 0.9);
+    ctx.fillText(form.agentPhone, rightX, bandY + contactH * 0.42);
+
+    if (form.agentEmail) {
+      ctx.font = `600 ${contactH * 0.095}px "Montserrat", sans-serif`;
+      shrinkToFit(form.agentEmail, rightMaxW);
+      ctx.fillStyle = mutedColor;
+      ctx.fillText(form.agentEmail, rightX, bandY + contactH * 0.57);
+    }
+
+    const brokerLine = [form.brokerageName, form.brokerageCity].filter(Boolean).join("   ·   ");
+    if (brokerLine) {
+      const brokerFont = `700 ${contactH * 0.095}px "Montserrat", sans-serif`;
+      ctx.font = brokerFont;
+      shrinkToFit(brokerLine, rightMaxW);
+      ctx.fillStyle = textColor;
+      ctx.fillText(brokerLine, rightX, bandY + contactH * 0.75);
+    }
+
+    const officeLine = [form.officePhone && `Office  ${form.officePhone}`, form.website].filter(Boolean).join("   ·   ");
+    if (officeLine) {
+      ctx.font = `500 ${contactH * 0.08}px "Montserrat", sans-serif`;
+      shrinkToFit(officeLine, rightMaxW);
+      ctx.fillStyle = mutedColor;
+      ctx.fillText(officeLine, rightX, bandY + contactH * 0.9);
+    }
     ctx.textAlign = "left";
   };
 
@@ -1043,6 +1144,364 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     drawContactBand(ctx, w, photoH, contactH, form, headshot, logo);
   };
 
+  // ---- Roundup layout: dark backdrop, serif "New listings" headline + CTA
+  // on the left, a hero photo tagged "01" on the right, then two more
+  // photos tagged "02"/"03" below — one post showing off three listings
+  // instead of one. ----
+  const drawRoundupLayout = (ctx, w, h) => {
+    const bg = form.roundupBg;
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+    // Flips headline/caption text and tints when someone picks a light
+    // background instead of the default dark one, so it stays legible.
+    const isLight = isLightColor(bg);
+    const textColor = isLight ? BLACK : WHITE;
+    const tint = (amt) => (isLight ? mixWithBlack(form.accentColor, amt) : mixWithWhite(form.accentColor, amt));
+    const placeholderColor = isLight ? "#D8CFC9" : "#3A4034";
+
+    const pad = w * 0.055;
+    const contactH = Math.min(w, h) * 0.135;
+    const contentH = h - contactH;
+    const heroBlockH = contentH * 0.5;
+    const pairBlockH = contentH - heroBlockH;
+
+    // 0.4 (not 0.32) so the hero caption gets the same share of contentH as
+    // the pair captions below (pairCaptionH is 0.4 of pairBlockH, which is
+    // itself the same size as heroBlockH) — otherwise the price line added
+    // above the address overflows the hero caption's tighter old budget.
+    const heroCaptionH = heroBlockH * 0.4;
+    const heroPhotoH = heroBlockH - heroCaptionH;
+    const leftColW = w * 0.44;
+    const heroX = leftColW + w * 0.02;
+    const heroW = w - heroX - pad;
+
+    // ---- Left column: headline, subtitle ----
+    let headSize = heroBlockH * 0.2;
+    ctx.font = `400 ${headSize}px "Playfair Display", serif`;
+    const headMaxW = leftColW - pad;
+    const w1w = ctx.measureText(form.word1).width;
+    ctx.font = scriptFontCss(form.scriptFont, headSize);
+    const scriptw = ctx.measureText(form.script.replace(/!+$/, "")).width;
+    const widest = Math.max(w1w, scriptw);
+    if (widest > headMaxW) headSize *= headMaxW / widest;
+    const lineGap = headSize * 1.06;
+    const line1Y = heroBlockH * 0.32;
+    ctx.font = `400 ${headSize}px "Playfair Display", serif`;
+    ctx.fillStyle = textColor;
+    ctx.fillText(form.word1, pad, line1Y);
+    ctx.font = scriptFontCss(form.scriptFont, headSize);
+    ctx.fillStyle = form.accentColor;
+    ctx.fillText(form.script.replace(/!+$/, ""), pad, line1Y + lineGap);
+
+    const subtitleSize = heroBlockH * 0.062;
+    ctx.font = `500 ${subtitleSize}px "Public Sans", sans-serif`;
+    ctx.fillStyle = tint(0.45);
+    const subtitleLines = wrapText(ctx, form.roundupSubtitle, headMaxW).slice(0, 2);
+    let subtitleY = line1Y + lineGap + subtitleSize * 1.5;
+    subtitleLines.forEach((line, i) => ctx.fillText(line, pad, subtitleY + i * subtitleSize * 1.35));
+
+    // ---- Numbered tag drawn straddling a photo's right (or bottom, for the
+    // narrower two-up tiles) edge — the "01"/"02"/"03" tab from the mock. ----
+    const drawTag = (num, x, y, tileW, tileH) => {
+      const tagW = Math.min(tileW * 0.22, tileH * 0.4);
+      const tagH = tileH * 0.24;
+      const tagX = x + tileW - tagW / 2;
+      const tagY = y + tileH / 2 - tagH / 2;
+      ctx.fillStyle = form.accentColor;
+      ctx.fillRect(tagX, tagY, tagW, tagH);
+      ctx.fillStyle = WHITE;
+      ctx.font = `italic 700 ${tagH * 0.4}px "Playfair Display", serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(num, tagX + tagW / 2, tagY + tagH / 2 + tagH * 0.02);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+    };
+
+    // `availH` bounds the whole caption (price + address + rule + beds/baths)
+    // so the same helper stays legible whether it's sizing the wider hero
+    // caption or the tighter two-up caption below it.
+    const drawCaption = (x, y0, width, availH, address, beds, baths, price) => {
+      let y = y0 + availH * 0.08;
+
+      if (price) {
+        let priceSize = availH * 0.22;
+        ctx.font = `800 ${priceSize}px "Public Sans", sans-serif`;
+        const priceW = ctx.measureText(price).width;
+        if (priceW > width) priceSize *= width / priceW;
+        ctx.font = `800 ${priceSize}px "Public Sans", sans-serif`;
+        ctx.fillStyle = form.accentColor;
+        ctx.fillText(price, x, y + priceSize);
+        y += priceSize * 1.4;
+      }
+
+      let addrSize = availH * (price ? 0.24 : 0.3);
+      ctx.font = `600 ${addrSize}px "Public Sans", sans-serif`;
+      const addrW = ctx.measureText(address).width;
+      if (addrW > width) addrSize *= width / addrW;
+      ctx.font = `600 ${addrSize}px "Public Sans", sans-serif`;
+      ctx.fillStyle = textColor;
+      ctx.fillText(address, x, y + addrSize);
+
+      const ruleY = y + addrSize * 1.45;
+      ctx.strokeStyle = tint(0.3);
+      ctx.lineWidth = Math.max(1, w * 0.0018);
+      ctx.beginPath();
+      ctx.moveTo(x, ruleY);
+      ctx.lineTo(x + width, ruleY);
+      ctx.stroke();
+
+      const statsText = [beds && `${beds} Bedrooms`, baths && `${baths} Bathrooms`].filter(Boolean).join(", ");
+      let statsSize = availH * (price ? 0.2 : 0.24);
+      ctx.font = `500 ${statsSize}px "Public Sans", sans-serif`;
+      const statsW = ctx.measureText(statsText).width;
+      if (statsW > width) statsSize *= width / statsW;
+      ctx.font = `500 ${statsSize}px "Public Sans", sans-serif`;
+      ctx.fillStyle = tint(0.45);
+      ctx.fillText(statsText, x, ruleY + statsSize * 1.4);
+    };
+
+    // ---- Hero photo (listing 1), tagged 01 ----
+    if (photo.img) drawCover(ctx, photo.img, heroX, 0, heroW, heroPhotoH, photo.focus.x, photo.focus.y, photo.zoom);
+    else { ctx.fillStyle = placeholderColor; ctx.fillRect(heroX, 0, heroW, heroPhotoH); }
+    drawTag("01", heroX, 0, heroW, heroPhotoH);
+    drawCaption(heroX, heroPhotoH, heroW, heroCaptionH, form.address, form.beds, form.baths, form.price);
+
+    // ---- Bottom pair (listings 2 & 3), tagged 02/03 ----
+    const pairY0 = heroBlockH;
+    const gap = w * 0.03;
+    const tileW = (w - pad * 2 - gap) / 2;
+    const pairCaptionH = pairBlockH * 0.4;
+    const tileH = pairBlockH - pairCaptionH;
+    const tile2X = pad;
+    const tile3X = pad + tileW + gap;
+
+    if (photo2.img) drawCover(ctx, photo2.img, tile2X, pairY0, tileW, tileH);
+    else { ctx.fillStyle = placeholderColor; ctx.fillRect(tile2X, pairY0, tileW, tileH); }
+    drawTag("02", tile2X, pairY0, tileW, tileH);
+
+    if (photo3.img) drawCover(ctx, photo3.img, tile3X, pairY0, tileW, tileH);
+    else { ctx.fillStyle = placeholderColor; ctx.fillRect(tile3X, pairY0, tileW, tileH); }
+    drawTag("03", tile3X, pairY0, tileW, tileH);
+
+    const pairCaptionY = pairY0 + tileH;
+    drawCaption(tile2X, pairCaptionY, tileW, pairCaptionH, form.address2, form.beds2, form.baths2, form.price2);
+    drawCaption(tile3X, pairCaptionY, tileW, pairCaptionH, form.address3, form.beds3, form.baths3, form.price3);
+
+    // ---- Contact band (brokerage-required, shared across every layout) ----
+    drawContactBand(ctx, w, contentH, contactH, form, headshot, logo);
+  };
+
+  // ---- Spotlight layout: full-bleed hero photo with a status pill,
+  // timestamp, and agent avatar, followed by a dark stats card built
+  // around one property — a hero treatment for a single listing. ----
+  const drawSpotlightLayout = (ctx, w, h) => {
+    const contactH = Math.min(w, h) * 0.135;
+    const cardH = h * 0.34;
+    const photoH = h - cardH - contactH;
+
+    // ---- Photo ----
+    if (photo.img) drawCover(ctx, photo.img, 0, 0, w, photoH, photo.focus.x, photo.focus.y, photo.zoom);
+    else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(0, 0, w, photoH); }
+
+    // Soften the hard photo/card seam by fading the card's background color
+    // up into the bottom of the photo.
+    const fadeH = photoH * 0.22;
+    const photoFade = ctx.createLinearGradient(0, photoH - fadeH, 0, photoH);
+    photoFade.addColorStop(0, hexToRgba(form.spotlightCardBg, 0));
+    photoFade.addColorStop(1, hexToRgba(form.spotlightCardBg, 1));
+    ctx.fillStyle = photoFade;
+    ctx.fillRect(0, photoH - fadeH, w, fadeH);
+
+    // ---- Status pill (top-left) ----
+    const pillText = (TEMPLATES[form.template]?.label || "New Listing").toUpperCase();
+    const pillSize = photoH * 0.032;
+    ctx.font = `700 ${pillSize}px "Public Sans", sans-serif`;
+    const dotR = pillSize * 0.28;
+    const pillPadX = pillSize * 0.9;
+    const pillTextW = ctx.measureText(pillText).width;
+    const pillH = pillSize * 2.2;
+    const pillW = dotR * 2 + pillSize * 0.6 + pillTextW + pillPadX * 2;
+    const pillX = w * 0.045, pillY = h * 0.03;
+    ctx.save();
+    ctx.fillStyle = "rgba(20,20,20,0.55)";
+    roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = form.accentColor;
+    ctx.beginPath();
+    ctx.arc(pillX + pillPadX + dotR, pillY + pillH / 2, dotR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = WHITE;
+    ctx.textBaseline = "middle";
+    ctx.fillText(pillText, pillX + pillPadX + dotR * 2 + pillSize * 0.6, pillY + pillH / 2 + pillSize * 0.02);
+    ctx.textBaseline = "alphabetic";
+
+    // ---- Timestamp (top-right) ----
+    const stamp = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).replace(",", " ·").toUpperCase();
+    ctx.font = `600 ${photoH * 0.026}px "Public Sans", sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.textAlign = "right";
+    ctx.fillText(stamp, w * 0.955, h * 0.03 + photoH * 0.026);
+    ctx.textAlign = "left";
+
+    // ---- Stats card ----
+    // Text sizes below are fractions of `fs` (the shorter of w/h), not of
+    // cardH — cardH alone balloons on a tall Story canvas and would blow
+    // the headline/price text out past the card's actual (fixed) width.
+    const cardBg = form.spotlightCardBg;
+    ctx.fillStyle = cardBg;
+    ctx.fillRect(0, photoH, w, cardH);
+    // Flips the card's text from white-on-dark to black-on-light when
+    // someone picks a light custom background instead of the dark default.
+    const cardIsLight = isLightColor(cardBg);
+    const cardTextColor = cardIsLight ? BLACK : WHITE;
+    const cardSoft = (amt) => (cardIsLight ? `rgba(0,0,0,${amt})` : `rgba(255,255,255,${amt})`);
+
+    // ---- Agent avatar (bottom-right of photo, straddling the card boundary) ----
+    // Drawn after the card fill (not before) so the card's background
+    // doesn't paint over the lower half of the circle where it dips below
+    // the photo/card line.
+    if (headshot.img) {
+      const d = photoH * 0.24;
+      const cx = w * 0.87, cy = photoH - d * 0.1;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, d / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      const img = headshot.img;
+      const shortSide = Math.min(img.width, img.height);
+      const crop = shortSide * 0.9;
+      ctx.drawImage(img, (img.width - crop) / 2, (img.height - crop) / 2, crop, crop, cx - d / 2, cy - d / 2, d, d);
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(cx, cy, d / 2, 0, Math.PI * 2);
+      ctx.strokeStyle = WHITE;
+      ctx.lineWidth = Math.max(3, w * 0.006);
+      ctx.stroke();
+    }
+    const pad = w * 0.06;
+    const fs = Math.min(w, h);
+    let cy = photoH + cardH * 0.13;
+
+    ctx.font = `700 ${fs * 0.021}px "Public Sans", sans-serif`;
+    ctx.fillStyle = form.accentColor;
+    ctx.fillText(form.spotlightEyebrow.toUpperCase(), pad, cy);
+    const eyebrowW = Math.min(w * 0.14, ctx.measureText(form.spotlightEyebrow).width);
+    cy += cardH * 0.07;
+    ctx.strokeStyle = form.accentColor;
+    ctx.lineWidth = Math.max(1.5, w * 0.002);
+    ctx.beginPath();
+    ctx.moveTo(pad, cy);
+    ctx.lineTo(pad + eyebrowW, cy);
+    ctx.stroke();
+
+    cy += cardH * 0.16;
+    let headSize = fs * 0.065;
+    ctx.font = `800 ${headSize}px "Playfair Display", serif`;
+    const w1w = ctx.measureText(form.word1).width;
+    ctx.font = scriptFontCss(form.scriptFont, headSize);
+    const scriptWord = form.script.replace(/!+$/, "") + ".";
+    const scriptw = ctx.measureText(scriptWord).width;
+    const headMaxW = w - pad * 2;
+    if (w1w + headSize * 0.2 + scriptw > headMaxW) headSize *= headMaxW / (w1w + headSize * 0.2 + scriptw);
+    ctx.font = `800 ${headSize}px "Playfair Display", serif`;
+    ctx.fillStyle = cardTextColor;
+    ctx.fillText(form.word1, pad, cy);
+    const w1wFinal = ctx.measureText(form.word1).width;
+    ctx.font = scriptFontCss(form.scriptFont, headSize);
+    ctx.fillStyle = form.accentColor;
+    ctx.fillText(scriptWord, pad + w1wFinal + headSize * 0.2, cy);
+
+    cy += cardH * 0.13;
+    ctx.font = `500 ${fs * 0.018}px "Public Sans", sans-serif`;
+    ctx.fillStyle = cardSoft(0.75);
+    ctx.fillText(form.address, pad, cy);
+
+    cy += cardH * 0.1;
+    ctx.strokeStyle = cardSoft(0.18);
+    ctx.lineWidth = Math.max(1, w * 0.0015);
+    ctx.beginPath();
+    ctx.moveTo(pad, cy);
+    ctx.lineTo(w - pad, cy);
+    ctx.stroke();
+
+    const statsY0 = cy;
+    const statsH = cardH * 0.2;
+    const stats = [
+      { value: form.beds, label: "BEDROOMS" },
+      { value: form.baths, label: "BATHROOMS" },
+      { value: form.sqft, label: "SQUARE FEET" },
+    ].filter((s) => s.value);
+    const colW = (w - pad * 2) / stats.length;
+    stats.forEach((s, i) => {
+      const cx = pad + colW * i;
+      ctx.font = `700 ${fs * 0.034}px "Playfair Display", serif`;
+      ctx.fillStyle = form.accentColor;
+      ctx.fillText(s.value, cx, statsY0 + statsH * 0.55);
+      ctx.font = `600 ${fs * 0.0122}px "Public Sans", sans-serif`;
+      ctx.fillStyle = cardSoft(0.55);
+      ctx.fillText(s.label, cx, statsY0 + statsH * 0.85);
+      if (i > 0) {
+        ctx.strokeStyle = cardSoft(0.18);
+        ctx.beginPath();
+        ctx.moveTo(cx - colW * 0.12, statsY0);
+        ctx.lineTo(cx - colW * 0.12, statsY0 + statsH);
+        ctx.stroke();
+      }
+    });
+
+    const rowY0 = photoH + cardH - cardH * 0.02;
+    ctx.strokeStyle = cardSoft(0.18);
+    ctx.beginPath();
+    ctx.moveTo(pad, rowY0 - cardH * 0.19);
+    ctx.lineTo(w - pad, rowY0 - cardH * 0.19);
+    ctx.stroke();
+
+    // CTA sized/positioned first so the price line can shrink to leave room
+    // for it instead of the two colliding on a wide price + long CTA combo.
+    let ctaX = w - pad;
+    if (form.ctaMessage) {
+      const ctaText = form.ctaMessage.toUpperCase();
+      const ctaSize = fs * 0.017;
+      ctx.font = `700 ${ctaSize}px "Public Sans", sans-serif`;
+      const ctaPadX = ctaSize, ctaPadY = ctaSize * 0.75;
+      const ctaW = Math.min(w * 0.62, ctx.measureText(ctaText).width + ctaPadX * 2);
+      const ctaH2 = ctaSize + ctaPadY * 2;
+      ctaX = w - pad - ctaW;
+      const ctaY = rowY0 - ctaH2 * 0.95;
+      ctx.fillStyle = form.accentColor;
+      roundRect(ctx, ctaX, ctaY, ctaW, ctaH2, ctaH2 / 2);
+      ctx.fill();
+      ctx.fillStyle = WHITE;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(ctaText, ctaX + ctaW / 2, ctaY + ctaH2 / 2 + ctaSize * 0.03);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+    }
+
+    if (form.price) {
+      const priceMaxW = ctaX - pad - w * 0.03;
+      ctx.font = `600 ${fs * 0.0153}px "Public Sans", sans-serif`;
+      ctx.fillStyle = cardSoft(0.5);
+      ctx.fillText("LISTED AT", pad, rowY0 - cardH * 0.09);
+      let priceSize = fs * 0.0306;
+      ctx.font = `800 ${priceSize}px "Public Sans", sans-serif`;
+      const priceW = ctx.measureText(form.price).width;
+      if (priceW > priceMaxW) priceSize *= priceMaxW / priceW;
+      ctx.font = `800 ${priceSize}px "Public Sans", sans-serif`;
+      ctx.fillStyle = cardTextColor;
+      ctx.fillText(form.price, pad, rowY0);
+    }
+
+    // ---- Contact band (brokerage-required, shared across every layout) ----
+    // The agent's headshot already appears on the photo above, so skip the
+    // redundant circle here.
+    drawContactBand(ctx, w, photoH + cardH, contactH, form, headshot, logo, false);
+  };
+
   const drawToCanvas = (canvas, aspectKey) => {
     const { w, h } = ASPECTS[aspectKey];
     canvas.width = w; canvas.height = h;
@@ -1054,6 +1513,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     else if (form.layout === "modern") drawModernLayout(ctx, w, h);
     else if (form.layout === "signature") drawSignatureLayout(ctx, w, h);
     else if (form.layout === "ribbon") drawRibbonLayout(ctx, w, h);
+    else if (form.layout === "roundup") drawRoundupLayout(ctx, w, h);
+    else if (form.layout === "spotlight") drawSpotlightLayout(ctx, w, h);
     else drawBoldLayout(ctx, w, h);
   };
 
@@ -1078,6 +1539,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     else if (layoutKey === "modern") drawModernLayout(ctx, w, h);
     else if (layoutKey === "signature") drawSignatureLayout(ctx, w, h);
     else if (layoutKey === "ribbon") drawRibbonLayout(ctx, w, h);
+    else if (layoutKey === "roundup") drawRoundupLayout(ctx, w, h);
+    else if (layoutKey === "spotlight") drawSpotlightLayout(ctx, w, h);
     else drawBoldLayout(ctx, w, h);
     // A real listing photo is busy/dark at full opacity and, shrunk to
     // thumbnail size, drowns out the very layout differences (band
@@ -1231,7 +1694,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
   const goToStep = (n) => {
     setMobileStep(n);
     const el = sectionRefs.current[n];
-    if (el && window.matchMedia("(min-width: 1024px)").matches) {
+    if (el && window.matchMedia("(min-width: 768px)").matches) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
@@ -1247,14 +1710,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-10">
         {/* PAGE HEADER */}
-        <div className={mobileStep === 1 ? "mb-3 sm:mb-6" : "hidden lg:block lg:mb-6"}>
+        <div className={mobileStep === 1 ? "mb-3 sm:mb-6" : "hidden md:block md:mb-6"}>
           <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Create a Post</h1>
           <p className="font-body text-sm mt-1 hidden sm:block" style={{ color: UI.inkSoft }}>Your photos. Your brand. Done.</p>
         </div>
 
 
         {/* STEP 1 — full page width, no preview alongside it */}
-        <div className={`${mobileStep === 1 ? "" : "hidden"} lg:block mb-8 lg:mb-10`}>
+        <div className={`${mobileStep === 1 ? "" : "hidden"} md:block mb-8 md:mb-10`}>
           <section ref={(el) => { sectionRefs.current[1] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
             <StepHeading n={1} title="What are you creating?" subtitle="Choose the type of post — this decides which fields you'll fill in next." color={ACCENT_PRESETS[0]} />
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -1289,7 +1752,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           <button
             type="button"
             onClick={() => goToStep(2)}
-            className="press-fx lg:hidden w-full mt-6 rounded-lg font-body font-semibold text-sm transition"
+            className="press-fx md:hidden w-full mt-6 rounded-lg font-body font-semibold text-sm transition"
             style={{ background: ACCENT, color: WHITE, minHeight: 44 }}
           >
             Continue to Details &amp; Design
@@ -1297,10 +1760,10 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         </div>
 
         {/* MAIN GRID: controls + preview */}
-        <div className="grid lg:grid-cols-[55fr_45fr] gap-8 items-start">
+        <div className="grid md:grid-cols-[55fr_45fr] gap-8 items-start">
           {/* LEFT: CONTROLS */}
-          <div className={mobileStep === 1 || mobileStep === 3 ? "hidden lg:grid lg:gap-6 lg:col-start-1" : "grid gap-6 lg:col-start-1"}>
-            <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
+          <div className={mobileStep === 1 || mobileStep === 3 ? "hidden md:grid md:gap-6 md:col-start-1" : "grid gap-6 md:col-start-1"}>
+            <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} md:contents`}>
             <section ref={(el) => { sectionRefs.current[2] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
               <StepHeading n={2} title="Add your listing & choose a design" subtitle="Pick a look first — it decides how many photos you'll need — then fill in the rest." />
 
@@ -1322,7 +1785,10 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                         style={{ display: "block", width: "100%", height: "auto" }}
                       />
                     </div>
-                    <span className="font-body text-xs font-semibold block px-2.5 py-2" style={{ color: UI.ink }}>{label}</span>
+                    <span className="block px-2.5 pt-2">
+                      <span className="font-body text-xs font-semibold block" style={{ color: UI.ink }}>{label}</span>
+                      <span className="font-body text-xs block mt-0.5 pb-1.5" style={{ color: UI.inkSoft }}>{description}</span>
+                    </span>
                   </button>
                 ))}
               </div>
@@ -1362,6 +1828,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   </label>
                 )}
 
+                {form.template === "coming_soon" && (
+                  <label className="block mt-3">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>AVAILABLE STARTING (optional)</span>
+                    <input type="date" className="input" value={form.listingDate} onChange={(e) => applyListingDate(e.target.value)} />
+                    <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Adds the date to your highlight line and ribbon banner.</span>
+                  </label>
+                )}
+
                 <div className="grid grid-cols-3 gap-2 mt-3">
                   <label className="block">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PRICE</span>
@@ -1377,11 +1851,55 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   </label>
                 </div>
 
-                {(form.layout === "editorial" || form.layout === "modern") && (
+                {(form.layout === "editorial" || form.layout === "modern" || form.layout === "spotlight") && (
                   <label className="block mt-3">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SQFT</span>
                     <input className="input" value={form.sqft} onChange={update("sqft")} />
                   </label>
+                )}
+
+                {form.layout === "roundup" && (
+                  <>
+                    <span className="font-mono text-xs block mb-1.5 mt-4" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LISTING 2</span>
+                    <label className="block">
+                      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
+                      <input className="input" value={form.address2} onChange={update("address2")} />
+                    </label>
+                    <div className="grid grid-cols-3 gap-2 mt-3">
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PRICE</span>
+                        <input className="input" value={form.price2} onChange={update("price2")} />
+                      </label>
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
+                        <input className="input" value={form.beds2} onChange={update("beds2")} />
+                      </label>
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
+                        <input className="input" value={form.baths2} onChange={update("baths2")} />
+                      </label>
+                    </div>
+
+                    <span className="font-mono text-xs block mb-1.5 mt-4" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LISTING 3</span>
+                    <label className="block">
+                      <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
+                      <input className="input" value={form.address3} onChange={update("address3")} />
+                    </label>
+                    <div className="grid grid-cols-3 gap-2 mt-3">
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PRICE</span>
+                        <input className="input" value={form.price3} onChange={update("price3")} />
+                      </label>
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
+                        <input className="input" value={form.beds3} onChange={update("beds3")} />
+                      </label>
+                      <label className="block">
+                        <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
+                        <input className="input" value={form.baths3} onChange={update("baths3")} />
+                      </label>
+                    </div>
+                  </>
                 )}
               </div>
             </section>
@@ -1424,15 +1942,15 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 </select>
               </label>
 
-              {(form.layout === "bold" || form.layout === "signature") && (
+              {(form.layout === "bold" || form.layout === "signature" || form.layout === "roundup" || form.layout === "spotlight") && (
                 <label className="block md:col-span-2">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
                   <input className="input" value={`${form.word1} ${form.script}`.trim()}
                     onChange={(e) => {
                       const { lead, emphasis } = splitHeadlineLastWord(e.target.value);
                       setForm((f) => ({ ...f, word1: lead, script: emphasis }));
-                    }} placeholder="Just SOLD!" />
-                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The last word gets your accent color and accent font.</span>
+                    }} placeholder={form.layout === "roundup" ? "New listings!" : form.layout === "spotlight" ? "Ridge Residence!" : "Just SOLD!"} />
+                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The last word gets your accent color{form.layout === "bold" || form.layout === "signature" ? " and accent font" : ""}.</span>
                 </label>
               )}
 
@@ -1441,6 +1959,22 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
                   <input className="input" value={form.bigHeadline} onChange={update("bigHeadline")} placeholder={form.layout === "editorial" ? "JUST LISTED" : "FOR SALE"} />
                 </label>
+              )}
+
+              {form.layout === "editorial" && (
+                <div className="md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BACKGROUND COLOR</span>
+                  <ColorSwatchPicker value={form.editorialBg} onChange={(v) => setForm((f) => ({ ...f, editorialBg: v }))} presets={BG_PRESETS} size="1.75rem" />
+                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Text switches to light automatically on a dark background.</span>
+                </div>
+              )}
+
+              {form.layout === "collage" && (
+                <div className="md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BACKGROUND COLOR</span>
+                  <ColorSwatchPicker value={form.collageBg} onChange={(v) => setForm((f) => ({ ...f, collageBg: v }))} presets={BG_PRESETS} size="1.75rem" />
+                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Text switches to light automatically on a dark background.</span>
+                </div>
               )}
 
               {form.layout === "modern" && (
@@ -1462,11 +1996,48 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 </label>
               )}
 
-              {form.layout === "signature" && (
+              {form.layout === "modern" && (
+                <div className="md:col-span-2">
+                  <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BACKGROUND COLOR</span>
+                  <ColorSwatchPicker value={form.modernBg} onChange={(v) => setForm((f) => ({ ...f, modernBg: v }))} presets={BG_PRESETS} size="1.75rem" />
+                  <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Text switches to light automatically on a dark background.</span>
+                </div>
+              )}
+
+              {(form.layout === "signature" || form.layout === "spotlight") && (
                 <label className="block md:col-span-2">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CALL-TO-ACTION MESSAGE</span>
-                  <input className="input" value={form.ctaMessage} onChange={update("ctaMessage")} placeholder="Let's talk about your home goals!" />
+                  <input className="input" value={form.ctaMessage} onChange={update("ctaMessage")} placeholder={form.layout === "spotlight" ? "Tap for tour" : "Let's talk about your home goals!"} />
+                  {form.layout === "spotlight" && <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Shown as a button on the stats card. Leave blank to hide it.</span>}
                 </label>
+              )}
+
+              {form.layout === "spotlight" && (
+                <>
+                  <label className="block md:col-span-2">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>EYEBROW LABEL</span>
+                    <input className="input" value={form.spotlightEyebrow} onChange={update("spotlightEyebrow")} placeholder="Now on the market" />
+                  </label>
+                  <div className="md:col-span-2">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>STATS CARD BACKGROUND</span>
+                    <ColorSwatchPicker value={form.spotlightCardBg} onChange={(v) => setForm((f) => ({ ...f, spotlightCardBg: v }))} presets={BG_PRESETS} size="1.75rem" />
+                    <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Text switches to dark automatically on a light background.</span>
+                  </div>
+                </>
+              )}
+
+              {form.layout === "roundup" && (
+                <>
+                  <label className="block md:col-span-2">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>SUBTITLE</span>
+                    <input className="input" value={form.roundupSubtitle} onChange={update("roundupSubtitle")} placeholder="Take a look at our new luxury listings" />
+                  </label>
+                  <div className="md:col-span-2">
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BACKGROUND COLOR</span>
+                    <ColorSwatchPicker value={form.roundupBg} onChange={(v) => setForm((f) => ({ ...f, roundupBg: v }))} presets={BG_PRESETS} size="1.75rem" />
+                    <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Text switches to dark automatically on a light background.</span>
+                  </div>
+                </>
               )}
 
               {form.layout === "ribbon" && (
@@ -1544,7 +2115,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               </button>
             </div>
 
-            <div className="lg:hidden flex items-center gap-2">
+            <div className="md:hidden flex items-center gap-2">
               <button type="button" onClick={() => goToStep(1)}
                 className="press-fx px-4 rounded-lg border font-body font-semibold text-sm transition"
                 style={{ borderColor: UI.line, color: UI.ink, minHeight: 44 }}>
@@ -1560,10 +2131,10 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           </div>
 
           {/* RIGHT: PREVIEW */}
-          <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "lg:sticky lg:col-start-2 lg:row-span-full" : "hidden lg:block lg:sticky lg:col-start-2 lg:row-span-full"} style={{ top: "calc(82px + 1.5rem)", scrollMarginTop: "calc(82px + 1.5rem)" }}>
+          <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "md:sticky md:col-start-2 md:row-span-full" : "hidden md:block md:sticky md:col-start-2 md:row-span-full"} style={{ top: "calc(82px + 1.5rem)", scrollMarginTop: "calc(82px + 1.5rem)" }}>
             {mobileStep === 3 && (
               <button type="button" onClick={() => goToStep(2)}
-                className="press-fx lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2 -ml-2 px-2"
+                className="press-fx md:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2 -ml-2 px-2"
                 style={{ color: UI.inkSoft, minHeight: 44 }}>
                 ← Back to Details &amp; Design
               </button>
@@ -1633,9 +2204,56 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 />
               </div>
             </div>
+
+            {/* SOCIAL SET PREVIEW — under the preview card, same column */}
+            <div className="hidden md:block mt-6 rounded-2xl border" style={{ background: UI.card, borderColor: UI.line }}>
+              <button
+                type="button"
+                onClick={() => setShowSocialSetPreview((s) => !s)}
+                className="w-full flex items-center justify-between gap-3 p-5 text-left"
+              >
+                <div>
+                  <h3 className="font-body text-base font-semibold flex items-center gap-2" style={{ color: UI.ink }}>
+                    Download your complete social set
+                    <span className="font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.04em", color: WHITE, background: ACCENT, padding: "1px 6px", borderRadius: 999 }}>NEW</span>
+                  </h3>
+                  <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>We'll generate multiple sizes for all your platforms.</p>
+                </div>
+                <ChevronDown size={18} style={{ color: UI.inkSoft, transform: showSocialSetPreview ? "rotate(180deg)" : "none", transition: "transform 0.15s", flexShrink: 0 }} />
+              </button>
+              {/* Canvases stay mounted (just visually hidden) so the existing
+                  draw effect — which only fires on form/photo/font changes, not
+                  on mount — doesn't need to know about the collapse state. */}
+              <div className={showSocialSetPreview ? "px-5 pb-5 border-t" : "hidden"} style={{ borderColor: UI.line }}>
+                <div className="flex justify-end pt-4">
+                  <button
+                    onClick={downloadAllSizes}
+                    disabled={downloadingAll}
+                    className="flex items-center gap-1.5 py-2 px-4 rounded-lg border font-body text-xs font-semibold transition disabled:opacity-60"
+                    style={{ borderColor: UI.line, color: UI.ink }}
+                  >
+                    {downloadingAll ? "Preparing…" : "Download All"}
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
+                  {THUMB_ASPECTS.map((key) => (
+                    <div key={key}>
+                      <div className="rounded-lg border overflow-hidden flex items-center justify-center p-2" style={{ background: UI.stone, borderColor: UI.line }}>
+                        <canvas
+                          ref={(el) => { thumbRefs.current[key] = el; }}
+                          style={{ display: "block", width: "100%", height: "auto", borderRadius: "3px" }}
+                        />
+                      </div>
+                      <p className="font-body text-xs font-semibold mt-2" style={{ color: UI.ink }}>{ASPECTS[key].label}</p>
+                      <p className="font-mono text-xs" style={{ color: UI.inkSoft }}>{ASPECTS[key].w} x {ASPECTS[key].h}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
-        <div className="flex items-start gap-3 mt-6 p-4 rounded-xl lg:col-start-1" style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}>
+        <div className="flex items-start gap-3 mt-6 p-4 rounded-xl md:col-start-1" style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}>
           <Lightbulb size={18} color={UI.inkSoft} className="flex-shrink-0 mt-0.5" />
           <div>
             <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Tip: {tip.lead} </span>
@@ -1643,56 +2261,9 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           </div>
         </div>
 
-        <div className="hidden lg:block lg:col-start-1">
+        <div className="hidden md:block md:col-start-1">
         <div className="mt-8">
           <PrivacyBadge />
-        </div>
-
-        {/* SOCIAL SET PREVIEW */}
-        <div className="mt-10 rounded-2xl border" style={{ background: UI.card, borderColor: UI.line }}>
-          <button
-            type="button"
-            onClick={() => setShowSocialSetPreview((s) => !s)}
-            className="w-full flex items-center justify-between gap-3 p-5 text-left"
-          >
-            <div>
-              <h3 className="font-body text-base font-semibold flex items-center gap-2" style={{ color: UI.ink }}>
-                Download your complete social set
-                <span className="font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.04em", color: WHITE, background: ACCENT, padding: "1px 6px", borderRadius: 999 }}>NEW</span>
-              </h3>
-              <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>We'll generate multiple sizes for all your platforms.</p>
-            </div>
-            <ChevronDown size={18} style={{ color: UI.inkSoft, transform: showSocialSetPreview ? "rotate(180deg)" : "none", transition: "transform 0.15s", flexShrink: 0 }} />
-          </button>
-          {/* Canvases stay mounted (just visually hidden) so the existing
-              draw effect — which only fires on form/photo/font changes, not
-              on mount — doesn't need to know about the collapse state. */}
-          <div className={showSocialSetPreview ? "px-5 pb-5 border-t" : "hidden"} style={{ borderColor: UI.line }}>
-            <div className="flex justify-end pt-4">
-              <button
-                onClick={downloadAllSizes}
-                disabled={downloadingAll}
-                className="flex items-center gap-1.5 py-2 px-4 rounded-lg border font-body text-xs font-semibold transition disabled:opacity-60"
-                style={{ borderColor: UI.line, color: UI.ink }}
-              >
-                {downloadingAll ? "Preparing…" : "Download All"}
-              </button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
-              {THUMB_ASPECTS.map((key) => (
-                <div key={key}>
-                  <div className="rounded-lg border overflow-hidden flex items-center justify-center p-2" style={{ background: UI.stone, borderColor: UI.line }}>
-                    <canvas
-                      ref={(el) => { thumbRefs.current[key] = el; }}
-                      style={{ display: "block", width: "100%", height: "auto", borderRadius: "3px" }}
-                    />
-                  </div>
-                  <p className="font-body text-xs font-semibold mt-2" style={{ color: UI.ink }}>{ASPECTS[key].label}</p>
-                  <p className="font-mono text-xs" style={{ color: UI.inkSoft }}>{ASPECTS[key].w} x {ASPECTS[key].h}</p>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
         </div>
         </div>

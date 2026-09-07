@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Building2, Check, Download, Trash2, ImageOff, Loader2, CalendarClock, FileEdit, Pencil } from "lucide-react";
+import { User, Building2, Check, Download, Trash2, ImageOff, Loader2, CalendarClock, FileEdit, Pencil, Share2, X } from "lucide-react";
 import {
   UI, ACCENT, WHITE, ColorSwatchPicker, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, mixWithWhite,
@@ -21,9 +21,29 @@ function downloadDataUrl(dataUrl, filename) {
   link.remove();
 }
 
+async function shareOrDownloadDataUrl(dataUrl, filename) {
+  try {
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    if (navigator.canShare) {
+      const file = new File([blob], filename, { type: blob.type || "image/png" });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: filename });
+        return "shared";
+      }
+    }
+  } catch (e) {
+    if (e && e.name === "AbortError") return "cancelled";
+  }
+  downloadDataUrl(dataUrl, filename);
+  return "downloaded";
+}
+
 function PostThumb({ post, onDelete }) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState(false);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -34,69 +54,173 @@ function PostThumb({ post, onDelete }) {
     }
   };
 
-  const filename = `${(post.category || "post").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${post.id}.png`;
+  const safeCategory = (post.category || post.template || "post").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+  const filename = `${safeCategory}-${post.id}.png`;
+
+  const handleDownload = () => {
+    setBusy(true);
+    try {
+      downloadDataUrl(post.imageData, filename);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleShare = async () => {
+    setBusy(true);
+    try {
+      await shareOrDownloadDataUrl(post.imageData, filename);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
-    <div className="rounded-xl overflow-hidden border group relative" style={{ borderColor: UI.line, background: UI.card }}>
-      <div className="flex items-center justify-center" style={{ aspectRatio: "4 / 5", background: mixWithWhite(UI.ink, 0.95) }}>
-        <img src={post.imageData} alt={post.headline || post.category} className="w-full h-full object-cover" />
+    <>
+      <div className="rounded-xl overflow-hidden border flex flex-col" style={{ borderColor: UI.line, background: UI.card }}>
+        <button
+          type="button"
+          onClick={() => setPreview(true)}
+          className="relative flex items-center justify-center w-full text-left"
+          style={{ aspectRatio: "4 / 5", background: mixWithWhite(UI.ink, 0.95) }}
+          aria-label={`Preview ${post.headline || post.category || "post"}`}
+        >
+          <img src={post.imageData} alt={post.headline || post.category || "Saved post"} className="w-full h-full object-cover" />
+        </button>
+
+        <div className="px-2.5 pt-2 pb-1 min-h-[2.5rem]">
+          <p className="font-body text-xs font-semibold truncate" style={{ color: UI.ink }}>
+            {post.headline || post.category || "Untitled post"}
+          </p>
+          <p className="font-mono text-[0.6rem] truncate" style={{ color: UI.inkSoft }}>
+            {(post.category || post.template || "Post")} · {formatPostDate(post.createdAt)}
+          </p>
+        </div>
+
+        <div className="px-2 pb-2 pt-1 flex items-center gap-1.5">
+          {confirming ? (
+            <>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="press-fx flex-1 font-body text-xs font-semibold rounded-full px-2 disabled:opacity-60"
+                style={{ minHeight: 40, background: "#C0392B", color: WHITE }}
+              >
+                {deleting ? "…" : "Delete"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                className="press-fx flex-1 font-body text-xs font-semibold rounded-full px-2"
+                style={{ minHeight: 40, background: UI.stone, color: UI.ink }}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                aria-label="Download"
+                disabled={busy}
+                onClick={handleDownload}
+                className="press-fx flex-1 flex items-center justify-center gap-1 font-body text-xs font-semibold rounded-full disabled:opacity-60"
+                style={{ minHeight: 40, background: ACCENT, color: WHITE }}
+              >
+                <Download size={13} /> Save
+              </button>
+              <button
+                type="button"
+                aria-label="Share"
+                disabled={busy}
+                onClick={handleShare}
+                className="press-fx flex items-center justify-center rounded-full disabled:opacity-60"
+                style={{ width: 40, height: 40, background: UI.stone, color: UI.ink }}
+              >
+                <Share2 size={14} />
+              </button>
+              <button
+                type="button"
+                aria-label="Delete"
+                onClick={() => setConfirming(true)}
+                className="press-fx flex items-center justify-center rounded-full"
+                style={{ width: 40, height: 40, background: UI.stone, color: "#C0392B" }}
+              >
+                <Trash2 size={14} />
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      <div
-        className="hover-reveal absolute inset-0 flex items-center justify-center gap-2 transition"
-        style={{ background: "rgba(27,36,48,0.55)" }}
-      >
-        {confirming ? (
-          <>
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className="press-fx font-body text-xs font-semibold rounded-full px-3 disabled:opacity-60"
-              style={{ minHeight: 40, background: "#C0392B", color: WHITE }}
-            >
-              {deleting ? "Deleting…" : "Delete"}
-            </button>
-            <button
-              onClick={() => setConfirming(false)}
-              className="press-fx font-body text-xs font-semibold rounded-full px-3"
-              style={{ minHeight: 40, background: WHITE, color: UI.ink }}
-            >
-              Cancel
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              aria-label="Download"
-              onClick={() => downloadDataUrl(post.imageData, filename)}
-              className="press-fx flex items-center justify-center rounded-full transition"
-              style={{ width: 44, height: 44, background: WHITE, color: UI.ink }}
-            >
-              <Download size={14} />
-            </button>
-            <button
-              aria-label="Delete"
-              onClick={() => setConfirming(true)}
-              className="press-fx flex items-center justify-center rounded-full transition"
-              style={{ width: 44, height: 44, background: WHITE, color: "#C0392B" }}
-            >
-              <Trash2 size={14} />
-            </button>
-          </>
-        )}
-      </div>
-
-      <div className="px-2.5 py-2 flex items-center justify-between gap-2">
-        <span className="font-body text-[0.65rem] font-semibold truncate" style={{ color: UI.inkSoft }}>{post.category || post.template}</span>
-        <span className="font-mono text-[0.6rem] flex-shrink-0" style={{ color: UI.inkSoft }}>{formatPostDate(post.createdAt)}</span>
-      </div>
-    </div>
+      {preview && (
+        <div
+          className="modal-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
+          style={{ background: "rgba(27,36,48,0.65)" }}
+          onClick={() => setPreview(false)}
+        >
+          <div
+            className="modal-sheet rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[90dvh] overflow-y-auto p-4 sm:p-5"
+            style={{ background: WHITE, paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3 gap-2">
+              <div className="min-w-0">
+                <p className="font-display font-bold text-base truncate" style={{ color: UI.ink }}>
+                  {post.headline || post.category || "Saved post"}
+                </p>
+                <p className="font-body text-xs" style={{ color: UI.inkSoft }}>
+                  {(post.category || post.template || "Post")} · {formatPostDate(post.createdAt)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreview(false)}
+                aria-label="Close"
+                className="press-fx flex items-center justify-center flex-shrink-0"
+                style={{ color: UI.inkSoft, width: 44, height: 44 }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <img
+              src={post.imageData}
+              alt={post.headline || post.category || "Saved post"}
+              className="w-full rounded-xl border"
+              style={{ borderColor: UI.line }}
+            />
+            <div className="flex gap-2 mt-4">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={handleDownload}
+                className="press-fx flex-1 flex items-center justify-center gap-1.5 font-body text-sm font-semibold rounded-full disabled:opacity-60"
+                style={{ minHeight: 44, background: ACCENT, color: WHITE }}
+              >
+                <Download size={15} /> Download
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={handleShare}
+                className="press-fx flex-1 flex items-center justify-center gap-1.5 font-body text-sm font-semibold rounded-full disabled:opacity-60"
+                style={{ minHeight: 44, background: UI.stone, color: UI.ink }}
+              >
+                <Share2 size={15} /> Share
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
-function PostsSection() {
-  const [posts, setPosts] = useState(null); // null while loading
+function PostsSection({ onSwitchTool }) {
+  const [posts, setPosts] = useState(null);
   const [error, setError] = useState("");
+  const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -125,25 +249,91 @@ function PostsSection() {
 
   if (posts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-center py-16">
+      <div className="flex flex-col items-center justify-center text-center py-14 px-2">
         <ImageOff size={28} style={{ color: UI.inkSoft }} />
-        <p className="font-body text-sm mt-3" style={{ color: UI.inkSoft }}>
-          Posts you download will show up here.
+        <p className="font-display font-bold text-base mt-3" style={{ color: UI.ink }}>No saved posts yet</p>
+        <p className="font-body text-sm mt-1.5 max-w-sm" style={{ color: UI.inkSoft }}>
+          When you download a listing or local graphic, it lands here so you can re-download it anytime.
         </p>
+        {onSwitchTool && (
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
+            <button
+              type="button"
+              onClick={() => onSwitchTool("listings")}
+              className="press-fx font-body text-xs font-semibold rounded-full px-4"
+              style={{ minHeight: 44, background: ACCENT, color: WHITE }}
+            >
+              Create a listing post
+            </button>
+            <button
+              type="button"
+              onClick={() => onSwitchTool("community")}
+              className="press-fx font-body text-xs font-semibold rounded-full px-4"
+              style={{ minHeight: 44, background: UI.stone, color: UI.ink }}
+            >
+              Create a local post
+            </button>
+          </div>
+        )}
       </div>
     );
   }
 
+  const categories = Array.from(
+    new Set(posts.map((p) => p.category || p.template || "Post").filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+
+  const visible = filter === "all"
+    ? posts
+    : posts.filter((p) => (p.category || p.template || "Post") === filter);
+
   return (
     <div>
-      <p className="font-body text-xs mb-5" style={{ color: UI.inkSoft }}>
-        Every post you've downloaded, newest first. Re-download or remove one below.
+      <p className="font-body text-xs mb-4" style={{ color: UI.inkSoft }}>
+        {posts.length} saved post{posts.length === 1 ? "" : "s"} — tap a thumbnail to preview, or download again below.
       </p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {posts.map((post) => (
-          <PostThumb key={post.id} post={post} onDelete={deletePost} />
-        ))}
-      </div>
+
+      {categories.length > 1 && (
+        <div className="scroll-touch no-scrollbar flex items-center gap-1.5 mb-4 overflow-x-auto pb-1">
+          <button
+            type="button"
+            onClick={() => setFilter("all")}
+            className="press-fx flex-shrink-0 px-3 rounded-full font-body text-xs font-semibold"
+            style={{
+              minHeight: 36,
+              background: filter === "all" ? UI.ink : UI.stone,
+              color: filter === "all" ? WHITE : UI.inkSoft,
+            }}
+          >
+            All
+          </button>
+          {categories.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setFilter(c)}
+              className="press-fx flex-shrink-0 px-3 rounded-full font-body text-xs font-semibold whitespace-nowrap"
+              style={{
+                minHeight: 36,
+                background: filter === c ? UI.ink : UI.stone,
+                color: filter === c ? WHITE : UI.inkSoft,
+              }}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {visible.length === 0 ? (
+        <p className="font-body text-sm py-8 text-center" style={{ color: UI.inkSoft }}>No posts in this category.</p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+          {visible.map((post) => (
+            <PostThumb key={post.id} post={post} onDelete={deletePost} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -257,10 +447,6 @@ function PlannedPostsSection() {
 
 const DRAFT_TOOL_LABELS = { listings: "Listing", community: "Community" };
 
-// Posts saved with "Save for later" from the Listing/Community tools —
-// the full form someone filled in, minus photos (which only ever live in
-// memory), so a person can rough out a batch of posts in one sitting and
-// come back to finish each one instead of starting from scratch.
 function DraftsSection({ onSwitchTool }) {
   const [drafts, setDrafts] = useState(() => loadPostDrafts());
 
@@ -337,9 +523,6 @@ function DraftsSection({ onSwitchTool }) {
   );
 }
 
-// A small, non-canvas mockup of the contact band every post carries — lets
-// an agent see the effect of a brand-kit change (color, font, logo) without
-// switching tools and rebuilding a real post.
 function BrandPreview({ data, headshot, logo }) {
   const name = data.agentName || "Your Name, Realtor";
   return (
@@ -398,7 +581,7 @@ export function BrandSection({ brandKit, saveBrandKit }) {
     accentColor: brandKit?.accentColor || "#1B2430",
     scriptFont: brandKit?.scriptFont || SCRIPT_FONTS[0].name,
   }));
-  const [status, setStatus] = useState("idle"); // idle | saving | saved | error
+  const [status, setStatus] = useState("idle");
   const update = (key) => (e) => { setData((d) => ({ ...d, [key]: e.target.value })); setStatus("idle"); };
 
   const headshot = useAgentAsset(DEFAULT_HEADSHOT_URL, "Headshot", brandKit?.headshotUrl);
@@ -542,13 +725,23 @@ const PROFILE_TABS = [
   { id: "brand", label: "Brand" },
   { id: "drafts", label: "Drafts" },
   { id: "planned", label: "Planned Posts" },
-  { id: "posts", label: "Past Posts" },
+  { id: "posts", label: "Post Library" },
   { id: "account", label: "Account" },
 ];
 
 export function ProfilePage({ onSwitchTool, onGoHome }) {
   const { user, brandKit, logout, saveBrandKit } = useAuth();
-  const [tab, setTab] = useState("brand"); // brand | drafts | planned | posts | account
+  const [tab, setTab] = useState(() => {
+    try {
+      if (sessionStorage.getItem("postkey_open_library") === "1") {
+        sessionStorage.removeItem("postkey_open_library");
+        return "posts";
+      }
+    } catch {
+      /* private mode */
+    }
+    return "brand";
+  });
 
   return (
     <div className="min-h-dvh" style={{ background: UI.page }}>
@@ -556,7 +749,7 @@ export function ProfilePage({ onSwitchTool, onGoHome }) {
       <div className="max-w-4xl mx-auto px-3 sm:px-6 py-6 sm:py-10">
         <h1 className="font-display font-bold text-2xl mb-1" style={{ color: UI.ink }}>Profile</h1>
         <p className="font-body text-sm mb-6" style={{ color: UI.inkSoft }}>
-          Manage the brand info that appears on every post, and your account settings.
+          Brand kit, drafts, planned posts, and every graphic you've downloaded.
         </p>
 
         <div className="scroll-touch no-scrollbar flex items-center gap-1 p-1 rounded-full mb-6 max-w-full overflow-x-auto sm:w-fit" style={{ background: UI.stone }}>
@@ -581,7 +774,7 @@ export function ProfilePage({ onSwitchTool, onGoHome }) {
           {tab === "brand" && <BrandSection brandKit={brandKit} saveBrandKit={saveBrandKit} />}
           {tab === "drafts" && <DraftsSection onSwitchTool={onSwitchTool} />}
           {tab === "planned" && <PlannedPostsSection />}
-          {tab === "posts" && <PostsSection />}
+          {tab === "posts" && <PostsSection onSwitchTool={onSwitchTool} />}
           {tab === "account" && <AccountSection />}
         </div>
       </div>

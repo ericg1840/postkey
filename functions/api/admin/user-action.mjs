@@ -1,6 +1,6 @@
 import { requireAdmin } from "../../_lib/admin.mjs";
 import { createResetToken, json } from "../../_lib/auth.mjs";
-import { sendEmail, preheader } from "../../_lib/email.mjs";
+import { sendEmail, preheader, escapeHtml } from "../../_lib/email.mjs";
 import { logEvent } from "../../_lib/activity.mjs";
 
 const VALID_TIERS = new Set(["free", "paid"]);
@@ -19,7 +19,7 @@ async function sendAdminResetEmail(toEmail, resetUrl, env) {
         <div style="max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;border:1px solid #EAE4D8;">
           <div style="padding:40px 40px 32px;text-align:left;">
             <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#1B2430;">
-              A PostKey admin has triggered a password reset for the account at <strong>${toEmail}</strong>.
+              A PostKey admin has triggered a password reset for the account at <strong>${escapeHtml(toEmail)}</strong>.
             </p>
             <div style="text-align:center;margin:0 0 16px;">
               <a href="${resetUrl}" style="display:inline-block;background:#0043FF;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;padding:14px 36px;border-radius:999px;">
@@ -95,7 +95,8 @@ export async function onRequestPost({ request, env }) {
     const resetUrl = `${origin}/?resetToken=${token}&resetEmail=${encodeURIComponent(targetUser.email)}`;
     try {
       await sendAdminResetEmail(targetUser.email, resetUrl, env);
-    } catch {
+    } catch (err) {
+      console.error("Admin-triggered reset email failed", err);
       return json({ error: "Couldn't send the reset email. Please try again shortly." }, { status: 502 });
     }
     await logEvent(db, userId, "password_reset_triggered", { email: targetUser.email, triggeredByAdmin: true });

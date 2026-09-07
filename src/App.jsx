@@ -7,6 +7,8 @@ import { ResetPasswordScreen } from "./auth/ResetPasswordScreen.jsx";
 import { ProfileReminder } from "./onboarding/ProfileReminder.jsx";
 import { PublicBioPage } from "./profile/PublicBioPage.jsx";
 import { AUTH } from "./auth/AuthShell.jsx";
+import { trackPageView } from "./marketing/track.mjs";
+import { ErrorBoundary } from "./ErrorBoundary.jsx";
 
 // Only one of these is ever on screen at a time (either gated behind auth,
 // or a rarely-visited route like /admin or the marketing pages), so they're
@@ -88,6 +90,25 @@ function AppShell() {
     window.history.replaceState({}, "", "/");
     setAdminRoute(false);
   };
+
+  // Which marketing/auth screen (if any) is currently on screen, for the
+  // pageview beacon below — matches KNOWN_PATHS in functions/api/track.mjs.
+  const marketingPage =
+    bioHandle || resetParams || loading || (adminRoute && user?.isAdmin)
+      ? null
+      : showAbout
+      ? "about"
+      : legalView
+      ? legalView
+      : !user && authView
+      ? authView
+      : !user || showHome
+      ? "home"
+      : null;
+
+  useEffect(() => {
+    if (marketingPage) trackPageView(marketingPage);
+  }, [marketingPage]);
 
   // Shared by every entry point (logged-out homepage, standalone "go home"
   // link, the About page itself) so "Get Started"/"Log in" always resolve
@@ -179,9 +200,11 @@ export default function App() {
   return (
     <AuthProvider>
       <GlobalStyles />
-      <Suspense fallback={<LoadingScreen />}>
-        <AppShell />
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingScreen />}>
+          <AppShell />
+        </Suspense>
+      </ErrorBoundary>
     </AuthProvider>
   );
 }

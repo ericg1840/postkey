@@ -1,6 +1,6 @@
 import { getDb } from "../../_lib/db.mjs";
 import { createResetToken, json } from "../../_lib/auth.mjs";
-import { sendEmail, preheader } from "../../_lib/email.mjs";
+import { sendEmail, preheader, escapeHtml } from "../../_lib/email.mjs";
 import { checkRateLimit, getClientIp } from "../../_lib/rateLimit.mjs";
 
 async function sendResetEmail(toEmail, resetUrl, env) {
@@ -21,7 +21,7 @@ async function sendResetEmail(toEmail, resetUrl, env) {
               </tr>
             </table>
             <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#1B2430;">
-              Someone requested a password reset for the PostKey account at <strong>${toEmail}</strong>.
+              Someone requested a password reset for the PostKey account at <strong>${escapeHtml(toEmail)}</strong>.
             </p>
             <div style="text-align:center;margin:0 0 16px;">
               <a href="${resetUrl}" style="display:inline-block;background:#0043FF;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;padding:14px 36px;border-radius:999px;">
@@ -79,6 +79,7 @@ export async function onRequestPost({ request, env }) {
   try {
     await sendResetEmail(email, resetUrl, env);
   } catch (err) {
+    console.error("Reset email failed", err);
     return json({ error: "Couldn't send the reset email. Please try again shortly." }, { status: 502 });
   }
 
