@@ -933,7 +933,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const hasHeadshot = !!headshot.img;
     const circleD = hasHeadshot ? contactH * 1.1 : 0;
     const circleCX = w / 2;
-    const headshotLeftEdge = circleCX - circleD / 2;
     const headshotRightEdge = circleCX + circleD / 2;
     if (hasHeadshot) {
       const circleCY = bandY;
@@ -1629,7 +1628,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         try {
           window.open(canvas.toDataURL("image/png"), "_blank");
           setDownloadError("Opened the image in a new tab — press and hold it, then choose Save Image.");
-        } catch (e2) {
+        } catch {
           setDownloadError(canvasBlockedMessage("download"));
         }
       }

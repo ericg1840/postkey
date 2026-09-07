@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Download, Facebook, Image as ImageIcon, SlidersHorizontal, Check, ChevronDown, ArrowRight } from "lucide-react";
+import { Download, Facebook, Image as ImageIcon, SlidersHorizontal, Check, ChevronDown } from "lucide-react";
 import {
   UI, ACCENT, ERROR, BLACK, WHITE, ASPECTS, ACCENT_PRESETS, ColorSwatchPicker, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
@@ -1008,7 +1008,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
         try {
           window.open(canvas.toDataURL("image/png"), "_blank");
           setDownloadError("Opened the image in a new tab — press and hold it, then choose Save Image.");
-        } catch (e2) {
+        } catch {
           setDownloadError(canvasBlockedMessage("download"));
         }
       }
