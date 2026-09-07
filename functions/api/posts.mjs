@@ -13,6 +13,34 @@ const MAX_IMAGE_DATA_LENGTH = 12_000_000;
 // full-size image.
 const MAX_THUMB_DATA_LENGTH = 400_000;
 
+// Post images are stored as data URLs in Postgres, so the Post Library is
+// the fastest-growing thing in the database — an unbounded history meant one
+// enthusiastic user could fill the whole instance and break saving for
+// everyone at once. The library is a convenience (the agent already
+// downloaded the file), so the oldest entries age out rather than the save
+// failing. Deliberately generous: at a post a day this is over three months
+// of history, so a normal user should never reach it.
+export const MAX_POSTS_PER_USER = 100;
+
+// Trims a user's history back to the newest MAX_POSTS_PER_USER rows and
+// returns how many were removed. Ordered by created_at with id as the
+// tiebreak so two posts saved in the same second still have a stable, and
+// correct, notion of which one is older.
+export async function pruneOldPosts(db, userId, max = MAX_POSTS_PER_USER) {
+  const removed = await db.sql`
+    DELETE FROM posts
+     WHERE user_id = ${userId}
+       AND id NOT IN (
+         SELECT id FROM posts
+          WHERE user_id = ${userId}
+          ORDER BY created_at DESC, id DESC
+          LIMIT ${max}
+       )
+    RETURNING id
+  `;
+  return removed.length;
+}
+
 // `?id=N` returns that one post's full-resolution image; without it, the
 // listing returns metadata plus thumbnails only. Full images are megabytes
 // each as data URLs, so returning every one of them to draw a grid of
@@ -49,6 +77,10 @@ export async function onRequestGet({ request, env }) {
       thumbData: r.thumb_data,
       createdAt: r.created_at,
     })),
+    // Sent with the listing rather than hardcoded in the client, so the cap
+    // lives in exactly one place and the UI can't drift from what the server
+    // actually enforces.
+    limit: MAX_POSTS_PER_USER,
   });
 }
 
@@ -81,6 +113,16 @@ export async function onRequestPost({ request, env }) {
 
   await logEvent(db, userId, "post_created", { category, template, headline }).catch(() => {});
 
+  // After the insert, so the post the agent just made is always the one
+  // that's kept. A failure here must not fail the save — the row is already
+  // committed, and the next save will trim it anyway.
+  let pruned = 0;
+  try {
+    pruned = await pruneOldPosts(db, userId);
+  } catch (err) {
+    console.error("Pruning old posts failed", err);
+  }
+
   return json({
     post: {
       id: row.id,
@@ -90,6 +132,10 @@ export async function onRequestPost({ request, env }) {
       thumbData: row.thumb_data,
       createdAt: row.created_at,
     },
+    // Lets the Post Library reconcile without a refetch when the save pushed
+    // something off the end of the history.
+    pruned,
+    limit: MAX_POSTS_PER_USER,
   });
 }
 

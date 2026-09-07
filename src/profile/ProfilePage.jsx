@@ -244,12 +244,20 @@ function PostsSection({ onSwitchTool }) {
   // than per-card so a post keeps its image across filter changes (which
   // remount the cards) and is only ever fetched once per session.
   const [fullImages, setFullImages] = useState({});
+  // How many posts the server keeps per user. Comes from the API rather than
+  // a copy of the constant here, so the number shown can never disagree with
+  // the one actually enforced.
+  const [limit, setLimit] = useState(null);
   const inFlight = useRef({});
 
   useEffect(() => {
     let cancelled = false;
     api("/api/posts")
-      .then((data) => { if (!cancelled) setPosts(data.posts || []); })
+      .then((data) => {
+        if (cancelled) return;
+        setPosts(data.posts || []);
+        setLimit(data.limit ?? null);
+      })
       .catch(() => { if (!cancelled) setError("Couldn't load your posts — try refreshing."); });
     return () => { cancelled = true; };
   }, []);
@@ -340,6 +348,10 @@ function PostsSection({ onSwitchTool }) {
     );
   }
 
+  // 90% of the way there — far enough along that the oldest post is a real
+  // candidate for removal soon, not a hypothetical.
+  const nearLimit = limit !== null && posts.length >= limit * 0.9;
+
   const categories = Array.from(
     new Set(posts.map((p) => p.category || p.template || "Post").filter(Boolean))
   ).sort((a, b) => a.localeCompare(b));
@@ -353,6 +365,16 @@ function PostsSection({ onSwitchTool }) {
       <p className="font-body text-xs mb-4" style={{ color: UI.inkSoft }}>
         {posts.length} saved post{posts.length === 1 ? "" : "s"} — tap a thumbnail to preview, or download again below.
       </p>
+
+      {/* Only once it's close enough to matter. Saying "100 max" to someone
+          with four saved posts is noise; saying nothing to someone at 96 and
+          then silently dropping their oldest post is worse. */}
+      {nearLimit && (
+        <p className="font-body text-xs mb-4 rounded-xl px-3 py-2" style={{ color: UI.inkSoft, background: UI.stone }}>
+          Your library holds the {limit} most recent posts. Saving a new one
+          {posts.length >= limit ? " removes" : " will start removing"} the oldest, so download anything you want to keep.
+        </p>
+      )}
 
       {categories.length > 1 && (
         <div className="scroll-touch no-scrollbar flex items-center gap-1.5 mb-4 overflow-x-auto pb-1">
