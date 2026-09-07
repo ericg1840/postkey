@@ -2,7 +2,6 @@ import js from "@eslint/js";
 import globals from "globals";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
-import reactRefresh from "eslint-plugin-react-refresh";
 
 // Three environments live in this repo and they don't share globals:
 // the React app (browser), the Worker/API handlers (worker runtime, which
@@ -38,7 +37,6 @@ export default [
     plugins: {
       react,
       "react-hooks": reactHooks,
-      "react-refresh": reactRefresh,
     },
     rules: {
       // Without this, a component referenced only from JSX reads as an
