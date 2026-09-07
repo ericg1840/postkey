@@ -11,7 +11,7 @@ import {
   Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord, firstNameOf,
   peekPostHandoff, clearPostHandoff, shareImageToFacebook,
   peekDraftHandoff, clearDraftHandoff, loadPostDrafts, SaveForLaterButton,
-  canvasToPngBlob, downloadBlob, canvasBlockedMessage, THUMB_ASPECTS,
+  canvasToPngBlob, canvasThumbDataUrl, downloadBlob, canvasBlockedMessage, THUMB_ASPECTS,
   makeFieldUpdater,
 } from "./shared.jsx";
 import { useAuth, api } from "./auth/AuthContext.jsx";
@@ -1579,8 +1579,10 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
   // fails the download/share the agent actually asked for.
   const savePostToHistory = (canvas) => {
     let imageData;
+    let thumbData;
     try {
       imageData = canvas.toDataURL("image/png");
+      thumbData = canvasThumbDataUrl(canvas);
     } catch {
       return; // tainted canvas (cross-origin headshot/logo) — nothing to save
     }
@@ -1591,6 +1593,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         headline: `${form.word1} ${form.script}`.trim(),
         template: TEMPLATES[form.template]?.label || form.template,
         imageData,
+        thumbData,
       }),
     }).catch(() => {});
   };

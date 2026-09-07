@@ -8,7 +8,7 @@ import {
   Accordion, PrivacyBadge, splitHeadlineLastWord, drawHouseBackdrop, useDefaultImage, firstNameOf,
   peekPostHandoff, clearPostHandoff, shareImageToFacebook,
   peekDraftHandoff, clearDraftHandoff, loadPostDrafts, SaveForLaterButton,
-  canvasToPngBlob, downloadBlob, canvasBlockedMessage, THUMB_ASPECTS,
+  canvasToPngBlob, canvasThumbDataUrl, downloadBlob, canvasBlockedMessage, THUMB_ASPECTS,
   makeFieldUpdater,
 } from "./shared.jsx";
 import { useAuth, api } from "./auth/AuthContext.jsx";
@@ -959,8 +959,10 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
   // fails the download/share the agent actually asked for.
   const savePostToHistory = (canvas) => {
     let imageData;
+    let thumbData;
     try {
       imageData = canvas.toDataURL("image/png");
+      thumbData = canvasThumbDataUrl(canvas);
     } catch {
       return; // tainted canvas (cross-origin headshot/logo) — nothing to save
     }
@@ -971,6 +973,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
         headline: form.subject || "",
         template: form.template || form.style,
         imageData,
+        thumbData,
       }),
     }).catch(() => {});
   };

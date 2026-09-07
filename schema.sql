@@ -99,6 +99,9 @@ CREATE TABLE posts (
   headline TEXT NOT NULL DEFAULT '',
   template TEXT NOT NULL DEFAULT '',
   image_data TEXT NOT NULL,
+  -- Small (~400px) copy for the Post Library grid, so listing saved posts
+  -- doesn't ship every full-size image. See migrations/007_post_thumbnails.sql.
+  thumb_data TEXT,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
