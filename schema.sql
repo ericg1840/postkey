@@ -131,3 +131,10 @@ CREATE TABLE content_ideas (
 );
 
 CREATE INDEX content_ideas_user_id_idx ON content_ideas(user_id);
+
+-- Fixed-window rate limiting for auth endpoints. See migrations/006_rate_limits.sql.
+CREATE TABLE rate_limits (
+  key TEXT PRIMARY KEY,
+  attempts INTEGER NOT NULL DEFAULT 1,
+  window_start TIMESTAMP NOT NULL DEFAULT NOW()
+);

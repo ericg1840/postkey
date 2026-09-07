@@ -2,6 +2,7 @@ import { getDb } from "../../_lib/db.mjs";
 import { hashPassword, createSessionToken, sessionCookie, json, MAX_PASSWORD_LENGTH } from "../../_lib/auth.mjs";
 import { sendEmail, preheader, escapeHtml } from "../../_lib/email.mjs";
 import { logEvent } from "../../_lib/activity.mjs";
+import { checkRateLimit, getClientIp } from "../../_lib/rateLimit.mjs";
 
 async function sendWelcomeEmail(toEmail, firstName, appUrl, env) {
   // Their own signup name, so it lands in the HTML body escaped — the plain
@@ -93,6 +94,14 @@ export async function onRequestPost({ request, env }) {
   if (fullName.length > 120) return json({ error: "That name is too long." }, { status: 400 });
 
   const db = getDb(env);
+
+  // Caps how many accounts one source can create in a stretch -- signup
+  // spam/abuse rather than credential attacks, so a looser limit than login.
+  const ip = getClientIp(request);
+  if (!(await checkRateLimit(db, `signup:ip:${ip}`, { max: 8, windowMinutes: 60 }))) {
+    return json({ error: "Too many signups from this connection. Please try again later." }, { status: 429 });
+  }
+
   const existing = await db.sql`SELECT id FROM users WHERE email = ${email}`;
   if (existing.length > 0) return json({ error: "An account with that email already exists." }, { status: 409 });
 
