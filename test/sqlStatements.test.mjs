@@ -97,8 +97,12 @@ describe("every migration in the repo splits cleanly", async () => {
         // Balanced dollar quoting: an odd count means a DO block got cut.
         const dollarTags = statement.match(/\$[A-Za-z_]*\$/g) || [];
         assert.equal(dollarTags.length % 2, 0, `unbalanced dollar-quoting in: ${statement.slice(0, 60)}`);
-        // Balanced single quotes, ignoring '' escapes.
-        const quotes = (statement.replace(/''/g, "").match(/'/g) || []).length;
+        // Balanced single quotes, ignoring '' escapes — and ignoring
+        // comments, where an ordinary apostrophe ("hasn't") is legal SQL and
+        // would otherwise read as an unclosed string. The splitter already
+        // treats comment text as inert; this check has to agree with it.
+        const code = statement.replace(/\/\*[\s\S]*?\*\//g, "").replace(/--[^\n]*/g, "");
+        const quotes = (code.replace(/''/g, "").match(/'/g) || []).length;
         assert.equal(quotes % 2, 0, `unbalanced quotes in: ${statement.slice(0, 60)}`);
       }
 

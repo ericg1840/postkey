@@ -77,7 +77,7 @@ function LiveAuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, brandKit, loading, signup, login, logout, saveBrandKit, requestPasswordReset, resetPassword, changePassword }}>
+    <AuthContext.Provider value={{ user, brandKit, loading, refresh, signup, login, logout, saveBrandKit, requestPasswordReset, resetPassword, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

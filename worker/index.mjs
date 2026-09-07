@@ -26,6 +26,9 @@ import * as adminUserActivity from "../functions/api/admin/user-activity.mjs";
 import * as adminActivityLog from "../functions/api/admin/activity-log.mjs";
 import * as adminAnalytics from "../functions/api/admin/analytics.mjs";
 import * as track from "../functions/api/track.mjs";
+import * as verifyEmail from "../functions/api/auth/verify-email.mjs";
+import * as resendVerification from "../functions/api/auth/resend-verification.mjs";
+import { sendErrorAlert } from "../functions/_lib/alerts.mjs";
 
 const ROUTES = {
   "/api/auth/login": { POST: login.onRequestPost },
@@ -35,6 +38,8 @@ const ROUTES = {
   "/api/auth/request-reset": { POST: requestReset.onRequestPost },
   "/api/auth/reset-password": { POST: resetPassword.onRequestPost },
   "/api/auth/change-password": { POST: changePassword.onRequestPost },
+  "/api/auth/verify-email": { POST: verifyEmail.onRequestPost },
+  "/api/auth/resend-verification": { POST: resendVerification.onRequestPost },
   "/api/brand-kit": { GET: brandKit.onRequestGet, PUT: brandKit.onRequestPut },
   "/api/bio": { GET: bio.onRequestGet, PUT: bio.onRequestPut },
   "/api/bio-public": { GET: bioPublic.onRequestGet },
@@ -79,6 +84,11 @@ export default {
         // straight out of `wrangler tail` without anything leaking.
         const ref = crypto.randomUUID().slice(0, 8);
         console.error(`${pathname} threw [ref ${ref}]:`, err);
+        // Sent without awaiting: a 500 shouldn't get slower because we're
+        // also emailing about it, and waitUntil keeps the isolate alive long
+        // enough for it to finish after the response has gone out.
+        const alert = sendErrorAlert({ env, ref, pathname, method: request.method, error: err });
+        if (ctx?.waitUntil) ctx.waitUntil(alert); else await alert.catch(() => {});
         return new Response(
           JSON.stringify({ error: `Something went wrong on our end. Please try again. (ref: ${ref})`, ref }),
           { status: 500, headers: { "Content-Type": "application/json" } }
