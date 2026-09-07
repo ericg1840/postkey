@@ -2133,7 +2133,20 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           </div>
 
           {/* RIGHT: PREVIEW */}
-          <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "md:sticky md:col-start-2 md:row-span-full" : "hidden md:block md:sticky md:col-start-2 md:row-span-full"} style={{ top: "calc(82px + 1.5rem)", scrollMarginTop: "calc(82px + 1.5rem)" }}>
+          {/* Bounded to the visible area and scrollable inside it: the panel
+              (preview + social set) is taller than a laptop viewport, and a
+              sticky element taller than the screen pins its top and puts its
+              bottom permanently out of reach. */}
+          <div
+            ref={(el) => { sectionRefs.current[3] = el; }}
+            className={mobileStep === 3 ? "md:sticky md:col-start-2 md:row-span-full" : "hidden md:block md:sticky md:col-start-2 md:row-span-full"}
+            style={{
+              top: "calc(82px + 1.5rem)",
+              scrollMarginTop: "calc(82px + 1.5rem)",
+              maxHeight: "calc(100dvh - 82px - 3rem)",
+              overflowY: "auto",
+            }}
+          >
             {mobileStep === 3 && (
               <button type="button" onClick={() => goToStep(2)}
                 className="press-fx md:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2 -ml-2 px-2"
