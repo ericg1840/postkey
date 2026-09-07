@@ -867,7 +867,12 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
   // photo/bar boundary, agent info on the left, and a CTA + phone/website
   // on the right. ----
   const drawSignatureLayout = (ctx, w, h) => {
-    const contactH = Math.min(w, h) * 0.155;
+    // Taller than the other single-photo layouts' band (0.155 -> 0.195) to
+    // make room for the same brokerage/office/email info drawContactBand
+    // shows elsewhere — Signature's centered-headshot, CTA-quote look is
+    // custom-drawn rather than sharing that helper, but every post still
+    // needs the full set of required agent/brokerage info.
+    const contactH = Math.min(w, h) * 0.195;
     const photoH = h - contactH;
 
     // ---- Photo ----
@@ -985,12 +990,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
 
-    // Right block: user-editable CTA line + phone/website — likewise kept
-    // clear of the headshot circle.
+    // Right block: user-editable CTA line, then the same brokerage/office
+    // info drawContactBand shows on every other layout — right-aligned to
+    // match this block's existing quote/phone stack instead of the shared
+    // helper's left-aligned one.
     const rightX = w * 0.955;
     ctx.textAlign = "right";
     const rightMaxW = Math.min(w * 0.4, rightX - (hasHeadshot ? headshotRightEdge : 0) - w * 0.025);
-    let ctaSize = contactH * 0.14;
+    let ctaSize = contactH * 0.115;
     ctx.font = `italic 600 ${ctaSize}px "Playfair Display", serif`;
     let ctaLines = wrapText(ctx, form.ctaMessage, rightMaxW);
     let attempts = 0;
@@ -1008,17 +1015,37 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     }
     ctx.fillStyle = textColor;
     const ctaLineH = ctaSize * 1.15;
-    const ctaY0 = bandY + contactH * 0.32 - (ctaLines.length - 1) * ctaLineH * 0.5;
+    const ctaY0 = bandY + contactH * 0.2 - (ctaLines.length - 1) * ctaLineH * 0.5;
     ctaLines.forEach((line, i) => ctx.fillText(line, rightX, ctaY0 + i * ctaLineH));
 
-    ctx.font = `800 ${contactH * 0.17}px "Montserrat", sans-serif`;
+    ctx.font = `800 ${contactH * 0.135}px "Montserrat", sans-serif`;
     shrinkToFit(form.agentPhone, rightMaxW);
     ctx.fillStyle = form.accentColor;
-    ctx.fillText(form.agentPhone, rightX, bandY + contactH * 0.73);
-    ctx.font = `600 ${contactH * 0.17 * 0.82}px "Montserrat", sans-serif`;
-    shrinkToFit(form.website, rightMaxW);
-    ctx.fillStyle = mutedColor;
-    ctx.fillText(form.website, rightX, bandY + contactH * 0.9);
+    ctx.fillText(form.agentPhone, rightX, bandY + contactH * 0.42);
+
+    if (form.agentEmail) {
+      ctx.font = `600 ${contactH * 0.095}px "Montserrat", sans-serif`;
+      shrinkToFit(form.agentEmail, rightMaxW);
+      ctx.fillStyle = mutedColor;
+      ctx.fillText(form.agentEmail, rightX, bandY + contactH * 0.57);
+    }
+
+    const brokerLine = [form.brokerageName, form.brokerageCity].filter(Boolean).join("   ·   ");
+    if (brokerLine) {
+      const brokerFont = `700 ${contactH * 0.095}px "Montserrat", sans-serif`;
+      ctx.font = brokerFont;
+      shrinkToFit(brokerLine, rightMaxW);
+      ctx.fillStyle = textColor;
+      ctx.fillText(brokerLine, rightX, bandY + contactH * 0.75);
+    }
+
+    const officeLine = [form.officePhone && `Office  ${form.officePhone}`, form.website].filter(Boolean).join("   ·   ");
+    if (officeLine) {
+      ctx.font = `500 ${contactH * 0.08}px "Montserrat", sans-serif`;
+      shrinkToFit(officeLine, rightMaxW);
+      ctx.fillStyle = mutedColor;
+      ctx.fillText(officeLine, rightX, bandY + contactH * 0.9);
+    }
     ctx.textAlign = "left";
   };
 
