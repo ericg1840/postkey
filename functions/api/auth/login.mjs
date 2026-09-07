@@ -1,11 +1,18 @@
 import { getDb } from "../../_lib/db.mjs";
-import { verifyPassword, createSessionToken, sessionCookie, json } from "../../_lib/auth.mjs";
+import { verifyPassword, createSessionToken, sessionCookie, json, MAX_PASSWORD_LENGTH } from "../../_lib/auth.mjs";
 import { logEvent } from "../../_lib/activity.mjs";
 
 export async function onRequestPost({ request, env }) {
   const body = await request.json().catch(() => null);
   const email = (body?.email || "").trim().toLowerCase();
   const password = body?.password || "";
+
+  // Rejected before any scrypt work happens — no stored password can be
+  // longer than this, so it's a guaranteed miss either way, and answering
+  // with the same 401 keeps the response indistinguishable from a wrong one.
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    return json({ error: "Incorrect email or password." }, { status: 401 });
+  }
 
   const db = getDb(env);
   const [user] = await db.sql`SELECT id, email, full_name, password_hash, account_status FROM users WHERE email = ${email}`;

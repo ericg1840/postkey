@@ -17,6 +17,19 @@ export async function sendEmail({ to, subject, html, text }, env) {
   }
 }
 
+// Anything a user typed (their name, their email address) that gets dropped
+// into an email's HTML has to go through this first — a signup name like
+// `<a href="...">` would otherwise render as real markup inside a message
+// sent from our own domain.
+export function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // Hidden preview text shown next to the subject line in inbox lists. Padded
 // with invisible characters so the client doesn't fall through into
 // rendering the email's actual visible content as the preview instead.

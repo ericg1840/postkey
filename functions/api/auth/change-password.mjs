@@ -1,5 +1,5 @@
 import { getDb } from "../../_lib/db.mjs";
-import { getUserIdFromRequest, verifyPassword, hashPassword, json } from "../../_lib/auth.mjs";
+import { getUserIdFromRequest, verifyPassword, hashPassword, json, MAX_PASSWORD_LENGTH } from "../../_lib/auth.mjs";
 
 export async function onRequestPost({ request, env }) {
   const userId = getUserIdFromRequest(request, env);
@@ -10,6 +10,7 @@ export async function onRequestPost({ request, env }) {
   const newPassword = body?.newPassword || "";
 
   if (newPassword.length < 8) return json({ error: "New password must be at least 8 characters." }, { status: 400 });
+  if (newPassword.length > MAX_PASSWORD_LENGTH) return json({ error: `New password must be ${MAX_PASSWORD_LENGTH} characters or fewer.` }, { status: 400 });
 
   const db = getDb(env);
   const [user] = await db.sql`SELECT password_hash FROM users WHERE id = ${userId}`;
