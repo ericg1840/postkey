@@ -12,6 +12,11 @@ function getSecret(env) {
   return secret;
 }
 
+// scrypt's cost scales with input length, so an unbounded password is a
+// cheap way to burn Worker CPU on an endpoint that takes anonymous POSTs.
+// Well above any real passphrase, low enough to stay a fixed small cost.
+export const MAX_PASSWORD_LENGTH = 200;
+
 export function hashPassword(password) {
   const salt = randomBytes(16).toString("hex");
   const hash = scryptSync(password, salt, 64).toString("hex");
@@ -60,7 +65,18 @@ export function parseCookies(req) {
   for (const part of header.split(";")) {
     const idx = part.indexOf("=");
     if (idx === -1) continue;
-    out[part.slice(0, idx).trim()] = decodeURIComponent(part.slice(idx + 1).trim());
+    const raw = part.slice(idx + 1).trim();
+    // An unrelated cookie on the same domain carrying a stray "%" (an
+    // analytics or third-party cookie, say) makes decodeURIComponent throw
+    // URIError — which, uncaught, would 500 *every* API call for that
+    // browser, including /api/auth/me, until they cleared their cookies.
+    let value;
+    try {
+      value = decodeURIComponent(raw);
+    } catch {
+      value = raw;
+    }
+    out[part.slice(0, idx).trim()] = value;
   }
   return out;
 }

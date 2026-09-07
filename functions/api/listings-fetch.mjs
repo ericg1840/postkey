@@ -71,9 +71,8 @@ export async function onRequestPost({ request, env }) {
   const ogImage = metaContent(html, "og:image");
 
   const address = listing?.name || listing?.address?.streetAddress || ogTitle.split(" | ")[0] || "";
-  const price = listing?.offers?.price
-    ? `$${Number(listing.offers.price).toLocaleString()}`
-    : (html.match(/"price"\s*:\s*(\d+)/)?.[1] && `$${Number(html.match(/"price"\s*:\s*(\d+)/)[1]).toLocaleString()}`) || "";
+  const rawPrice = Number(listing?.offers?.price || html.match(/"price"\s*:\s*(\d+)/)?.[1]);
+  const price = Number.isFinite(rawPrice) && rawPrice > 0 ? `$${rawPrice.toLocaleString()}` : "";
   const beds = listing?.numberOfRooms || html.match(/"bedrooms"\s*:\s*(\d+)/)?.[1] || "";
   const baths = html.match(/"bathrooms"\s*:\s*([\d.]+)/)?.[1] || "";
 
