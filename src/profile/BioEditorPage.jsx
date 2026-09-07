@@ -486,7 +486,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   </div>
                 )}
                 <div className="flex flex-col gap-2 mb-3">
-                  {socialLinks.map((link, i) => {
+                  {socialLinks.map((link) => {
                     const typeInfo = LINK_TYPES.find((t) => t.id === link.type);
                     const Icon = typeInfo.icon;
                     return (

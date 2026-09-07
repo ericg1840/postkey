@@ -26,7 +26,7 @@ function toUtcDateKey(d) {
 // (UTC-12 through UTC+14) puts the local date within one day of the UTC one,
 // so this keeps a stray or bogus value from planting suggestions on
 // arbitrary past dates, while accepting every genuine offset.
-function resolveToday(raw, utcToday) {
+export function resolveToday(raw, utcToday) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(raw || "")) return utcToday;
   const offsetDays = Math.abs(Date.parse(`${raw}T00:00:00Z`) - Date.parse(`${utcToday}T00:00:00Z`)) / 86_400_000;
   return Number.isFinite(offsetDays) && offsetDays <= 1 ? raw : utcToday;
