@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { User, Building2, Check, Download, Trash2, ImageOff, Loader2, CalendarClock, FileEdit, Pencil, Share2, X } from "lucide-react";
 import {
   UI, ACCENT, WHITE, ColorSwatchPicker, SCRIPT_FONTS, scriptFontCss,
@@ -39,11 +39,15 @@ async function shareOrDownloadDataUrl(dataUrl, filename) {
   return "downloaded";
 }
 
-function PostThumb({ post, onDelete }) {
+// The listing only carries thumbnails, so the full-resolution image is
+// pulled per post the first time something actually needs it (preview,
+// download, or share) and kept for the rest of the session.
+function PostThumb({ post, onDelete, fullImage, loadFullImage }) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [imageError, setImageError] = useState("");
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -57,35 +61,45 @@ function PostThumb({ post, onDelete }) {
   const safeCategory = (post.category || post.template || "post").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   const filename = `${safeCategory}-${post.id}.png`;
 
-  const handleDownload = () => {
+  const openPreview = () => {
+    setPreview(true);
+    setImageError("");
+    loadFullImage(post.id).catch(() => setImageError("Couldn't load the full image."));
+  };
+
+  const withFullImage = async (action) => {
     setBusy(true);
+    setImageError("");
     try {
-      downloadDataUrl(post.imageData, filename);
+      const dataUrl = await loadFullImage(post.id);
+      await action(dataUrl);
+    } catch {
+      setImageError("Couldn't load the full image — try again.");
     } finally {
       setBusy(false);
     }
   };
 
-  const handleShare = async () => {
-    setBusy(true);
-    try {
-      await shareOrDownloadDataUrl(post.imageData, filename);
-    } finally {
-      setBusy(false);
-    }
-  };
+  const handleDownload = () => withFullImage((dataUrl) => downloadDataUrl(dataUrl, filename));
+  const handleShare = () => withFullImage((dataUrl) => shareOrDownloadDataUrl(dataUrl, filename));
 
   return (
     <>
       <div className="rounded-xl overflow-hidden border flex flex-col" style={{ borderColor: UI.line, background: UI.card }}>
         <button
           type="button"
-          onClick={() => setPreview(true)}
+          onClick={openPreview}
           className="relative flex items-center justify-center w-full text-left"
           style={{ aspectRatio: "4 / 5", background: mixWithWhite(UI.ink, 0.95) }}
           aria-label={`Preview ${post.headline || post.category || "post"}`}
         >
-          <img src={post.imageData} alt={post.headline || post.category || "Saved post"} className="w-full h-full object-cover" />
+          {/* Posts saved before thumbnails existed have none, so they show
+              the full image once the background backfill has fetched it. */}
+          {post.thumbData || fullImage ? (
+            <img src={post.thumbData || fullImage} alt={post.headline || post.category || "Saved post"} className="w-full h-full object-cover" />
+          ) : (
+            <Loader2 size={18} className="animate-spin" style={{ color: UI.inkSoft }} />
+          )}
         </button>
 
         <div className="px-2.5 pt-2 pb-1 min-h-[2.5rem]">
@@ -184,12 +198,17 @@ function PostThumb({ post, onDelete }) {
                 <X size={20} />
               </button>
             </div>
+            {/* Falls back to the thumbnail while the full image loads, so
+                the sheet shows the right post instead of an empty box. */}
             <img
-              src={post.imageData}
+              src={fullImage || post.thumbData || ""}
               alt={post.headline || post.category || "Saved post"}
               className="w-full rounded-xl border"
-              style={{ borderColor: UI.line }}
+              style={{ borderColor: UI.line, background: mixWithWhite(UI.ink, 0.95) }}
             />
+            {imageError && (
+              <p className="font-body text-xs mt-2" style={{ color: "#C0392B" }}>{imageError}</p>
+            )}
             <div className="flex gap-2 mt-4">
               <button
                 type="button"
@@ -221,6 +240,11 @@ function PostsSection({ onSwitchTool }) {
   const [posts, setPosts] = useState(null);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("all");
+  // id -> full-resolution data URL, populated on demand. Kept here rather
+  // than per-card so a post keeps its image across filter changes (which
+  // remount the cards) and is only ever fetched once per session.
+  const [fullImages, setFullImages] = useState({});
+  const inFlight = useRef({});
 
   useEffect(() => {
     let cancelled = false;
@@ -229,6 +253,43 @@ function PostsSection({ onSwitchTool }) {
       .catch(() => { if (!cancelled) setError("Couldn't load your posts — try refreshing."); });
     return () => { cancelled = true; };
   }, []);
+
+  const loadFullImage = useCallback((id) => {
+    if (fullImages[id]) return Promise.resolve(fullImages[id]);
+    // De-duped so opening the preview and hitting Download don't each fire
+    // their own request for the same multi-megabyte image.
+    if (!inFlight.current[id]) {
+      inFlight.current[id] = api(`/api/posts?id=${id}`)
+        .then((data) => {
+          setFullImages((cur) => ({ ...cur, [id]: data.imageData }));
+          return data.imageData;
+        })
+        .finally(() => { delete inFlight.current[id]; });
+    }
+    return inFlight.current[id];
+  }, [fullImages]);
+
+  // Posts saved before thumbnails existed have nothing to draw in the grid.
+  // Fetch those full images one at a time in the background so the page stays
+  // usable, instead of the single huge response this listing used to return.
+  useEffect(() => {
+    if (!posts) return;
+    let cancelled = false;
+    (async () => {
+      for (const post of posts) {
+        if (cancelled) return;
+        if (post.thumbData || fullImages[post.id]) continue;
+        try {
+          await loadFullImage(post.id);
+        } catch {
+          return; // offline or the request failed — stop rather than hammering
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+    // Keyed on the post list alone on purpose: adding fullImages/loadFullImage
+    // here would restart the loop after every image it fetches.
+  }, [posts]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const deletePost = async (id) => {
     await api(`/api/posts?id=${id}`, { method: "DELETE" });
@@ -330,7 +391,13 @@ function PostsSection({ onSwitchTool }) {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
           {visible.map((post) => (
-            <PostThumb key={post.id} post={post} onDelete={deletePost} />
+            <PostThumb
+              key={post.id}
+              post={post}
+              onDelete={deletePost}
+              fullImage={fullImages[post.id]}
+              loadFullImage={loadFullImage}
+            />
           ))}
         </div>
       )}

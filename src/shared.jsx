@@ -34,6 +34,22 @@ export function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
+// A small copy of a finished post, saved alongside the full-size PNG so the
+// Post Library grid can list saved posts without downloading megabytes of
+// full-resolution image per card. JPEG rather than PNG: these are
+// photo-backed graphics, where PNG is many times larger for no visible gain
+// at thumbnail size, and a saved post is always fully opaque.
+const POST_THUMB_MAX_DIM = 400;
+
+export function canvasThumbDataUrl(canvas) {
+  const scale = Math.min(1, POST_THUMB_MAX_DIM / Math.max(canvas.width, canvas.height));
+  const thumb = document.createElement("canvas");
+  thumb.width = Math.round(canvas.width * scale);
+  thumb.height = Math.round(canvas.height * scale);
+  thumb.getContext("2d").drawImage(canvas, 0, 0, thumb.width, thumb.height);
+  return thumb.toDataURL("image/jpeg", 0.82);
+}
+
 // Every "export this canvas" flow needs the same toBlob-as-a-promise step.
 export function canvasToPngBlob(canvas) {
   return new Promise((resolve, reject) => {
