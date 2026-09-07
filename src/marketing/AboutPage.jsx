@@ -1,9 +1,51 @@
-import { Key, Smartphone, Laptop, Palette, Lock, Clock, ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { Key, Smartphone, Laptop, Palette, Lock, Clock, ArrowLeft, ArrowRight, Check, Home, MessageSquareQuote, Store, Lightbulb, CalendarDays, Link as LinkIcon } from "lucide-react";
 import { AUTH } from "../auth/AuthShell.jsx";
 import { ACCENT_PRESETS, Logo } from "../shared.jsx";
 import { PostCard, BrandKitPreview } from "./HomePage.jsx";
 
 const PRIMARY = ACCENT_PRESETS[1];
+
+// Deliberately named after what an agent wants to post, not after the tool
+// that makes it — and every one of these is something the app actually does
+// today, so the page can't drift into promising features that don't exist.
+const CAPABILITIES = [
+  {
+    icon: Home,
+    title: "Listings, start to sold",
+    text: "Just listed, open house, price drop, under contract, sold — eight layouts, and a roundup that puts three properties in one post.",
+    color: PRIMARY,
+  },
+  {
+    icon: MessageSquareQuote,
+    title: "Client wins and testimonials",
+    text: "Turn a five-star review or a happy closing into a post that looks like it came from a designer.",
+    color: ACCENT_PRESETS[4],
+  },
+  {
+    icon: Store,
+    title: "Local favorites",
+    text: "Spotlight the restaurants, shops, and neighborhood spots that show you actually know your market.",
+    color: ACCENT_PRESETS[2],
+  },
+  {
+    icon: Lightbulb,
+    title: "Tips and market updates",
+    text: "Homeowner advice, reno and paint picks, market stats, checklists — the content that earns attention between listings.",
+    color: ACCENT_PRESETS[3],
+  },
+  {
+    icon: CalendarDays,
+    title: "A plan, not a scramble",
+    text: "Map out the month, see which days are still open, and get nudged about the holidays worth posting around.",
+    color: PRIMARY,
+  },
+  {
+    icon: LinkIcon,
+    title: "Captions and a link in bio",
+    text: "Generate a listing description in your chosen tone, and give clients one link that holds everything.",
+    color: ACCENT_PRESETS[4],
+  },
+];
 
 const PRINCIPLES = [
   { icon: Clock, title: "Built for busy days", text: "A post takes minutes, not a design session — so it actually happens between showings.", color: PRIMARY },
@@ -68,6 +110,35 @@ export function AboutPage({ onBack, onGetStarted, onLogIn }) {
             end of the day.
           </p>
         </div>
+      </section>
+
+      {/* WHAT YOU CAN MAKE — the page explained the philosophy but never the
+          product; a visitor's next question after the hero is "what does it
+          actually do?". Every item here maps to something shipping, so this
+          stays a description rather than a promise. */}
+      <section className="max-w-5xl mx-auto px-6 pt-6 pb-10 sm:pb-14">
+        <h2 className="font-display font-bold text-center" style={{ color: AUTH.ink, fontSize: "1.65rem" }}>
+          Everything you need to stay visible
+        </h2>
+        <p className="font-body text-sm text-center mt-2 mx-auto" style={{ color: AUTH.muted, maxWidth: 520 }}>
+          Whether you're announcing a listing, celebrating a closing, or just staying top of mind between deals.
+        </p>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">
+          {CAPABILITIES.map(({ icon: Icon, title, text, color }) => (
+            <div key={title} className="rounded-2xl p-6" style={{ background: "#FFFFFF", boxShadow: "0 4px 20px rgba(27,36,48,0.06)" }}>
+              <div className="flex items-center justify-center rounded-xl mb-3.5" style={{ width: 40, height: 40, background: `${color}1A` }}>
+                <Icon size={18} color={color} />
+              </div>
+              <h3 className="font-display font-bold text-base" style={{ color: AUTH.ink }}>{title}</h3>
+              <p className="font-body text-sm mt-1.5" style={{ color: AUTH.muted, lineHeight: 1.6 }}>{text}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className="font-body text-sm text-center mt-8 mx-auto" style={{ color: AUTH.muted, maxWidth: 520 }}>
+          All of it in your colors, your fonts, and your contact details — set up once, applied everywhere.
+        </p>
       </section>
 
       {/* WHEREVER THE DAY TAKES YOU */}
