@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Copy, Check, Shuffle, Home, Building2, Warehouse, Building } from "lucide-react";
+import { Copy, Check, Shuffle, Home, Building2, Warehouse, Building, AlertTriangle, ShieldCheck } from "lucide-react";
 import { UI, ACCENT, ACCENT_PRESETS, WHITE, mixWithWhite, TopNav } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 import { rotateBlocks, seedFromText } from "./lib/description.mjs";
+import { AVOID, scanFairHousing } from "./lib/fairHousing.mjs";
 
 // Property type just changes the noun used throughout the copy — kept
 // separate from "tone" so any type can be written in any voice.
@@ -51,7 +52,7 @@ const OPENERS = {
   warm: [
     (f, stats, noun) => `Welcome home to ${f.address}, a ${stats}${noun} tucked into ${f.neighborhood || "a wonderful neighborhood"}.`,
     (f, stats, noun) => `Step inside ${f.address} and feel right at home in this ${stats}${noun}.`,
-    (f, stats, noun) => `This ${stats}${noun} at ${f.address} is ready to welcome its next family.`,
+    (f, stats, noun) => `This ${stats}${noun} at ${f.address} is ready to welcome its next owner.`,
     (f, stats, noun) => `Located in the highly desirable ${f.neighborhood || "area"}, this beautifully maintained ${stats}${noun} offers an exceptional blend of comfort and character.`,
     (f, stats, noun) => `Welcome to ${f.address}, a ${stats}${noun} in the sought-after ${f.neighborhood || "neighborhood"}.`,
     (f, stats, noun) => `This is the one you've been waiting for — a ${stats}${noun} at ${f.address} that's ready for its next chapter.`,
@@ -244,7 +245,7 @@ const NEARBY_LEADS = {
 
 const SCHOOL_LEADS = {
   warm: [
-    (s) => `Families will love being part of the highly regarded ${s}.`,
+    (s) => `The property sits within the highly regarded ${s}.`,
     (s) => `Zoned for the well-regarded ${s}.`,
   ],
   luxury: [
@@ -440,6 +441,11 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
   const description = buildDescription(form, seed + variantOffset);
   const tryAnother = () => setVariantOffset((v) => v + 1);
 
+  // Run against the finished description rather than the raw fields: what the
+  // agent is about to paste somewhere is what matters, and it catches phrasing
+  // the templates contribute as well as their own words.
+  const flags = scanFairHousing(description);
+
   const copyDescription = async () => {
     try {
       await navigator.clipboard.writeText(description);
@@ -631,8 +637,39 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
                   <p className="font-body text-xs mt-2" style={{ color: UI.inkSoft }}>{copyError}</p>
                 )}
               </div>
+              <div className="mt-4 rounded-xl p-3" style={{ background: UI.card, border: `1.5px solid ${flags.length ? "#E8792E" : UI.line}` }}>
+                <p className="font-body text-xs font-bold flex items-center gap-1.5" style={{ color: UI.ink }}>
+                  {flags.length ? <AlertTriangle size={14} style={{ color: "#E8792E" }} /> : <ShieldCheck size={14} style={{ color: UI.inkSoft }} />}
+                  {flags.length
+                    ? `${flags.length} phrase${flags.length === 1 ? "" : "s"} worth a second look`
+                    : "No flagged wording"}
+                </p>
+                {flags.length > 0 && (
+                  <ul className="mt-2 grid gap-2">
+                    {/* Keyed by phrase+position: the same wording can legitimately
+                        appear twice, and the id alone would collide. */}
+                    {flags.map((flag) => (
+                      <li key={`${flag.id}-${flag.index}`} className="font-body text-xs" style={{ color: UI.inkSoft }}>
+                        <span className="font-semibold" style={{ color: UI.ink }}>“{flag.phrase}”</span>
+                        <span
+                          className="ml-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                          style={{ background: flag.severity === AVOID ? "#FBE4D5" : UI.stone, color: flag.severity === AVOID ? "#8A3B0B" : UI.inkSoft }}
+                        >
+                          {flag.category}
+                        </span>
+                        <br />
+                        {flag.note} {flag.suggestion}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="font-body text-[11px] mt-2.5" style={{ color: UI.inkSoft }}>
+                  A wording aid, not legal advice — it matches phrases, so it can't judge intent and doesn't
+                  know your state and local protected classes. Nothing flagged doesn't mean nothing to fix.
+                </p>
+              </div>
               <p className="font-body text-xs mt-3" style={{ color: UI.inkSoft }}>
-                This is assembled from what you typed above — nothing here is invented, so it's safe to post as-is. Always double-check facts before publishing to Zillow, Redfin, or Realtor.com.
+                This is assembled from what you typed above — nothing here is invented. Always double-check facts before publishing to Zillow, Redfin, or Realtor.com.
               </p>
             </div>
           </div>
