@@ -13,6 +13,8 @@ import {
   clearSessionCookie,
   createResetToken,
   verifyResetToken,
+  createVerifyToken,
+  verifyHashedToken,
   MAX_PASSWORD_LENGTH,
 } from "../functions/_lib/auth.mjs";
 import { escapeHtml } from "../functions/_lib/email.mjs";
@@ -155,6 +157,43 @@ describe("password reset tokens", () => {
     assert.equal(verifyResetToken(null, tokenHash, expires), false);
     assert.equal(verifyResetToken(token, null, expires), false);
     assert.equal(verifyResetToken(token, tokenHash, null), false);
+  });
+});
+
+describe("email verification tokens", () => {
+  test("a fresh token verifies against its stored hash", () => {
+    const { token, tokenHash, expires } = createVerifyToken();
+    assert.equal(verifyHashedToken(token, tokenHash, expires), true);
+  });
+
+  test("only the hash is stored, never the token", () => {
+    const { token, tokenHash } = createVerifyToken();
+    assert.notEqual(token, tokenHash);
+    assert.ok(!tokenHash.includes(token));
+  });
+
+  test("someone else's token does not verify", () => {
+    const mine = createVerifyToken();
+    const theirs = createVerifyToken();
+    assert.equal(verifyHashedToken(theirs.token, mine.tokenHash, mine.expires), false);
+  });
+
+  // Longer-lived than a reset on purpose: a welcome email often gets opened
+  // days later, and an expired link there is a confused new user.
+  test("lasts days rather than the reset token's hour", () => {
+    const anHour = 60 * 60 * 1000;
+    const remaining = createVerifyToken().expires.getTime() - Date.now();
+    assert.ok(remaining > 24 * anHour, `expected more than a day, got ${remaining / anHour}h`);
+  });
+
+  test("an expired token does not verify", () => {
+    const { token, tokenHash } = createVerifyToken();
+    assert.equal(verifyHashedToken(token, tokenHash, new Date(Date.now() - 1000)), false);
+  });
+
+  test("a user with no token stored cannot be verified by a blank one", () => {
+    assert.equal(verifyHashedToken("", null, null), false);
+    assert.equal(verifyHashedToken(null, null, null), false);
   });
 });
 

@@ -95,23 +95,37 @@ export function clearSessionCookie() {
 }
 
 const RESET_TOKEN_MAX_AGE_MS = 60 * 60 * 1000; // 1 hour
+// Longer than a reset: a welcome email often gets opened days later, and an
+// expired link there means a confused new user rather than a security win.
+const VERIFY_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // The raw token goes in the emailed link; only its hash is stored, so a
-// database read alone can never produce a usable reset link.
-export function createResetToken() {
+// database read alone can never produce a usable link.
+function createHashedToken(maxAgeMs) {
   const token = randomBytes(32).toString("base64url");
   const tokenHash = createHash("sha256").update(token).digest("hex");
-  const expires = new Date(Date.now() + RESET_TOKEN_MAX_AGE_MS);
+  const expires = new Date(Date.now() + maxAgeMs);
   return { token, tokenHash, expires };
 }
 
-export function verifyResetToken(token, storedHash, storedExpires) {
+export function createResetToken() {
+  return createHashedToken(RESET_TOKEN_MAX_AGE_MS);
+}
+
+export function createVerifyToken() {
+  return createHashedToken(VERIFY_TOKEN_MAX_AGE_MS);
+}
+
+export function verifyHashedToken(token, storedHash, storedExpires) {
   if (!token || !storedHash || !storedExpires) return false;
   if (new Date(storedExpires).getTime() < Date.now()) return false;
   const candidate = createHash("sha256").update(token).digest();
   const expected = Buffer.from(storedHash, "hex");
   return candidate.length === expected.length && timingSafeEqual(candidate, expected);
 }
+
+// Same check either way — kept under its original name for the reset flow.
+export const verifyResetToken = verifyHashedToken;
 
 export function json(data, init = {}) {
   return new Response(JSON.stringify(data), {

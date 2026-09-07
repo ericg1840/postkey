@@ -24,6 +24,24 @@ from `dist/` for everything else.
 The app can't run as a static site — accounts, the brand kit, saved posts and
 the planner all depend on those API routes and on Postgres (Neon).
 
+## Configuration
+
+Worker secrets/vars (`wrangler secret put NAME`):
+
+| Name | Required | What it does |
+| --- | --- | --- |
+| `DATABASE_URL` | yes | Neon connection string |
+| `SESSION_SECRET` | yes | Signs session cookies |
+| `RESEND_API_KEY` | yes | Sends welcome, confirmation and password-reset email |
+| `RESEND_FROM_EMAIL` | no | Defaults to Resend's sandbox sender |
+| `ALERT_EMAIL` | no | Where 500s are reported. Unset means no alerts are sent — the app is otherwise unaffected |
+
+`ALERT_EMAIL` is worth setting. Without it, a broken endpoint is only visible
+in `wrangler tail`, which nobody is watching — that's how the planner stayed
+broken for three days. With it, the first 500 on a route emails you the error,
+its stack, and the same reference the user was shown; repeats of that same
+failure are suppressed for 15 minutes so one outage isn't a thousand emails.
+
 ## Migrations
 
 Schema changes live in `migrations/`, numbered in the order they apply.

@@ -13,7 +13,11 @@ CREATE TABLE users (
   is_admin BOOLEAN NOT NULL DEFAULT false,
   account_status TEXT NOT NULL DEFAULT 'active', -- active | disabled | suspended
   last_login_at TIMESTAMP,
-  zillow_pulls_count INTEGER NOT NULL DEFAULT 0
+  zillow_pulls_count INTEGER NOT NULL DEFAULT 0,
+  -- NULL until the address is confirmed. See migrations/008_email_verification.sql.
+  email_verified_at TIMESTAMP,
+  verify_token_hash TEXT,
+  verify_token_expires TIMESTAMP
 );
 
 -- One row per user; the admin dashboard's source of truth for tier and MRR.

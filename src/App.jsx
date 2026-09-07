@@ -1,10 +1,11 @@
 import { useState, useEffect, Suspense, lazy } from "react";
 import { Key } from "lucide-react";
 import { GlobalStyles } from "./shared.jsx";
-import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
+import { AuthProvider, useAuth, api } from "./auth/AuthContext.jsx";
 import { AuthScreen } from "./auth/AuthScreen.jsx";
 import { ResetPasswordScreen } from "./auth/ResetPasswordScreen.jsx";
 import { ProfileReminder } from "./onboarding/ProfileReminder.jsx";
+import { VerifyEmailBanner } from "./onboarding/VerifyEmailBanner.jsx";
 import { PublicBioPage } from "./profile/PublicBioPage.jsx";
 import { AUTH } from "./auth/AuthShell.jsx";
 import { trackPageView } from "./marketing/track.mjs";
@@ -55,6 +56,13 @@ function getResetParams() {
   return token && email ? { token, email } : null;
 }
 
+function getVerifyParams() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("verifyToken");
+  const email = params.get("verifyEmail");
+  return token && email ? { token, email } : null;
+}
+
 function getBioHandle() {
   const m = window.location.pathname.match(/^\/u\/([^/]+)\/?$/);
   return m ? decodeURIComponent(m[1]) : null;
@@ -73,7 +81,30 @@ function AppShell() {
   const [showAbout, setShowAbout] = useState(false);
   const [legalView, setLegalView] = useState(null); // null | "privacy" | "terms"
   const [adminRoute, setAdminRoute] = useState(isAdminPath);
-  const { user, brandKit, loading } = useAuth();
+  const [verifyParams] = useState(getVerifyParams);
+  const { user, brandKit, loading, refresh } = useAuth();
+
+  // Consume a confirmation link. Runs regardless of whether anyone is signed
+  // in on this device — the link is often opened from a phone's mail app,
+  // where there's no session. The params are stripped either way so a
+  // refresh doesn't retry a token that's now spent.
+  useEffect(() => {
+    if (!verifyParams) return;
+    let cancelled = false;
+    api("/api/auth/verify-email", {
+      method: "POST",
+      body: JSON.stringify(verifyParams),
+    })
+      .catch(() => {}) // the banner stays up and offers a resend
+      .finally(() => {
+        if (cancelled) return;
+        window.history.replaceState({}, "", window.location.pathname);
+        // Refresh so a signed-in session picks up the newly verified flag
+        // and the banner disappears without a manual reload.
+        refresh().catch(() => {});
+      });
+    return () => { cancelled = true; };
+  }, [verifyParams, refresh]);
 
   // A non-admin (or logged-out) visitor never sees the admin panel — once
   // we know who's signed in, silently bounce them off the URL instead of
@@ -190,6 +221,7 @@ function AppShell() {
 
   return (
     <>
+      <VerifyEmailBanner />
       {toolScreen}
       <ProfileReminder onNavigate={setActiveTool} />
     </>

@@ -1,10 +1,11 @@
 import { getDb } from "../../_lib/db.mjs";
-import { hashPassword, createSessionToken, sessionCookie, json, MAX_PASSWORD_LENGTH } from "../../_lib/auth.mjs";
+import { hashPassword, createSessionToken, createVerifyToken, sessionCookie, json, MAX_PASSWORD_LENGTH } from "../../_lib/auth.mjs";
+import { verifyUrl } from "../../_lib/verifyEmail.mjs";
 import { sendEmail, preheader, escapeHtml } from "../../_lib/email.mjs";
 import { logEvent } from "../../_lib/activity.mjs";
 import { checkRateLimit, getClientIp } from "../../_lib/rateLimit.mjs";
 
-async function sendWelcomeEmail(toEmail, firstName, appUrl, env) {
+async function sendWelcomeEmail(toEmail, firstName, confirmUrl, env) {
   // Their own signup name, so it lands in the HTML body escaped — the plain
   // text alternative below takes it raw, since there's no markup to break.
   const safeName = escapeHtml(firstName);
@@ -34,12 +35,12 @@ async function sendWelcomeEmail(toEmail, firstName, appUrl, env) {
             </p>
           </div>
           <div style="text-align:center;padding:0 40px 8px;">
-            <a href="${appUrl}" style="display:inline-block;background:#0043FF;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;padding:14px 36px;border-radius:999px;">
-              Set Up My Brand Kit &rarr;
+            <a href="${confirmUrl}" style="display:inline-block;background:#0043FF;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;padding:14px 36px;border-radius:999px;">
+              Confirm My Email &amp; Get Started &rarr;
             </a>
           </div>
           <div style="text-align:center;padding:0 40px 32px;">
-            <p style="margin:0;font-size:12px;color:#9AA3B2;">Or paste this into your browser: <a href="${appUrl}" style="color:#0043FF;">${appUrl}</a></p>
+            <p style="margin:0;font-size:12px;color:#9AA3B2;">Or paste this into your browser: <a href="${confirmUrl}" style="color:#0043FF;">${confirmUrl}</a></p>
           </div>
           <div style="border-top:1px solid #EFEAE0;padding:28px 40px 32px;text-align:left;">
             <p style="margin:0 0 12px;font-size:15px;font-weight:600;color:#1B2430;">Here's how to get your first post out the door:</p>
@@ -63,7 +64,7 @@ async function sendWelcomeEmail(toEmail, firstName, appUrl, env) {
 
 Welcome to PostKey! We built this so you never have to stare at a blank screen wondering what to post -- set up your brand once, and every graphic comes out looking like you.
 
-Set up your brand kit: ${appUrl}
+Confirm your email and get started: ${confirmUrl}
 
 Here's how to get your first post out the door:
 - Add your logo, headshot, and colors to your brand kit
@@ -117,9 +118,18 @@ export async function onRequestPost({ request, env }) {
 
   const token = createSessionToken(user.id, env);
 
+  // Issued here rather than on first sight of the banner, so the welcome
+  // email itself can carry the confirmation link — one email, not two.
+  const verify = createVerifyToken();
+  await db.sql`
+    UPDATE users SET verify_token_hash = ${verify.tokenHash}, verify_token_expires = ${verify.expires.toISOString()}
+    WHERE id = ${user.id}
+  `;
+
   try {
     const firstName = fullName.split(/\s+/)[0];
-    await sendWelcomeEmail(user.email, firstName, new URL(request.url).origin, env);
+    const origin = new URL(request.url).origin;
+    await sendWelcomeEmail(user.email, firstName, verifyUrl(origin, user.email, verify.token), env);
   } catch (err) {
     // Never let a flaky email provider block or fail an otherwise-successful
     // signup — but a silent failure here is invisible to everyone (no error
