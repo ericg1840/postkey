@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Copy, Check, Shuffle, Home, Building2, Warehouse, Building } from "lucide-react";
 import { UI, ACCENT, ACCENT_PRESETS, WHITE, mixWithWhite, TopNav } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
+import { rotateBlocks, seedFromText } from "./lib/description.mjs";
 
 // Property type just changes the noun used throughout the copy — kept
 // separate from "tone" so any type can be written in any voice.
@@ -351,26 +352,38 @@ function buildDescription(form, variant) {
   const openerPool = OPENERS[tone];
   const opener = openerPool[variant % openerPool.length](form, stats, noun);
 
-  // Paragraph 1 — the hook, the standout, and a room-by-room walk through
-  // the interior, the same shape most of the sample listings open with.
-  const introSentences = [opener];
-  if (form.highlight) introSentences.push(pick(HIGHLIGHT_LEADS[tone], variant)(form.highlight));
-  introSentences.push(...listSentences(parseLines(form.features), FEATURE_LEADS[tone], variant));
-  if (form.primarySuite) introSentences.push(pick(PRIMARY_SUITE_LEADS[tone], variant)(form.primarySuite));
+  // Paragraph 1 — the hook, then the interior. The opener has to lead; the
+  // three blocks after it describe the same rooms from different angles and
+  // read correctly in any order, so they rotate.
+  const introBlocks = [];
+  if (form.highlight) introBlocks.push([pick(HIGHLIGHT_LEADS[tone], variant)(form.highlight)]);
+  const featureSentences = listSentences(parseLines(form.features), FEATURE_LEADS[tone], variant);
+  if (featureSentences.length) introBlocks.push(featureSentences);
+  if (form.primarySuite) introBlocks.push([pick(PRIMARY_SUITE_LEADS[tone], variant)(form.primarySuite)]);
+  const introSentences = [opener, ...rotateBlocks(introBlocks, variant).flat()];
 
-  // Paragraph 2 — everything outside the front door: exterior, lot/parking,
-  // community perks, recent updates, then schools/location, price, and CTA.
-  const outroSentences = [];
-  outroSentences.push(...listSentences(parseLines(form.exteriorFeatures), EXTERIOR_LEADS[tone], variant));
-  if (form.parking) outroSentences.push(pick(PARKING_LEADS[tone], variant)(form.parking));
+  // Paragraph 2 — everything outside the front door. These five blocks are
+  // independent of each other and rotate; a listing's features stay grouped
+  // because each block moves as a unit.
+  const outroBlocks = [];
+  const exteriorSentences = listSentences(parseLines(form.exteriorFeatures), EXTERIOR_LEADS[tone], variant);
+  if (exteriorSentences.length) outroBlocks.push(exteriorSentences);
+  if (form.parking) outroBlocks.push([pick(PARKING_LEADS[tone], variant)(form.parking)]);
 
   const extraStats = [];
   if (form.lotSize) extraStats.push(`a ${formatLotSize(form.lotSize)}`);
   if (form.yearBuilt) extraStats.push(`built in ${form.yearBuilt}`);
-  if (extraStats.length) outroSentences.push(`The property sits on ${joinList(extraStats)}.`);
+  if (extraStats.length) outroBlocks.push([`The property sits on ${joinList(extraStats)}.`]);
 
-  if (form.amenities) outroSentences.push(pick(AMENITIES_LEADS[tone], variant)(lowerFirst(form.amenities)));
-  if (form.updates) outroSentences.push(pick(UPDATES_LEADS[tone], variant)(lowerFirst(form.updates)));
+  if (form.amenities) outroBlocks.push([pick(AMENITIES_LEADS[tone], variant)(lowerFirst(form.amenities))]);
+  if (form.updates) outroBlocks.push([pick(UPDATES_LEADS[tone], variant)(lowerFirst(form.updates))]);
+
+  const outroSentences = rotateBlocks(outroBlocks, variant).flat();
+
+  // Everything below stays pinned in place. The condition note is a caveat
+  // ("Note:", "Worth knowing:") and reads wrong opening a paragraph; location,
+  // price and the call to action are the close, in that order, the way a real
+  // listing ends.
   if (form.conditionNote) outroSentences.push(pick(CONDITION_LEADS[tone], variant)(form.conditionNote));
   if (form.schoolDistrict) outroSentences.push(pick(SCHOOL_LEADS[tone], variant)(form.schoolDistrict));
   if (form.nearby) outroSentences.push(pick(NEARBY_LEADS[tone], variant)(form.nearby));
@@ -403,14 +416,29 @@ function StepHeading({ n, title, subtitle, color = ACCENT }) {
 export function DescriptionTool({ onSwitchTool, onGoHome }) {
   const { user, logout } = useAuth();
   const [form, setForm] = useState(DEFAULTS);
-  const [variant, setVariant] = useState(0);
+  // Where in each phrase pool this listing starts, derived from its address,
+  // plus however many times the agent has hit "try another". Splitting the two
+  // means regenerating still steps forward one phrasing at a time, and typing
+  // a correction into the address later doesn't throw away the variant they
+  // landed on.
+  const [seed, setSeed] = useState(() => seedFromText(DEFAULTS.address));
+  const [variantOffset, setVariantOffset] = useState(0);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
 
   const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  const description = buildDescription(form, variant);
-  const tryAnother = () => setVariant((v) => v + 1);
+  // Settled rather than per-keystroke: the description is live beside the form,
+  // and re-seeding on every character would rewrite the whole thing as the
+  // agent types the address. Waiting for a pause makes it one rephrase once
+  // they're done, instead of churn while they work.
+  useEffect(() => {
+    const timer = setTimeout(() => setSeed(seedFromText(form.address)), 400);
+    return () => clearTimeout(timer);
+  }, [form.address]);
+
+  const description = buildDescription(form, seed + variantOffset);
+  const tryAnother = () => setVariantOffset((v) => v + 1);
 
   const copyDescription = async () => {
     try {
