@@ -141,3 +141,17 @@ CREATE TABLE rate_limits (
   attempts INTEGER NOT NULL DEFAULT 1,
   window_start TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+-- Which files in migrations/ have been applied. Maintained by
+-- `npm run migrate` (scripts/migrate.mjs), which creates this itself if it's
+-- missing — so a database built from this file and one built by running the
+-- migrations end up the same.
+--
+-- A database created from this schema is already at the latest migration, so
+-- mark them all applied rather than letting the runner replay them:
+--   INSERT INTO schema_migrations (name)
+--   SELECT unnest(ARRAY['002_admin_dashboard.sql', ...]) ON CONFLICT DO NOTHING;
+CREATE TABLE schema_migrations (
+  name TEXT PRIMARY KEY,
+  applied_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
