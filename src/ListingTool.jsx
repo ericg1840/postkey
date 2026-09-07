@@ -1138,7 +1138,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const heroBlockH = contentH * 0.5;
     const pairBlockH = contentH - heroBlockH;
 
-    const heroCaptionH = heroBlockH * 0.32;
+    // 0.4 (not 0.32) so the hero caption gets the same share of contentH as
+    // the pair captions below (pairCaptionH is 0.4 of pairBlockH, which is
+    // itself the same size as heroBlockH) — otherwise the price line added
+    // above the address overflows the hero caption's tighter old budget.
+    const heroCaptionH = heroBlockH * 0.4;
     const heroPhotoH = heroBlockH - heroCaptionH;
     const leftColW = w * 0.44;
     const heroX = leftColW + w * 0.02;
