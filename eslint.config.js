@@ -68,6 +68,16 @@ export default [
     },
   },
 
+  // Build/ops scripts (the migration runner) — plain Node, not Workers.
+  {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      globals: globals.node,
+    },
+  },
+
   // Tests
   {
     files: ["test/**/*.mjs"],

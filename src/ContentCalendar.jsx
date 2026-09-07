@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Sparkles, Info, X, Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Sparkles, Info, X, Pencil, Trash2, PartyPopper } from "lucide-react";
 import { UI, ACCENT, WHITE, mixWithWhite, TopNav, writePostHandoff } from "./shared.jsx";
+import { holidaysByDate, upcomingHolidays } from "./lib/holidays.mjs";
 import { useAuth, api } from "./auth/AuthContext.jsx";
 
 // Purely a planning/tracking calendar — PostKey has no social API
@@ -23,6 +24,18 @@ function pad2(n) { return String(n).padStart(2, "0"); }
 function toDateKey(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
 function monthKeyOf(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`; }
 function addMonths(d, n) { return new Date(d.getFullYear(), d.getMonth() + n, 1); }
+
+// "Thu, Nov 26 · in 12 days" — the countdown is the part that makes a
+// holiday actionable, since "is that soon enough to still plan for?" is the
+// actual question being asked.
+function formatHolidayDate(iso, todayKey) {
+  const d = new Date(iso + "T00:00:00");
+  const label = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  const days = Math.round((Date.parse(iso + "T00:00:00") - Date.parse(todayKey + "T00:00:00")) / 86_400_000);
+  if (days <= 0) return `${label} · today`;
+  if (days === 1) return `${label} · tomorrow`;
+  return `${label} · in ${days} days`;
+}
 
 function formatDay(iso, todayKey) {
   const d = new Date(iso + "T00:00:00");
@@ -55,6 +68,16 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
   const today = new Date();
   const todayKey = toDateKey(today);
   const monthKey = monthKeyOf(focusMonth);
+
+  // Holidays are computed, not fetched — they're deterministic, so there's
+  // nothing to store or keep in sync.
+  const holidayLookup = useMemo(() => holidaysByDate(focusMonth.getFullYear()), [focusMonth]);
+  const nextHolidays = useMemo(() => {
+    const planned = new Set(posts.map((p) => p.date));
+    return upcomingHolidays(todayKey, 6)
+      .filter((h) => !planned.has(h.date))
+      .slice(0, 3);
+  }, [todayKey, posts]);
 
   const loadPosts = useCallback(async () => {
     try {
@@ -150,11 +173,23 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
   const agendaDates = monthDayDates.filter((d) => toDateKey(d) >= (monthKey === monthKeyOf(today) ? todayKey : "0000-00-00"));
   const days = agendaDates.map((date) => {
     const dateKey = toDateKey(date);
-    return { date: dateKey, ...formatDay(dateKey, todayKey), posts: posts.filter((p) => p.date === dateKey) };
+    return {
+      date: dateKey,
+      ...formatDay(dateKey, todayKey),
+      posts: posts.filter((p) => p.date === dateKey),
+      holiday: holidayLookup.get(dateKey),
+    };
   });
 
   function openNewPost(dateKey) {
     setEditing({ date: dateKey || todayKey, title: "", category: "listing" });
+  }
+
+  // Prefills the holiday's name as the title so the agent starts from
+  // "Thanksgiving" rather than a blank field, and defaults to Community —
+  // a holiday post is a community one far more often than a listing.
+  function openHolidayPost(holiday) {
+    setEditing({ date: holiday.date, title: holiday.name, category: "community" });
   }
   function openEditPost(post) {
     setEditing({ ...post });
@@ -288,6 +323,39 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
           )}
         </div>
 
+        {/* Upcoming holidays — the ones with nothing planned yet, since a
+            holiday already covered isn't a prompt to act on. */}
+        {nextHolidays.length > 0 && (
+          <div className="rounded-2xl p-4 mb-4" style={{ border: `2px solid ${UI.ink}`, background: UI.card }}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <PartyPopper size={15} style={{ color: ACCENT }} />
+              <h3 className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Coming up</h3>
+            </div>
+            <p className="font-body text-xs mb-2.5" style={{ color: UI.inkSoft }}>
+              Holidays with nothing planned yet — good days to post something.
+            </p>
+            {nextHolidays.map((holiday) => (
+              <div
+                key={holiday.date}
+                className="flex items-center gap-2 py-1.5"
+                style={{ borderTop: `1px solid ${UI.line}` }}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="font-body text-sm font-medium truncate" style={{ color: UI.ink }}>{holiday.name}</div>
+                  <div className="font-body text-xs" style={{ color: UI.inkSoft }}>{formatHolidayDate(holiday.date, todayKey)}</div>
+                </div>
+                <button
+                  onClick={() => openHolidayPost(holiday)}
+                  className="press-fx font-body text-xs font-bold px-3 rounded-full flex-shrink-0"
+                  style={{ minHeight: 40, background: UI.stone, color: ACCENT }}
+                >
+                  Plan it
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex items-center gap-3.5 mb-2">
           <button
@@ -327,9 +395,17 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
             <h3 className="font-body text-[13px] font-semibold mb-2.5" style={{ color: UI.ink }}>Upcoming posts</h3>
             {days.map((day) => (
               <div key={day.date} className="py-0.5" style={{ borderTop: `1px solid ${UI.line}` }}>
-                <div className="flex items-baseline gap-2 py-2">
+                <div className="flex items-baseline gap-2 py-2 flex-wrap">
                   <span className="font-body text-[13.5px] font-semibold" style={{ color: day.date === todayKey ? ACCENT : UI.ink }}>{day.num}</span>
                   <span className="font-body text-xs" style={{ color: UI.inkSoft }}>{day.dow}</span>
+                  {day.holiday && (
+                    <span
+                      className="font-body text-[11px] font-semibold rounded-full px-2 py-0.5"
+                      style={{ background: mixWithWhite(ACCENT, 0.9), color: ACCENT }}
+                    >
+                      {day.holiday}
+                    </span>
+                  )}
                 </div>
 
                 {day.posts.length === 0 && (

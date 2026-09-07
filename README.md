@@ -24,8 +24,29 @@ from `dist/` for everything else.
 The app can't run as a static site — accounts, the brand kit, saved posts and
 the planner all depend on those API routes and on Postgres (Neon).
 
-Schema changes live in `migrations/`, applied against the database by hand;
+## Migrations
+
+Schema changes live in `migrations/`, numbered in the order they apply.
 `schema.sql` is the equivalent for a fresh database.
+
+```
+DATABASE_URL='postgres://...' npm run migrate              # apply anything pending
+DATABASE_URL='postgres://...' npm run migrate -- --status  # list each file and whether it ran
+DATABASE_URL='postgres://...' npm run migrate -- --dry-run # show pending, change nothing
+```
+
+Applied files are recorded in a `schema_migrations` table, so a migration
+never runs twice and "has this one been applied?" is a question with an
+answer. Each file runs in its own transaction — one that fails leaves nothing
+behind and stays pending.
+
+Write migrations to be idempotent anyway (`IF NOT EXISTS`, `ON CONFLICT DO
+NOTHING`, guarded `DO` blocks), as the existing ones are: it makes re-running
+after a partial failure safe, and it's what lets a database that predates the
+tracking table catch up without any special handling.
+
+**A missed migration shows up as a 500 on whichever page needs it, not as a
+deploy failure — so run this before shipping a change that adds one.**
 
 ## Local development
 
