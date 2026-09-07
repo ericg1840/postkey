@@ -13,8 +13,23 @@ const SUGGESTION_POOL = [
   { title: "Seasonal promo — remind people you're open for business", category: "promo" },
 ];
 
-function toDateKey(d) {
+function toUtcDateKey(d) {
   return d.toISOString().slice(0, 10);
+}
+
+// Which day counts as "today" depends on where the agent is, and a Worker
+// only knows UTC — so for anyone west of Greenwich, the UTC date has already
+// rolled over for the last hours of their evening and autofill would skip
+// the day they're looking at. The client sends its own local date instead.
+//
+// Only trusted within a day of the server's own date: every real timezone
+// (UTC-12 through UTC+14) puts the local date within one day of the UTC one,
+// so this keeps a stray or bogus value from planting suggestions on
+// arbitrary past dates, while accepting every genuine offset.
+function resolveToday(raw, utcToday) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw || "")) return utcToday;
+  const offsetDays = Math.abs(Date.parse(`${raw}T00:00:00Z`) - Date.parse(`${utcToday}T00:00:00Z`)) / 86_400_000;
+  return Number.isFinite(offsetDays) && offsetDays <= 1 ? raw : utcToday;
 }
 
 export async function onRequestPost({ request, env }) {
@@ -32,7 +47,7 @@ export async function onRequestPost({ request, env }) {
 
   const [year, mo] = month.split("-").map(Number);
   const daysInMonth = new Date(year, mo, 0).getDate();
-  const today = toDateKey(new Date());
+  const today = resolveToday(body.today, toUtcDateKey(new Date()));
 
   const openDays = [];
   for (let d = 1; d <= daysInMonth; d++) {

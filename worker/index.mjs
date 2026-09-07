@@ -68,13 +68,21 @@ export default {
       } catch (err) {
         // An uncaught error here would otherwise surface as Cloudflare's
         // generic "Worker threw exception" HTML page (error 1101) — useless
-        // to the frontend, which expects JSON. Surface the real message
-        // instead (e.g. a missing DB column) so it's actually debuggable.
-        console.error(`${pathname} threw:`, err);
-        return new Response(JSON.stringify({ error: err?.message || "Something went wrong." }), {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        });
+        // to the frontend, which expects JSON.
+        //
+        // The raw message can't go back to the caller though: what actually
+        // reaches this point is things like "SESSION_SECRET is not
+        // configured", a Resend API response body, or a Postgres error
+        // naming columns — all of it internal. Instead, log the real error
+        // with a short reference and hand the caller only that reference, so
+        // a user can report "error ref a1b2c3d4" and it can be grepped
+        // straight out of `wrangler tail` without anything leaking.
+        const ref = crypto.randomUUID().slice(0, 8);
+        console.error(`${pathname} threw [ref ${ref}]:`, err);
+        return new Response(
+          JSON.stringify({ error: `Something went wrong on our end. Please try again. (ref: ${ref})`, ref }),
+          { status: 500, headers: { "Content-Type": "application/json" } }
+        );
       }
     }
     // Not an API route — serve the built static site (index.html fallback

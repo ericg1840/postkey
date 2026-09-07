@@ -101,7 +101,10 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
     setAutofillNoteOpen(true);
     setAutofillLoading(true);
     try {
-      await api("/api/content/autofill", { method: "POST", body: JSON.stringify({ month: monthKey }) });
+      // Send our own local date: the server runs in UTC, and picking open
+      // days by the UTC date would skip the day the agent is actually
+      // looking at for anyone west of Greenwich late in their evening.
+      await api("/api/content/autofill", { method: "POST", body: JSON.stringify({ month: monthKey, today: todayKey }) });
       await loadPosts();
     } catch (err) {
       setError(err.message || "Couldn't generate suggestions.");
