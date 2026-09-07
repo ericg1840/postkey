@@ -918,7 +918,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
   const goToStep = (n) => {
     setMobileStep(n);
     const el = sectionRefs.current[n];
-    if (el && window.matchMedia("(min-width: 1024px)").matches) {
+    if (el && window.matchMedia("(min-width: 768px)").matches) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
@@ -947,7 +947,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
       return { ...f, style: key };
     });
     const el = sectionRefs.current[2];
-    if (el && window.matchMedia("(min-width: 1024px)").matches) {
+    if (el && window.matchMedia("(min-width: 768px)").matches) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
@@ -1066,7 +1066,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-10">
         {/* PAGE HEADER */}
-        <div className={mobileStep === 1 ? "mb-3 sm:mb-6" : "hidden lg:block lg:mb-6"}>
+        <div className={mobileStep === 1 ? "mb-3 sm:mb-6" : "hidden md:block md:mb-6"}>
           <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Community Posts</h1>
           <p className="font-body text-sm mt-1 hidden sm:block" style={{ color: UI.inkSoft }}>Stay visible even when you don't have a listing to share.</p>
         </div>
@@ -1074,7 +1074,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
         {/* STEP INDICATOR — connecting lines are flex-1 so the steps spread
             evenly across the full width instead of bunching together at
             the left edge on wide screens. */}
-        <div className="flex items-center mb-5 sm:mb-8 lg:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}>
+        <div className="flex items-center mb-5 sm:mb-8 md:mb-8" style={{ marginBottom: mobileStep === 1 ? undefined : "0.875rem" }}>
           {[{ n: 1, label: "Choose a Post Idea", color: ACCENT_PRESETS[0] }, { n: 2, label: "Make It Yours", color: ACCENT_PRESETS[1] }, { n: 3, label: "Post It", color: ACCENT_PRESETS[2] }].map((s, i, arr) => (
             <div key={s.n} className={`flex items-center min-w-0 ${i < arr.length - 1 ? "flex-1" : "flex-shrink-0"}`}>
               <button type="button" onClick={() => goToStep(s.n)} className="press-fx flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-0 py-2.5 -my-2.5">
@@ -1102,10 +1102,10 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
         </div>
 
         {/* MAIN GRID: controls + preview */}
-        <div className="grid lg:grid-cols-[2fr_3fr] gap-8 items-start">
+        <div className="grid md:grid-cols-[2fr_3fr] gap-8 items-start">
           {/* LEFT: CONTROLS */}
-          <div className={mobileStep === 3 ? "hidden lg:flex lg:flex-col lg:gap-6" : "flex flex-col gap-6"}>
-          <div className={`${mobileStep === 1 ? "grid gap-6" : "hidden"} lg:contents`}>
+          <div className={mobileStep === 3 ? "hidden md:flex md:flex-col md:gap-6 md:col-start-1" : "flex flex-col gap-6 md:col-start-1"}>
+          <div className={`${mobileStep === 1 ? "grid gap-6" : "hidden"} md:contents`}>
             <section ref={(el) => { sectionRefs.current[1] = el; }} style={{ scrollMarginTop: "1.5rem" }}>
               <h3 className="font-body text-base font-semibold mb-3" style={{ color: UI.ink }}>What do you want to share?</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -1138,14 +1138,14 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
             <button
               type="button"
               onClick={() => setMobileStep(2)}
-              className="press-fx lg:hidden w-full rounded-lg font-body font-semibold text-sm transition"
+              className="press-fx md:hidden w-full rounded-lg font-body font-semibold text-sm transition"
               style={{ background: ACCENT, color: WHITE, minHeight: 44 }}
             >
               Continue to Make It Yours
             </button>
           </div>
 
-            <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} lg:contents`}>
+            <div className={`${mobileStep === 2 ? "grid gap-6" : "hidden"} md:contents`}>
             <section
               ref={(el) => { sectionRefs.current[2] = el; }}
               className="rounded-2xl p-4 sm:p-5"
@@ -1433,7 +1433,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               </button>
             </div>
 
-            <div className="lg:hidden flex items-center gap-2">
+            <div className="md:hidden flex items-center gap-2">
               <button type="button" onClick={() => setMobileStep(1)}
                 className="press-fx px-4 rounded-lg border font-body font-semibold text-sm transition"
                 style={{ borderColor: UI.line, color: UI.ink, minHeight: 44 }}>
@@ -1449,10 +1449,31 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
           </div>
 
           {/* RIGHT: PREVIEW */}
-          <div ref={(el) => { sectionRefs.current[3] = el; }} className={mobileStep === 3 ? "lg:sticky" : "hidden lg:block lg:sticky"} style={{ top: "calc(82px + 1.5rem)", scrollMarginTop: "calc(82px + 1.5rem)" }}>
+          {/* col-start-2/row-span-full matter as much as `sticky` here: the
+              grid is `items-start`, so without spanning the rows this column's
+              grid area is exactly as tall as the panel itself — leaving the
+              sticky element no room to travel, so it just scrolled away with
+              the page and the preview disappeared off the top.
+
+              The height cap is the other half. The panel (preview + share
+              card + social set) is taller than a laptop viewport, and a
+              sticky element taller than the screen pins its top and puts its
+              bottom permanently out of reach. Bounding it to the visible area
+              and letting it scroll inside keeps the graphic on screen and the
+              buttons reachable at any window height. */}
+          <div
+            ref={(el) => { sectionRefs.current[3] = el; }}
+            className={mobileStep === 3 ? "md:sticky md:col-start-2 md:row-span-full" : "hidden md:block md:sticky md:col-start-2 md:row-span-full"}
+            style={{
+              top: "calc(82px + 1.5rem)",
+              scrollMarginTop: "calc(82px + 1.5rem)",
+              maxHeight: "calc(100dvh - 82px - 3rem)",
+              overflowY: "auto",
+            }}
+          >
             {mobileStep === 3 && (
               <button type="button" onClick={() => setMobileStep(2)}
-                className="press-fx lg:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2 -ml-2 px-2"
+                className="press-fx md:hidden flex items-center gap-1.5 font-body text-sm font-semibold mb-2 -ml-2 px-2"
                 style={{ color: UI.inkSoft, minHeight: 44 }}>
                 ← Back to Make It Yours
               </button>
@@ -1564,7 +1585,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               </div>
             </div>
 
-            <div className={mobileStep === 3 ? "mt-4 rounded-2xl border" : "hidden lg:block mt-4 rounded-2xl border"} style={{ background: UI.card, borderColor: UI.line }}>
+            <div className={mobileStep === 3 ? "mt-4 rounded-2xl border" : "hidden md:block mt-4 rounded-2xl border"} style={{ background: UI.card, borderColor: UI.line }}>
               <button
                 type="button"
                 onClick={() => setShowSocialSetPreview((s) => !s)}
