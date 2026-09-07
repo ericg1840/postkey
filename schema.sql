@@ -111,6 +111,12 @@ CREATE TABLE posts (
 
 CREATE INDEX posts_user_id_idx ON posts(user_id, created_at DESC);
 
+-- Capped per user (MAX_POSTS_PER_USER in functions/api/posts.mjs): saving a
+-- post trims the owner's history back to the newest N rows. Full images are
+-- megabytes each, so an unbounded history is the fastest way to fill the
+-- database and break saving for everyone. No migration needed — it's enforced
+-- on write, not by a constraint.
+
 -- Content Planner: dated posts (confirmed or still-suggested) and dateless
 -- ideas waiting to be scheduled. See migrations/005_content_calendar.sql.
 CREATE TABLE content_posts (
