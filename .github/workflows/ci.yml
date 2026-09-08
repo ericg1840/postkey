@@ -7,6 +7,10 @@ on:
   pull_request:
   push:
     branches: ["main"]
+  # GitHub occasionally drops a pull_request event and the run never appears,
+  # which looks identical to a PR nobody has checked. Without this there is no
+  # way to start one by hand short of closing and reopening the PR.
+  workflow_dispatch:
 
 # A new push to the same PR makes the previous run irrelevant.
 concurrency:
