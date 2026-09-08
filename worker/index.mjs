@@ -15,6 +15,7 @@ import * as bio from "../functions/api/bio.mjs";
 import * as bioPublic from "../functions/api/bio-public.mjs";
 import * as listingsFetch from "../functions/api/listings-fetch.mjs";
 import * as posts from "../functions/api/posts.mjs";
+import * as drafts from "../functions/api/drafts.mjs";
 import * as contentPosts from "../functions/api/content/posts.mjs";
 import * as contentIdeas from "../functions/api/content/ideas.mjs";
 import * as contentAutofill from "../functions/api/content/autofill.mjs";
@@ -45,6 +46,7 @@ const ROUTES = {
   "/api/bio-public": { GET: bioPublic.onRequestGet },
   "/api/listings-fetch": { POST: listingsFetch.onRequestPost },
   "/api/posts": { GET: posts.onRequestGet, POST: posts.onRequestPost, DELETE: posts.onRequestDelete },
+  "/api/drafts": { GET: drafts.onRequestGet, PUT: drafts.onRequestPut, DELETE: drafts.onRequestDelete },
   "/api/content/posts": {
     GET: contentPosts.onRequestGet, POST: contentPosts.onRequestPost,
     PATCH: contentPosts.onRequestPatch, DELETE: contentPosts.onRequestDelete,

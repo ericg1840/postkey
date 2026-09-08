@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { X, ChevronDown, Lock, Bookmark } from "lucide-react";
+import { api } from "./auth/AuthContext.jsx";
+import { mergeDrafts } from "./lib/drafts.mjs";
 
 // The Web Share API is also implemented by some desktop browsers now, which
 // makes the "share instead of download" trick misfire on laptops — gate it
@@ -1158,6 +1160,105 @@ export function genPostDraftId() {
   return `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// localStorage stays the working copy — every caller above reads it
+// synchronously, some from useState initializers — and the server is the
+// shared record that makes the same drafts show up on a phone and a laptop.
+// The functions below keep the two in step.
+
+// Which account the cached drafts belong to. Two people sharing a browser --
+// or one person with a personal and a brokerage login -- would otherwise have
+// the first account's drafts sync up into the second one's.
+const POST_DRAFTS_OWNER_KEY = "postkey_post_drafts_owner";
+
+export function clearPostDrafts() {
+  try {
+    localStorage.removeItem(POST_DRAFTS_STORAGE_KEY);
+    localStorage.removeItem(POST_DRAFTS_OWNER_KEY);
+  } catch {
+    // ignore — nothing to clear if storage isn't available
+  }
+}
+
+// Drops the cache if it belongs to somebody else, and records the new owner.
+// Stored rather than held in memory so it survives a reload, which is exactly
+// when a second account would otherwise inherit the first one's drafts.
+function claimDraftsFor(userId) {
+  try {
+    const owner = localStorage.getItem(POST_DRAFTS_OWNER_KEY);
+    if (owner !== String(userId)) {
+      localStorage.removeItem(POST_DRAFTS_STORAGE_KEY);
+      localStorage.setItem(POST_DRAFTS_OWNER_KEY, String(userId));
+    }
+  } catch {
+    // Storage unavailable; nothing cached to leak either.
+  }
+}
+
+// Writes locally first so the UI is correct even offline, then pushes. A
+// failed push isn't reported: the draft is safely on this device, and the
+// next sync will retry it because the local copy is newer than the server's.
+export async function savePostDraft(record) {
+  const drafts = loadPostDrafts();
+  const exists = drafts.some((d) => d.id === record.id);
+  savePostDrafts(exists ? drafts.map((d) => (d.id === record.id ? record : d)) : [...drafts, record]);
+
+  try {
+    const { draft } = await api("/api/drafts", { method: "PUT", body: JSON.stringify(record) });
+    // Adopt the server's timestamp. Conflict resolution compares these, so
+    // both sides have to be measured by the same clock — a device running a
+    // few minutes fast would otherwise win every conflict it took part in.
+    if (draft) {
+      savePostDrafts(loadPostDrafts().map((d) => (d.id === draft.id ? { ...d, updatedAt: draft.updatedAt } : d)));
+    }
+  } catch {
+    // Offline, or the save was rejected. The local copy stands.
+  }
+}
+
+export async function deletePostDraft(id) {
+  savePostDrafts(loadPostDrafts().filter((d) => d.id !== id));
+  try {
+    await api(`/api/drafts?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+  } catch {
+    // The draft is gone from this device either way. If the request failed,
+    // the next sync will see the server still has it and restore it here —
+    // which is the right failure direction: an undeleted draft is a nuisance,
+    // a deleted one is lost work.
+  }
+}
+
+// Pulls the server's copy, reconciles it with this device's, and pushes back
+// whatever the server is missing or has an older version of.
+export async function syncPostDrafts(userId) {
+  claimDraftsFor(userId);
+
+  let remote;
+  try {
+    remote = await api("/api/drafts");
+  } catch {
+    return loadPostDrafts(); // offline or not signed in — local copy stands
+  }
+
+  const { merged, toPush } = mergeDrafts(loadPostDrafts(), remote.drafts, remote.deleted);
+  savePostDrafts(merged);
+
+  // Sequential rather than parallel: this runs on load, and a user with
+  // dozens of unsynced drafts shouldn't open dozens of simultaneous requests
+  // on a phone connection.
+  for (const draft of toPush) {
+    try {
+      const { draft: saved } = await api("/api/drafts", { method: "PUT", body: JSON.stringify(draft) });
+      if (saved) {
+        savePostDrafts(loadPostDrafts().map((d) => (d.id === saved.id ? { ...d, updatedAt: saved.updatedAt } : d)));
+      }
+    } catch {
+      // Leave it local and newer; the next sync tries again.
+    }
+  }
+
+  return loadPostDrafts();
+}
+
 // One-shot handback from Profile's Drafts list — like POST_HANDOFF_KEY
 // above, but carries a whole saved draft's id instead of a single field,
 // so Listing/Community can restore every field of a post someone saved
@@ -1200,7 +1301,6 @@ export function SaveForLaterButton({ tool, label, typeLabel, form, draftId, setD
   const [saved, setSaved] = useState(false);
 
   const save = () => {
-    const drafts = loadPostDrafts();
     const id = draftId || genPostDraftId();
     const record = {
       id,
@@ -1211,8 +1311,7 @@ export function SaveForLaterButton({ tool, label, typeLabel, form, draftId, setD
       form,
       updatedAt: new Date().toISOString(),
     };
-    const exists = drafts.some((d) => d.id === id);
-    savePostDrafts(exists ? drafts.map((d) => (d.id === id ? record : d)) : [...drafts, record]);
+    savePostDraft(record);
     setDraftId(id);
     setSaved(true);
     setOpen(false);
