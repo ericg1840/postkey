@@ -4,7 +4,7 @@ import {
   UI, ACCENT, WHITE, ColorSwatchPicker, SCRIPT_FONTS, scriptFontCss,
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, mixWithWhite,
   useAgentAsset, UploadBox, TopNav,
-  loadPostDrafts, savePostDrafts, writeDraftHandoff,
+  loadPostDrafts, deletePostDraft, syncPostDrafts, writeDraftHandoff,
 } from "../shared.jsx";
 import { useAuth, api } from "../auth/AuthContext.jsx";
 
@@ -537,7 +537,20 @@ function PlannedPostsSection() {
 const DRAFT_TOOL_LABELS = { listings: "Listing", community: "Community" };
 
 function DraftsSection({ onSwitchTool }) {
+  // Seeded from the local cache so the list paints immediately, then
+  // reconciled — someone who opens this tab straight after signing in on a
+  // second device would otherwise see an empty list until the next reload.
+  const { user } = useAuth();
   const [drafts, setDrafts] = useState(() => loadPostDrafts());
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    syncPostDrafts(user.id)
+      .then((synced) => { if (!cancelled) setDrafts(synced); })
+      .catch(() => { /* offline — the cached list stands */ });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   const sorted = [...drafts].sort((a, b) => {
     if (a.date && b.date) return a.date.localeCompare(b.date);
@@ -552,9 +565,10 @@ function DraftsSection({ onSwitchTool }) {
   };
 
   const deleteDraft = (id) => {
-    const next = drafts.filter((d) => d.id !== id);
-    setDrafts(next);
-    savePostDrafts(next);
+    setDrafts((current) => current.filter((d) => d.id !== id));
+    // Removes it locally and tells the server, so it doesn't come back the
+    // next time this account syncs on another device.
+    deletePostDraft(id);
   };
 
   if (drafts.length === 0) {

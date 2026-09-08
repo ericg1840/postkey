@@ -1,6 +1,6 @@
 import { useState, useEffect, Suspense, lazy } from "react";
 import { Key } from "lucide-react";
-import { GlobalStyles } from "./shared.jsx";
+import { GlobalStyles, clearPostDrafts, syncPostDrafts } from "./shared.jsx";
 import { AuthProvider, useAuth, api } from "./auth/AuthContext.jsx";
 import { AuthScreen } from "./auth/AuthScreen.jsx";
 import { ResetPasswordScreen } from "./auth/ResetPasswordScreen.jsx";
@@ -116,6 +116,25 @@ function AppShell() {
       setAdminRoute(false);
     }
   }, [adminRoute, loading, user]);
+
+  // Drafts live in localStorage so the tools can read them synchronously, and
+  // sync with the server so a post started on a phone can be finished on a
+  // laptop. Reconciling on sign-in is enough: drafts are saved deliberately,
+  // one at a time, and each save pushes itself.
+  //
+  // Gated on `loading` so the logged-out branch can't fire during the initial
+  // /api/auth/me round trip and wipe a signed-in user's cached drafts.
+  useEffect(() => {
+    if (loading) return;
+    if (!user?.id) {
+      clearPostDrafts();
+      return;
+    }
+    syncPostDrafts(user.id).catch(() => {
+      // Offline, or the endpoint isn't deployed yet — the local drafts still
+      // work, which is exactly how they behaved before this existed.
+    });
+  }, [loading, user?.id]);
 
   const exitAdmin = () => {
     window.history.replaceState({}, "", "/");
