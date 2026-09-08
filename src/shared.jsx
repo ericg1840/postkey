@@ -974,8 +974,13 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
             <span className="font-display font-bold text-xl" style={{ color: UI.ink }}>PostKey</span>
           </div>
         )}
+        {/* A grid of equal columns rather than a flex row: sized by content,
+            the active pill was a different width on every tab -- "Bio" is
+            half the width of "Listings" -- so the highlight appeared to
+            shrink and grow as you moved through the nav. auto-cols-fr sizes
+            every column to the widest label, so the pill stays put. */}
         <nav
-          className="scroll-touch no-scrollbar flex items-center gap-1 p-1 rounded-full justify-self-center order-3 sm:order-none w-fit max-w-full mx-auto sm:mx-0 overflow-x-auto"
+          className="scroll-touch no-scrollbar grid grid-flow-col auto-cols-fr items-center gap-1 p-1 rounded-full justify-self-center order-3 sm:order-none w-fit max-w-full mx-auto sm:mx-0 overflow-x-auto"
           style={{ background: UI.stone, border: `2px solid ${UI.ink}` }}
         >
           {[
