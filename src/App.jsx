@@ -63,6 +63,10 @@ function getVerifyParams() {
   return token && email ? { token, email } : null;
 }
 
+function getAuthError() {
+  return new URLSearchParams(window.location.search).get("authError");
+}
+
 function getBioHandle() {
   const m = window.location.pathname.match(/^\/u\/([^/]+)\/?$/);
   return m ? decodeURIComponent(m[1]) : null;
@@ -82,7 +86,18 @@ function AppShell() {
   const [legalView, setLegalView] = useState(null); // null | "privacy" | "terms"
   const [adminRoute, setAdminRoute] = useState(isAdminPath);
   const [verifyParams] = useState(getVerifyParams);
+  const [authError] = useState(getAuthError);
   const { user, brandKit, loading, refresh } = useAuth();
+
+  // The Google sign-in callback redirects back here with ?authError=... on
+  // failure (declined consent, a misconfigured account, etc.) — surface it
+  // on the login screen instead of the homepage, and drop it from the URL
+  // so refreshing doesn't re-show a stale error.
+  useEffect(() => {
+    if (!authError) return;
+    setAuthView("login");
+    window.history.replaceState({}, "", window.location.pathname);
+  }, [authError]);
 
   // Consume a confirmation link. Runs regardless of whether anyone is signed
   // in on this device — the link is often opened from a phone's mail app,
@@ -212,7 +227,7 @@ function AppShell() {
         />
       );
     }
-    return <AuthScreen initialMode={authView} onBack={() => setAuthView(null)} />;
+    return <AuthScreen initialMode={authView} initialError={authError || ""} onBack={() => setAuthView(null)} />;
   }
 
   if (showHome) {

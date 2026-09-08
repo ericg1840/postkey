@@ -5,8 +5,12 @@
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
+  -- NULL for accounts created via Sign in with Google, which never set one.
+  password_hash TEXT,
   full_name TEXT NOT NULL,
+  -- Google's stable per-account subject id, set only for accounts created
+  -- via Sign in with Google.
+  google_id TEXT UNIQUE,
   created_at TIMESTAMP DEFAULT NOW(),
   reset_token_hash TEXT,
   reset_token_expires TIMESTAMP,

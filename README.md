@@ -35,6 +35,15 @@ Worker secrets/vars (`wrangler secret put NAME`):
 | `RESEND_API_KEY` | yes | Sends welcome, confirmation and password-reset email |
 | `RESEND_FROM_EMAIL` | no | Defaults to Resend's sandbox sender |
 | `ALERT_EMAIL` | no | Where 500s are reported. Unset means no alerts are sent — the app is otherwise unaffected |
+| `GOOGLE_CLIENT_ID` | no | Enables "Continue with Google". Unset means the button 500s if clicked — the rest of auth is unaffected |
+| `GOOGLE_CLIENT_SECRET` | no | Paired with `GOOGLE_CLIENT_ID` |
+
+To set up Google sign-in, create an OAuth client (type "Web application") in
+the [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+and add `<your-app-origin>/api/auth/google/callback` as an authorized
+redirect URI (e.g. `https://postkey.example.com/api/auth/google/callback`,
+plus `http://localhost:5173/api/auth/google/callback` for local dev if
+you're proxying `/api` to a deployed Worker).
 
 `ALERT_EMAIL` is worth setting. Without it, a broken endpoint is only visible
 in `wrangler tail`, which nobody is watching — that's how the planner stayed
