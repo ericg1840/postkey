@@ -117,6 +117,22 @@ CREATE INDEX posts_user_id_idx ON posts(user_id, created_at DESC);
 -- database and break saving for everyone. No migration needed — it's enforced
 -- on write, not by a constraint.
 
+-- Recurring content topics — e.g. "the 20th of every month, post a
+-- this-or-that". A lazy generator (see functions/api/content/posts.mjs)
+-- materializes one content_posts row per rule per month, the first time
+-- that month's posts are fetched. See migrations/010_recurring_topics.sql.
+CREATE TABLE content_recurring_topics (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day_of_month INTEGER NOT NULL CHECK (day_of_month BETWEEN 1 AND 31),
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX content_recurring_topics_user_id_idx ON content_recurring_topics(user_id);
+
 -- Content Planner: dated posts (confirmed or still-suggested) and dateless
 -- ideas waiting to be scheduled. See migrations/005_content_calendar.sql.
 CREATE TABLE content_posts (
@@ -128,7 +144,10 @@ CREATE TABLE content_posts (
   status TEXT NOT NULL DEFAULT 'confirmed',
   source TEXT NOT NULL DEFAULT 'manual',
   posted BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMP DEFAULT NOW(),
+  -- Set when this row was generated from a content_recurring_topics rule.
+  -- See migrations/010_recurring_topics.sql.
+  recurring_topic_id INTEGER REFERENCES content_recurring_topics(id) ON DELETE SET NULL
 );
 
 CREATE INDEX content_posts_user_id_date_idx ON content_posts(user_id, date);

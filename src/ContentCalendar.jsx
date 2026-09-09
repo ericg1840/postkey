@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Sparkles, Info, X, Pencil, Trash2, PartyPopper } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Sparkles, Info, X, Pencil, Trash2, PartyPopper, Repeat } from "lucide-react";
 import { UI, ACCENT, WHITE, mixWithWhite, TopNav, writePostHandoff } from "./shared.jsx";
 import { holidaysByDate, upcomingHolidays } from "./lib/holidays.mjs";
 import { useAuth, api } from "./auth/AuthContext.jsx";
@@ -45,6 +45,18 @@ function formatDay(iso, todayKey) {
   };
 }
 
+// "20th", "1st", "22nd" — for labeling a recurring topic's day of month.
+function ordinal(n) {
+  const rem100 = n % 100;
+  if (rem100 >= 11 && rem100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1: return `${n}st`;
+    case 2: return `${n}nd`;
+    case 3: return `${n}rd`;
+    default: return `${n}th`;
+  }
+}
+
 function CategoryDot({ category, size = 8 }) {
   const c = CATEGORIES[category] || CATEGORIES.community;
   return (
@@ -61,9 +73,11 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
   const [autofillLoading, setAutofillLoading] = useState(false);
   const [posts, setPosts] = useState([]);
   const [ideas, setIdeas] = useState([]);
+  const [recurringTopics, setRecurringTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(null);
+  const [editingRecurring, setEditingRecurring] = useState(null);
 
   const today = new Date();
   const todayKey = toDateKey(today);
@@ -97,11 +111,20 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
     }
   }, []);
 
+  const loadRecurringTopics = useCallback(async () => {
+    try {
+      const data = await api("/api/content/recurring");
+      setRecurringTopics(data.topics || []);
+    } catch {
+      // Same secondary-panel treatment as ideas — don't block the calendar over this.
+    }
+  }, []);
+
   useEffect(() => {
     setLoading(true);
     setError("");
-    Promise.all([loadPosts(), loadIdeas()]).finally(() => setLoading(false));
-  }, [loadPosts, loadIdeas]);
+    Promise.all([loadPosts(), loadIdeas(), loadRecurringTopics()]).finally(() => setLoading(false));
+  }, [loadPosts, loadIdeas, loadRecurringTopics]);
 
   const confirmedPosts = useMemo(() => posts.filter((p) => p.status === "confirmed"), [posts]);
   const confirmedCount = confirmedPosts.length;
@@ -167,6 +190,52 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
     } catch (err) {
       setIdeas(prevIdeas);
       setError(err.message || "Couldn't add that idea to your plan.");
+    }
+  }
+
+  function openNewRecurring() {
+    setEditingRecurring({ dayOfMonth: 1, title: "", category: "community" });
+  }
+
+  async function saveRecurring() {
+    if (!editingRecurring.title.trim()) return;
+    try {
+      await api("/api/content/recurring", {
+        method: "POST",
+        body: JSON.stringify({
+          dayOfMonth: editingRecurring.dayOfMonth,
+          title: editingRecurring.title.trim(),
+          category: editingRecurring.category,
+        }),
+      });
+      setEditingRecurring(null);
+      // A new rule may cover a day already in the currently-viewed month —
+      // reload both so it shows up immediately instead of on next fetch.
+      await Promise.all([loadRecurringTopics(), loadPosts()]);
+    } catch (err) {
+      setError(err.message || "Couldn't save that recurring topic.");
+    }
+  }
+
+  async function toggleRecurring(topic) {
+    const prev = recurringTopics;
+    setRecurringTopics((cur) => cur.map((t) => (t.id === topic.id ? { ...t, active: !t.active } : t)));
+    try {
+      await api(`/api/content/recurring?id=${topic.id}`, { method: "PATCH", body: JSON.stringify({ active: !topic.active }) });
+    } catch (err) {
+      setRecurringTopics(prev);
+      setError(err.message || "Couldn't update that recurring topic.");
+    }
+  }
+
+  async function deleteRecurring(id) {
+    const prev = recurringTopics;
+    setRecurringTopics((cur) => cur.filter((t) => t.id !== id));
+    try {
+      await api(`/api/content/recurring?id=${id}`, { method: "DELETE" });
+    } catch (err) {
+      setRecurringTopics(prev);
+      setError(err.message || "Couldn't delete that recurring topic.");
     }
   }
 
@@ -481,6 +550,38 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
             </button>
           </div>
         ))}
+
+        {/* Recurring topics */}
+        <div className="flex items-center justify-between mt-6 mb-2.5">
+          <h3 className="font-body text-[13px] font-semibold" style={{ color: UI.ink }}>Recurring topics</h3>
+          <button onClick={openNewRecurring} className="press-fx font-body text-xs font-bold px-1" style={{ color: ACCENT, minHeight: 44 }}>+ Add</button>
+        </div>
+        {recurringTopics.length === 0 ? (
+          <p className="font-body text-sm" style={{ color: UI.inkSoft }}>
+            No recurring topics yet — e.g. "the 20th of every month, post a this-or-that."
+          </p>
+        ) : recurringTopics.map((topic) => (
+          <div key={topic.id} className="flex items-center gap-3 rounded-xl p-3 mb-2" style={{ border: `1px solid ${UI.line}`, opacity: topic.active ? 1 : 0.55 }}>
+            <Repeat size={15} className="flex-shrink-0" style={{ color: UI.inkSoft }} />
+            <div className="flex-1 min-w-0">
+              <div className="font-body text-[13.5px] font-medium leading-snug" style={{ color: UI.ink }}>{topic.title}</div>
+              <span className="inline-flex items-center gap-1.5 font-body text-xs mt-1" style={{ color: UI.inkSoft }}>
+                <CategoryDot category={topic.category} />
+                {CATEGORIES[topic.category].label} · {ordinal(topic.dayOfMonth)} of every month
+              </span>
+            </div>
+            <button
+              onClick={() => toggleRecurring(topic)}
+              className="press-fx font-body text-xs font-bold rounded-md px-2.5 whitespace-nowrap flex-shrink-0"
+              style={{ minHeight: 44, border: `1px solid ${UI.line}`, color: UI.ink, background: UI.card }}
+            >
+              {topic.active ? "Pause" : "Resume"}
+            </button>
+            <button onClick={() => deleteRecurring(topic.id)} className="press-fx flex items-center justify-center flex-shrink-0" style={{ color: UI.inkSoft, width: 44, height: 44, margin: "-10px -10px -10px 0" }} aria-label="Delete recurring topic">
+              <Trash2 size={15} />
+            </button>
+          </div>
+        ))}
       </main>
 
       {editing && (
@@ -491,6 +592,15 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
           onDelete={editing.id ? deletePost : null}
           onCreatePost={HANDOFF_TOOL[editing.category] ? createPostInTool : null}
           onClose={() => setEditing(null)}
+        />
+      )}
+
+      {editingRecurring && (
+        <RecurringTopicModal
+          editing={editingRecurring}
+          setEditing={setEditingRecurring}
+          onSave={saveRecurring}
+          onClose={() => setEditingRecurring(null)}
         />
       )}
     </div>
@@ -559,6 +669,93 @@ function MonthView({ posts, focusMonth, todayKey, onDayClick }) {
         </div>
       </div>
       <p className="font-body text-xs text-center mt-2.5" style={{ color: UI.inkSoft }}>Tap a day to plan a post there</p>
+    </div>
+  );
+}
+
+function RecurringTopicModal({ editing, setEditing, onSave, onClose }) {
+  return (
+    <div className="modal-backdrop fixed inset-0 flex items-end sm:items-center justify-center sm:p-6" style={{ background: "rgba(27,36,48,0.45)", zIndex: 100 }} onClick={onClose}>
+      <div
+        className="modal-sheet rounded-t-2xl sm:rounded-2xl w-full"
+        style={{ maxWidth: 420, background: UI.card, border: `2.5px solid ${UI.ink}`, boxShadow: "0 20px 50px rgba(27,36,48,0.25)", maxHeight: "90dvh", overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 pt-5">
+          <div>
+            <h2 className="font-display font-bold text-base" style={{ color: UI.ink }}>Recurring topic</h2>
+            <p className="font-body text-xs mt-0.5" style={{ color: UI.inkSoft }}>Repeats every month, on the same day</p>
+          </div>
+          <button onClick={onClose} className="press-fx flex items-center justify-center" style={{ color: UI.inkSoft, minWidth: 44, minHeight: 44, margin: "-13px -13px -13px 0" }} aria-label="Close"><X size={18} /></button>
+        </div>
+
+        <div className="px-6 py-4 grid gap-4">
+          <label className="block">
+            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>TITLE</span>
+            <input
+              className="input"
+              value={editing.title}
+              onChange={(e) => setEditing((f) => ({ ...f, title: e.target.value }))}
+              placeholder="This or That"
+              autoFocus
+            />
+          </label>
+
+          <label className="block">
+            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>DAY OF MONTH</span>
+            <input
+              type="number"
+              min={1}
+              max={31}
+              className="input"
+              value={editing.dayOfMonth}
+              onChange={(e) => setEditing((f) => ({ ...f, dayOfMonth: Math.min(31, Math.max(1, Number(e.target.value) || 1)) }))}
+            />
+            <span className="font-body text-xs mt-1 block" style={{ color: UI.inkSoft }}>
+              In shorter months, this lands on the last day instead.
+            </span>
+          </label>
+
+          <div>
+            <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CATEGORY</span>
+            <div className="grid grid-cols-2 gap-2">
+              {CATEGORY_KEYS.map((key) => {
+                const c = CATEGORIES[key];
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setEditing((f) => ({ ...f, category: key }))}
+                    className="press-fx flex items-center justify-center gap-1.5 rounded-lg font-body text-xs font-bold transition"
+                    style={{
+                      minHeight: 44,
+                      borderStyle: "solid",
+                      borderWidth: editing.category === key ? 2 : 1.5,
+                      borderColor: editing.category === key ? c.color : UI.line,
+                      background: editing.category === key ? mixWithWhite(c.color, 0.88) : "transparent",
+                    }}
+                  >
+                    <span className="rounded-full flex-shrink-0" style={{ width: 8, height: 8, background: c.color }} />
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 pb-5">
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={!editing.title.trim()}
+            className="press-fx w-full rounded-lg font-body font-bold text-sm transition disabled:opacity-50"
+            style={{ minHeight: 44, background: ACCENT, color: WHITE, border: `2px solid ${UI.ink}`, boxShadow: `2px 2px 0 ${UI.ink}` }}
+          >
+            Add recurring topic
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

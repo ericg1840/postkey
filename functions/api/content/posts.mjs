@@ -5,6 +5,36 @@ import { logEvent } from "../../_lib/activity.mjs";
 const CATEGORIES = new Set(["community", "listing", "promo", "bts"]);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+// Materializes each active recurring topic into a suggested post for the
+// requested month, if one hasn't already been generated for it — run once
+// per month view rather than on a cron, since there's no scheduler wired up
+// for this Worker and "the first time someone looks at that month" is soon
+// enough. day_of_month is clamped to the month's actual last day (the 31st
+// in February lands on the 28th/29th) rather than being skipped.
+async function generateRecurringPosts(db, userId, month) {
+  const topics = await db.sql`
+    SELECT id, day_of_month, title, category
+    FROM content_recurring_topics WHERE user_id = ${userId} AND active = true
+  `;
+  if (topics.length === 0) return;
+
+  const [year, mo] = month.split("-").map(Number);
+  const daysInMonth = new Date(year, mo, 0).getDate();
+
+  for (const topic of topics) {
+    const day = Math.min(topic.day_of_month, daysInMonth);
+    const date = `${month}-${String(day).padStart(2, "0")}`;
+    const [existing] = await db.sql`
+      SELECT id FROM content_posts WHERE recurring_topic_id = ${topic.id} AND date = ${date}
+    `;
+    if (existing) continue;
+    await db.sql`
+      INSERT INTO content_posts (user_id, date, title, category, status, source, recurring_topic_id)
+      VALUES (${userId}, ${date}, ${topic.title}, ${topic.category}, 'suggested', 'recurring', ${topic.id})
+    `;
+  }
+}
+
 function toPost(r) {
   return {
     id: r.id,
@@ -36,6 +66,8 @@ export async function onRequestGet({ request, env }) {
   }
 
   if (!/^\d{4}-\d{2}$/.test(month)) return json({ error: "Invalid month." }, { status: 400 });
+
+  await generateRecurringPosts(db, userId, month);
 
   const rows = await db.sql`
     SELECT id, date, title, category, status, source, posted
