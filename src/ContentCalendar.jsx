@@ -404,13 +404,15 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
             holiday already covered isn't a prompt to act on. */}
         {nextHolidays.length > 0 && (
           <div className="rounded-2xl p-4 mb-4" style={{ border: `2px solid ${UI.ink}`, background: UI.card }}>
-            <div className="flex items-center gap-1.5 mb-1">
-              <PartyPopper size={15} style={{ color: ACCENT }} />
-              <h3 className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Coming up</h3>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="flex items-center justify-center rounded-full flex-shrink-0" style={{ width: 26, height: 26, background: mixWithWhite(ACCENT, 0.85) }}>
+                <PartyPopper size={14} style={{ color: ACCENT }} />
+              </span>
+              <div>
+                <h3 className="font-display font-bold text-[15px] leading-tight" style={{ color: UI.ink }}>Post-worthy days ahead</h3>
+                <p className="font-body text-xs mt-0.5" style={{ color: UI.inkSoft }}>Nothing planned for these yet — worth grabbing before they pass.</p>
+              </div>
             </div>
-            <p className="font-body text-xs mb-2.5" style={{ color: UI.inkSoft }}>
-              Holidays with nothing planned yet — good days to post something.
-            </p>
             {nextHolidays.map((holiday) => (
               <div
                 key={holiday.date}
