@@ -329,24 +329,23 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
       <TopNav active="calendar" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} onLogoClick={onGoHome} />
 
       <main className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-10">
-        <div className="mb-4 sm:mb-6 flex items-start justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Content calendar</h1>
-            <p className="font-body text-sm mt-1" style={{ color: UI.inkSoft }}>
-              Plan your content and stay consistent — publishing still happens on your social platforms.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setFocusMonth((m) => addMonths(m, -1))} className="press-fx flex items-center justify-center rounded-lg" style={{ border: `2px solid ${UI.ink}`, width: 44, height: 44 }} aria-label="Previous month">
-              <ChevronLeft size={16} color={UI.ink} />
-            </button>
-            <h2 className="font-body text-sm font-semibold text-center" style={{ minWidth: "9rem" }}>
-              {focusMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-            </h2>
-            <button type="button" onClick={() => setFocusMonth((m) => addMonths(m, 1))} className="press-fx flex items-center justify-center rounded-lg" style={{ border: `2px solid ${UI.ink}`, width: 44, height: 44 }} aria-label="Next month">
-              <ChevronRight size={16} color={UI.ink} />
-            </button>
-          </div>
+        <div className="mb-4">
+          <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Content calendar</h1>
+          <p className="font-body text-sm mt-1" style={{ color: UI.inkSoft }}>
+            Plan your content and stay consistent — publishing still happens on your social platforms.
+          </p>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 mb-4 sm:mb-6">
+          <button type="button" onClick={() => setFocusMonth((m) => addMonths(m, -1))} className="press-fx flex items-center justify-center rounded-lg" style={{ border: `2px solid ${UI.ink}`, width: 44, height: 44 }} aria-label="Previous month">
+            <ChevronLeft size={16} color={UI.ink} />
+          </button>
+          <h2 className="font-body text-sm font-semibold text-center" style={{ minWidth: "9rem" }}>
+            {focusMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+          </h2>
+          <button type="button" onClick={() => setFocusMonth((m) => addMonths(m, 1))} className="press-fx flex items-center justify-center rounded-lg" style={{ border: `2px solid ${UI.ink}`, width: 44, height: 44 }} aria-label="Next month">
+            <ChevronRight size={16} color={UI.ink} />
+          </button>
         </div>
 
         {error && (
