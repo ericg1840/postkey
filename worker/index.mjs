@@ -29,6 +29,8 @@ import * as adminAnalytics from "../functions/api/admin/analytics.mjs";
 import * as track from "../functions/api/track.mjs";
 import * as verifyEmail from "../functions/api/auth/verify-email.mjs";
 import * as resendVerification from "../functions/api/auth/resend-verification.mjs";
+import * as googleStart from "../functions/api/auth/google/start.mjs";
+import * as googleCallback from "../functions/api/auth/google/callback.mjs";
 import { sendErrorAlert } from "../functions/_lib/alerts.mjs";
 
 const ROUTES = {
@@ -41,6 +43,8 @@ const ROUTES = {
   "/api/auth/change-password": { POST: changePassword.onRequestPost },
   "/api/auth/verify-email": { POST: verifyEmail.onRequestPost },
   "/api/auth/resend-verification": { POST: resendVerification.onRequestPost },
+  "/api/auth/google/start": { GET: googleStart.onRequestGet },
+  "/api/auth/google/callback": { GET: googleCallback.onRequestGet },
   "/api/brand-kit": { GET: brandKit.onRequestGet, PUT: brandKit.onRequestPut },
   "/api/bio": { GET: bio.onRequestGet, PUT: bio.onRequestPut },
   "/api/bio-public": { GET: bioPublic.onRequestGet },
