@@ -86,12 +86,20 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
   // Holidays are computed, not fetched — they're deterministic, so there's
   // nothing to store or keep in sync.
   const holidayLookup = useMemo(() => holidaysByDate(focusMonth.getFullYear()), [focusMonth]);
+  // Scoped to whatever month is on screen — not always "today" — so paging
+  // forward to December actually surfaces Christmas instead of whatever's
+  // nearest to the real current date. Within the current month, still start
+  // from today rather than the 1st, so an already-passed holiday this month
+  // doesn't linger in the list.
   const nextHolidays = useMemo(() => {
     const planned = new Set(posts.map((p) => p.date));
-    return upcomingHolidays(todayKey, 6)
-      .filter((h) => !planned.has(h.date))
+    const monthStart = `${monthKey}-01`;
+    const monthEnd = `${monthKey}-31`;
+    const lowerBound = monthKey === monthKeyOf(today) ? todayKey : monthStart;
+    return upcomingHolidays(lowerBound, 40)
+      .filter((h) => h.date <= monthEnd && !planned.has(h.date))
       .slice(0, 3);
-  }, [todayKey, posts]);
+  }, [monthKey, today, posts]);
 
   const loadPosts = useCallback(async () => {
     try {
