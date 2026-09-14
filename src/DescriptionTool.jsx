@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
-import { Copy, Check, Shuffle, Home, Building2, Warehouse, Building, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Copy, Check, Shuffle, Home, Building2, Warehouse, Building, AlertTriangle, ShieldCheck, FileText, Facebook } from "lucide-react";
 import { UI, ACCENT, ACCENT_PRESETS, WHITE, mixWithWhite, TopNav } from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 import { rotateBlocks, seedFromText } from "./lib/description.mjs";
 import { AVOID, scanFairHousing } from "./lib/fairHousing.mjs";
+
+// Two output shapes share every field below them: a formal MLS/Zillow
+// paragraph (buildDescription) and a shorter, emoji-bulleted social post
+// with hashtags (buildFacebookPost) for Facebook/Instagram-style sharing.
+const FORMAT_OPTIONS = [
+  { key: "mls", label: "MLS / Zillow", description: "Formal paragraph style", icon: FileText },
+  { key: "facebook", label: "Facebook Post", description: "Emoji highlights + hashtags", icon: Facebook },
+];
 
 // Property type just changes the noun used throughout the copy — kept
 // separate from "tone" so any type can be written in any voice.
@@ -22,6 +30,7 @@ const TONE_OPTIONS = [
 ];
 
 const DEFAULTS = {
+  format: "mls",
   propertyType: "home",
   tone: "warm",
   address: "419 Tall Oaks Dr, Warminster",
@@ -397,6 +406,91 @@ function buildDescription(form, variant) {
   return paragraphs.join("\n\n");
 }
 
+function capFirst(s) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+function slugifyTag(s) {
+  return (s || "").replace(/[^a-zA-Z0-9]/g, "");
+}
+
+// A short opener, keyed by tone and rotated the same way OPENERS is — just
+// shorter, since a social caption leads with the address line above it.
+const FB_INTROS = {
+  warm: [
+    (f) => `Charming living awaits at ${f.address}${f.neighborhood ? ` in ${f.neighborhood}` : ""}!`,
+    (f) => `Welcome home to ${f.address}${f.neighborhood ? `, tucked into ${f.neighborhood}` : ""}!`,
+  ],
+  luxury: [
+    (f) => `An extraordinary opportunity awaits at ${f.address}${f.neighborhood ? ` in ${f.neighborhood}` : ""}.`,
+    (f) => `Discover refined living at ${f.address}${f.neighborhood ? ` in ${f.neighborhood}` : ""}.`,
+  ],
+  modern: [
+    (f) => `Clean lines and easy living at ${f.address}${f.neighborhood ? ` in ${f.neighborhood}` : ""}.`,
+    (f) => `Introducing ${f.address}${f.neighborhood ? ` in ${f.neighborhood}` : ""}.`,
+  ],
+  straightforward: [
+    (f) => `Now available: ${f.address}${f.neighborhood ? ` in ${f.neighborhood}` : ""}.`,
+    (f) => `${f.address} is now on the market${f.neighborhood ? ` in ${f.neighborhood}` : ""}.`,
+  ],
+};
+
+const FB_CLOSERS = {
+  warm: ["Peaceful setting + convenient location = the best of both worlds!", "This one has it all — come see for yourself!"],
+  luxury: ["A rare opportunity in an unbeatable location.", "Where elegance meets everyday convenience."],
+  modern: ["Style, comfort, and location — all in one place.", "Everything you need, right where you want it."],
+  straightforward: ["A great location with everything nearby.", "Convenient location, move-in ready."],
+};
+
+// Cycled across the free-text feature/exterior lines so a long list doesn't
+// repeat the same emoji bullet after bullet.
+const FB_BULLET_EMOJIS = ["🛋️", "🍽️", "🚪", "🎮", "🔧", "🎨", "🧺", "🪟", "🧱", "🌟"];
+
+function buildFacebookPost(form, variant) {
+  const tone = TONE_OPTIONS.find((t) => t.key === form.tone) ? form.tone : "warm";
+
+  const lines = [`🏡✨ Welcome to ${form.address}! ✨🏡`, ""];
+
+  const intro = pick(FB_INTROS[tone], variant)(form);
+  lines.push(form.schoolDistrict ? `${intro.replace(/[!.]\s*$/, "")}, located within the ${form.schoolDistrict}! 🌳` : `${intro} 🌳`);
+  lines.push("", "🌟 Property Highlights:", "");
+
+  const bullets = [];
+  if (form.highlight) bullets.push(`✨ ${form.highlight}`);
+  if (form.lotSize) bullets.push(`🌿 ${formatLotSize(form.lotSize)}`);
+  if (form.beds) bullets.push(`🛏️ ${form.beds} bedroom${form.beds === "1" ? "" : "s"}`);
+  if (form.baths) bullets.push(`🛁 ${form.baths} bathroom${form.baths === "1" ? "" : "s"}`);
+  parseLines(form.features).forEach((line, i) => bullets.push(`${FB_BULLET_EMOJIS[(variant + i) % FB_BULLET_EMOJIS.length]} ${line}`));
+  if (form.primarySuite) bullets.push(`🛌 Primary suite with ${lowerFirst(form.primarySuite)}`);
+  parseLines(form.exteriorFeatures).forEach((line) => bullets.push(`🌅 ${line}`));
+  if (form.parking) bullets.push(`🚗 ${capFirst(form.parking)}`);
+  if (form.amenities) bullets.push(`🏊 ${capFirst(form.amenities)}`);
+  if (form.updates) bullets.push(`🔧 Recent updates: ${form.updates}`);
+  if (form.conditionNote) bullets.push(`ℹ️ ${capFirst(form.conditionNote)}`);
+  bullets.forEach((b) => lines.push(`* ${b}`));
+
+  lines.push("", `🌳 ${pick(FB_CLOSERS[tone], variant)}`, "");
+
+  const footer = [];
+  if (form.neighborhood) footer.push(`📍 ${form.neighborhood}`);
+  if (form.schoolDistrict) footer.push(`🏫 ${form.schoolDistrict}`);
+  if (form.lotSize) footer.push(`🏡 ${formatLotSize(form.lotSize)}`);
+  else if (form.sqft) footer.push(`🏡 ${form.sqft} sq ft`);
+  if (form.price) footer.push(`💰 Offered at ${form.price}`);
+  if (footer.length) lines.push(...footer, "");
+
+  lines.push(`📲 ${form.cta || pick(CLOSINGS[tone], variant)}`, "");
+
+  const place = slugifyTag(form.neighborhood);
+  const hashtags = [...new Set([
+    ...(place ? [`#${place}`, `#${place}RealEstate`] : []),
+    "#JustListed", "#NewListing", "#RealEstate", "#DreamHome", "#HouseHunting",
+  ])];
+  lines.push(hashtags.join(" "));
+
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 function StepHeading({ n, title, subtitle, color = ACCENT }) {
   return (
     <div className="flex items-start gap-2.5 mb-2.5">
@@ -438,7 +532,8 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
     return () => clearTimeout(timer);
   }, [form.address]);
 
-  const description = buildDescription(form, seed + variantOffset);
+  const isFacebook = form.format === "facebook";
+  const description = isFacebook ? buildFacebookPost(form, seed + variantOffset) : buildDescription(form, seed + variantOffset);
   const tryAnother = () => setVariantOffset((v) => v + 1);
 
   // Run against the finished description rather than the raw fields: what the
@@ -465,7 +560,7 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
         <div className="mb-3 sm:mb-6">
           <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Write a Listing Description</h1>
           <p className="font-body text-sm mt-1 hidden sm:block" style={{ color: UI.inkSoft }}>
-            Fill in the details — get copy ready to paste into Zillow, Redfin, or Realtor.com.
+            Fill in the details — get copy ready to paste into Zillow, Redfin, Realtor.com, or a Facebook post.
           </p>
         </div>
 
@@ -473,7 +568,26 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
           {/* LEFT: FORM */}
           <div className="grid gap-6">
             <section>
-              <StepHeading n={1} title="Property type & tone" subtitle="These shape the wording of every sentence." color={ACCENT_PRESETS[0]} />
+              <StepHeading n={1} title="Format, property type & tone" subtitle="These shape the wording and layout of the output." color={ACCENT_PRESETS[0]} />
+              <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>OUTPUT FORMAT</span>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {FORMAT_OPTIONS.map(({ key, label, description: d, icon: Icon }) => (
+                  <button key={key} type="button" onClick={() => setForm((f) => ({ ...f, format: key }))}
+                    className="press-fx text-left p-3 rounded-lg transition flex items-start gap-2"
+                    style={{
+                      borderStyle: "solid",
+                      borderWidth: form.format === key ? 2.5 : 2,
+                      borderColor: form.format === key ? ACCENT : UI.line,
+                      background: form.format === key ? mixWithWhite(ACCENT, 0.92) : UI.card,
+                    }}>
+                    <Icon size={16} color={form.format === key ? ACCENT : UI.inkSoft} className="flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <div className="font-body text-xs font-bold" style={{ color: UI.ink }}>{label}</div>
+                      <div className="font-body text-xs mt-0.5" style={{ color: UI.inkSoft }}>{d}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PROPERTY TYPE</span>
               <div className="grid grid-cols-4 gap-2 mb-4">
                 {PROPERTY_TYPES.map(({ key, label, icon: Icon }) => (
@@ -613,7 +727,7 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
             <div className="rounded-2xl p-3.5 sm:p-6" style={{ background: UI.card, border: `2.5px solid ${UI.ink}` }}>
               <div className="rounded-xl p-3.5" style={{ background: mixWithWhite(ACCENT, 0.94), border: `1.5px solid ${ACCENT}` }}>
                 <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className="font-mono text-xs font-bold" style={{ color: ACCENT, letterSpacing: "0.04em" }}>LISTING DESCRIPTION</span>
+                  <span className="font-mono text-xs font-bold" style={{ color: ACCENT, letterSpacing: "0.04em" }}>{isFacebook ? "FACEBOOK POST" : "LISTING DESCRIPTION"}</span>
                   <button
                     onClick={tryAnother}
                     className="press-fx flex items-center justify-center gap-1 font-body text-xs font-semibold flex-shrink-0 px-2"
@@ -631,7 +745,7 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
                   className="press-fx w-full mt-3 rounded-lg font-body font-bold text-xs flex items-center justify-center gap-2 transition"
                   style={{ minHeight: 44, background: copied ? UI.card : ACCENT, color: copied ? UI.ink : WHITE, border: copied ? `1.5px solid ${UI.line}` : `2px solid ${UI.ink}`, boxShadow: copied ? "none" : `2px 2px 0 ${UI.ink}` }}
                 >
-                  {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? "Copied!" : "Copy description"}
+                  {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? "Copied!" : isFacebook ? "Copy post" : "Copy description"}
                 </button>
                 {copyError && (
                   <p className="font-body text-xs mt-2" style={{ color: UI.inkSoft }}>{copyError}</p>
@@ -669,7 +783,7 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
                 </p>
               </div>
               <p className="font-body text-xs mt-3" style={{ color: UI.inkSoft }}>
-                This is assembled from what you typed above — nothing here is invented. Always double-check facts before publishing to Zillow, Redfin, or Realtor.com.
+                This is assembled from what you typed above — nothing here is invented. Always double-check facts before publishing{isFacebook ? " to Facebook" : " to Zillow, Redfin, or Realtor.com"}.
               </p>
             </div>
           </div>
