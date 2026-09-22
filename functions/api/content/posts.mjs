@@ -1,38 +1,40 @@
-import { getDb } from "../../_lib/db.mjs";
-import { getUserIdFromRequest, json } from "../../_lib/auth.mjs";
+import { requireUser } from "../../_lib/session.mjs";
+import { json } from "../../_lib/auth.mjs";
 import { logEvent } from "../../_lib/activity.mjs";
 
 const CATEGORIES = new Set(["community", "listing", "promo", "bts"]);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 // Materializes each active recurring topic into a suggested post for the
-// requested month, if one hasn't already been generated for it — run once
-// per month view rather than on a cron, since there's no scheduler wired up
-// for this Worker and "the first time someone looks at that month" is soon
-// enough. day_of_month is clamped to the month's actual last day (the 31st
-// in February lands on the 28th/29th) rather than being skipped.
-async function generateRecurringPosts(db, userId, month) {
-  const topics = await db.sql`
-    SELECT id, day_of_month, title, category
-    FROM content_recurring_topics WHERE user_id = ${userId} AND active = true
-  `;
-  if (topics.length === 0) return;
-
+// requested month — run the first time someone looks at that month rather
+// than on a cron, since there's no scheduler wired up for this Worker.
+// day_of_month is clamped to the month's actual last day (the 31st in
+// February lands on the 28th/29th) rather than being skipped.
+//
+// One statement: claim (topic, month) in content_recurring_generated, and
+// insert a post only for the claims that were new. Deciding by the ledger
+// rather than by "is the post still there" is what keeps a dismissed or
+// moved suggestion from being regenerated, and the primary key on the ledger
+// is what keeps two simultaneous views from each inserting a copy.
+export async function generateRecurringPosts(db, userId, month) {
   const [year, mo] = month.split("-").map(Number);
   const daysInMonth = new Date(year, mo, 0).getDate();
 
-  for (const topic of topics) {
-    const day = Math.min(topic.day_of_month, daysInMonth);
-    const date = `${month}-${String(day).padStart(2, "0")}`;
-    const [existing] = await db.sql`
-      SELECT id FROM content_posts WHERE recurring_topic_id = ${topic.id} AND date = ${date}
-    `;
-    if (existing) continue;
-    await db.sql`
-      INSERT INTO content_posts (user_id, date, title, category, status, source, recurring_topic_id)
-      VALUES (${userId}, ${date}, ${topic.title}, ${topic.category}, 'suggested', 'recurring', ${topic.id})
-    `;
-  }
+  await db.sql`
+    WITH claimed AS (
+      INSERT INTO content_recurring_generated (topic_id, month)
+      SELECT id, ${month} FROM content_recurring_topics
+       WHERE user_id = ${userId} AND active = true
+      ON CONFLICT DO NOTHING
+      RETURNING topic_id
+    )
+    INSERT INTO content_posts (user_id, date, title, category, status, source, recurring_topic_id)
+    SELECT ${userId},
+           ${month} || '-' || lpad(LEAST(t.day_of_month, ${daysInMonth})::text, 2, '0'),
+           t.title, t.category, 'suggested', 'recurring', t.id
+      FROM claimed c
+      JOIN content_recurring_topics t ON t.id = c.topic_id
+  `;
 }
 
 function toPost(r) {
@@ -48,11 +50,11 @@ function toPost(r) {
 }
 
 export async function onRequestGet({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
   const month = new URL(request.url).searchParams.get("month") || "";
-  const db = getDb(env);
 
   // Profile's "every post you've scheduled" list wants every post
   // regardless of month, so `month` is optional — the calendar itself
@@ -79,8 +81,9 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
   const body = await request.json().catch(() => null);
   if (!body) return json({ error: "Invalid request." }, { status: 400 });
@@ -95,7 +98,6 @@ export async function onRequestPost({ request, env }) {
   if (!title) return json({ error: "Title is required." }, { status: 400 });
   if (!CATEGORIES.has(category)) return json({ error: "Invalid category." }, { status: 400 });
 
-  const db = getDb(env);
   const [row] = await db.sql`
     INSERT INTO content_posts (user_id, date, title, category, status, source)
     VALUES (${userId}, ${date}, ${title}, ${category}, ${status}, ${source})
@@ -106,8 +108,9 @@ export async function onRequestPost({ request, env }) {
 }
 
 export async function onRequestPatch({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
   const id = Number(new URL(request.url).searchParams.get("id"));
   if (!Number.isInteger(id)) return json({ error: "Invalid post id." }, { status: 400 });
@@ -147,7 +150,6 @@ export async function onRequestPatch({ request, env }) {
   // falls back to the existing column value for anything left null above,
   // so one UPDATE (plus the RETURNING) replaces what used to be up to
   // five sequential round trips per save.
-  const db = getDb(env);
   const [row] = await db.sql`
     UPDATE content_posts SET
       status = COALESCE(${status}, status),
@@ -163,13 +165,13 @@ export async function onRequestPatch({ request, env }) {
 }
 
 export async function onRequestDelete({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
   const id = Number(new URL(request.url).searchParams.get("id"));
   if (!Number.isInteger(id)) return json({ error: "Invalid post id." }, { status: 400 });
 
-  const db = getDb(env);
   await db.sql`DELETE FROM content_posts WHERE id = ${id} AND user_id = ${userId}`;
   return json({ ok: true });
 }

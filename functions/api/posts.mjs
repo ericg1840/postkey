@@ -1,5 +1,5 @@
-import { getDb } from "../_lib/db.mjs";
-import { getUserIdFromRequest, json } from "../_lib/auth.mjs";
+import { requireUser } from "../_lib/session.mjs";
+import { json } from "../_lib/auth.mjs";
 import { logEvent } from "../_lib/activity.mjs";
 
 // Data-URL PNGs land here, same storage pattern as brand_kits' headshot/logo
@@ -46,10 +46,10 @@ export async function pruneOldPosts(db, userId, max = MAX_POSTS_PER_USER) {
 // each as data URLs, so returning every one of them to draw a grid of
 // thumbnails meant a single request in the tens of megabytes.
 export async function onRequestGet({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
-  const db = getDb(env);
   const idParam = new URL(request.url).searchParams.get("id");
 
   if (idParam !== null) {
@@ -85,8 +85,9 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
   const body = await request.json().catch(() => null);
   if (!body) return json({ error: "Invalid request." }, { status: 400 });
@@ -104,7 +105,6 @@ export async function onRequestPost({ request, env }) {
   const thumbRaw = String(body.thumbData || "");
   const thumbData = thumbRaw.startsWith("data:image/") && thumbRaw.length <= MAX_THUMB_DATA_LENGTH ? thumbRaw : null;
 
-  const db = getDb(env);
   const [row] = await db.sql`
     INSERT INTO posts (user_id, category, headline, template, image_data, thumb_data)
     VALUES (${userId}, ${category}, ${headline}, ${template}, ${imageData}, ${thumbData})
@@ -140,13 +140,13 @@ export async function onRequestPost({ request, env }) {
 }
 
 export async function onRequestDelete({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
   const id = Number(new URL(request.url).searchParams.get("id"));
   if (!Number.isInteger(id)) return json({ error: "Invalid post id." }, { status: 400 });
 
-  const db = getDb(env);
   await db.sql`DELETE FROM posts WHERE id = ${id} AND user_id = ${userId}`;
   return json({ ok: true });
 }

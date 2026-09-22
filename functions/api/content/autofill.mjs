@@ -1,5 +1,5 @@
-import { getDb } from "../../_lib/db.mjs";
-import { getUserIdFromRequest, json } from "../../_lib/auth.mjs";
+import { requireUser } from "../../_lib/session.mjs";
+import { json } from "../../_lib/auth.mjs";
 
 // A light rotating pool of generic prompts, cycled per open day so a
 // month with nothing planned yet still gets a few concrete starting
@@ -33,13 +33,13 @@ export function resolveToday(raw, utcToday) {
 }
 
 export async function onRequestPost({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
   const body = await request.json().catch(() => ({}));
   const month = /^\d{4}-\d{2}$/.test(body.month) ? body.month : new Date().toISOString().slice(0, 7);
 
-  const db = getDb(env);
   const existing = await db.sql`
     SELECT date FROM content_posts WHERE user_id = ${userId} AND date LIKE ${month + "-%"}
   `;

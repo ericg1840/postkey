@@ -1,6 +1,7 @@
 import { getDb } from "../_lib/db.mjs";
 import { logEvent } from "../_lib/activity.mjs";
 import { json } from "../_lib/auth.mjs";
+import { checkRateLimit, getClientIp } from "../_lib/rateLimit.mjs";
 
 // Only marketing-site screens App.jsx actually beacons from — anything else
 // gets dropped rather than polluting the top-of-funnel breakdown with
@@ -18,7 +19,16 @@ export async function onRequestPost({ request, env }) {
 
   if (KNOWN_PATHS.has(path) && /^[a-zA-Z0-9-]{1,64}$/.test(anonId)) {
     const db = getDb(env);
-    await logEvent(db, null, "marketing_page_view", { path, anonId, referrer }).catch(() => {});
+    // Anonymous and unauthenticated, so without a cap anyone could loop this
+    // and grow activity_events without bound. Far above what a person
+    // clicking around the marketing site sends.
+    try {
+      if (await checkRateLimit(db, `track:ip:${getClientIp(request)}`, { max: 60, windowMinutes: 10 })) {
+        await logEvent(db, null, "marketing_page_view", { path, anonId, referrer });
+      }
+    } catch {
+      // A beacon never surfaces an error — see above.
+    }
   }
 
   return json({ ok: true });
