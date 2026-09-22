@@ -1,16 +1,14 @@
 import { getDb } from "../../_lib/db.mjs";
-import { getUserIdFromRequest, json } from "../../_lib/auth.mjs";
+import { json } from "../../_lib/auth.mjs";
+import { loadSessionUser } from "../../_lib/session.mjs";
 
 export async function onRequestGet({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ user: null }, { status: 200 });
-
+  // A disabled/suspended account, or a session revoked by a password
+  // change, is logged out immediately, even mid-session.
   const db = getDb(env);
-  const [user] = await db.sql`SELECT id, email, full_name, is_admin, account_status, email_verified_at FROM users WHERE id = ${userId}`;
+  const user = await loadSessionUser(request, env, db);
   if (!user) return json({ user: null }, { status: 200 });
-
-  // A disabled/suspended account is logged out immediately, even mid-session.
-  if (user.account_status && user.account_status !== "active") return json({ user: null }, { status: 200 });
+  const userId = user.id;
 
   const [kit] = await db.sql`SELECT * FROM brand_kits WHERE user_id = ${userId}`;
   return json({

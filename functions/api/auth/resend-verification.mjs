@@ -1,5 +1,5 @@
-import { getDb } from "../../_lib/db.mjs";
-import { getUserIdFromRequest, createVerifyToken, json } from "../../_lib/auth.mjs";
+import { requireUser } from "../../_lib/session.mjs";
+import { createVerifyToken, json } from "../../_lib/auth.mjs";
 import { checkRateLimit } from "../../_lib/rateLimit.mjs";
 import { sendVerificationEmail, verifyUrl } from "../../_lib/verifyEmail.mjs";
 import { logEvent } from "../../_lib/activity.mjs";
@@ -7,10 +7,9 @@ import { logEvent } from "../../_lib/activity.mjs";
 // Signed-in only: this sends mail to the address on the account, so the
 // session is what authorises it and there's no way to aim it at someone else.
 export async function onRequestPost({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
-
-  const db = getDb(env);
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
   // Without this, the banner's button is a one-click way to send yourself
   // (and our sending reputation) unlimited mail.

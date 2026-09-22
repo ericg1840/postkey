@@ -40,7 +40,7 @@ async function sendAdminResetEmail(toEmail, resetUrl, env) {
 export async function onRequestPost({ request, env }) {
   const admin = await requireAdmin(request, env);
   if (admin.error) return admin.error;
-  const { db } = admin;
+  const { db, adminId } = admin;
 
   const body = await request.json().catch(() => null);
   const userId = Number(body?.userId);
@@ -67,10 +67,24 @@ export async function onRequestPost({ request, env }) {
     return json({ ok: true });
   }
 
+  // An admin disabling or deleting their own account locks them out of the
+  // dashboard with no way back in short of editing the database by hand.
+  const selfLockout = userId === adminId
+    && (action === "delete_account" || (action === "set_status" && body?.status !== "active"));
+  if (selfLockout) return json({ error: "You can't disable or delete your own account." }, { status: 400 });
+
   if (action === "set_status") {
     const status = body?.status;
     if (!VALID_STATUSES.has(status)) return json({ error: "Invalid status." }, { status: 400 });
-    await db.sql`UPDATE users SET account_status = ${status} WHERE id = ${userId}`;
+    // Bumping session_version on the way out of "active" revokes every
+    // session the user already has, rather than relying on each endpoint to
+    // re-check the status (and on them never getting re-enabled mid-session).
+    await db.sql`
+      UPDATE users
+         SET account_status = ${status},
+             session_version = session_version + CASE WHEN ${status} = 'active' THEN 0 ELSE 1 END
+       WHERE id = ${userId}
+    `;
     await logEvent(db, userId, "status_change", { from: targetUser.account_status, to: status, email: targetUser.email });
     return json({ ok: true });
   }

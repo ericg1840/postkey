@@ -76,11 +76,14 @@ export async function onRequestPost({ request, env }) {
   const origin = new URL(request.url).origin;
   const resetUrl = `${origin}/?resetToken=${token}&resetEmail=${encodeURIComponent(email)}`;
 
+  // A send failure gets the same generic response as everything else: an
+  // error here only ever happens for addresses that have an account, so
+  // surfacing it would tell anyone which emails are registered whenever the
+  // provider has a bad moment. Logged instead, where it can be seen.
   try {
     await sendResetEmail(email, resetUrl, env);
   } catch (err) {
     console.error("Reset email failed", err);
-    return json({ error: "Couldn't send the reset email. Please try again shortly." }, { status: 502 });
   }
 
   return genericResponse;

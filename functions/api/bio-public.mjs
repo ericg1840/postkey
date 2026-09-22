@@ -1,6 +1,17 @@
 import { getDb } from "../_lib/db.mjs";
 import { json } from "../_lib/auth.mjs";
 import { logEvent } from "../_lib/activity.mjs";
+import { checkRateLimit, getClientIp } from "../_lib/rateLimit.mjs";
+
+// Counted once per visitor per page per half hour: without this, every
+// refresh (or a script hammering the URL) wrote another activity_events row,
+// so the table could be grown without bound and the admin "page views"
+// number measured reloads rather than visits.
+async function recordPageView(db, request, userId, handle) {
+  const ip = getClientIp(request);
+  if (!(await checkRateLimit(db, `pageview:${handle}:${ip}`, { max: 1, windowMinutes: 30 }))) return;
+  await logEvent(db, userId, "page_view", { handle });
+}
 
 // Unauthenticated — this is what the public /u/:handle page fetches, so it
 // only ever returns what's meant to be publicly visible (no email, phone,
@@ -11,16 +22,20 @@ export async function onRequestGet({ request, env }) {
 
   const db = getDb(env);
   const [kit] = await db.sql`
-    SELECT user_id, agent_name, headshot_url, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style, bio_bg_image_url, bio_bg_tint
-    FROM brand_kits WHERE bio_handle = ${handle}
+    SELECT k.user_id, agent_name, headshot_url, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style, bio_bg_image_url, bio_bg_tint
+    FROM brand_kits k
+    JOIN users u ON u.id = k.user_id
+    WHERE k.bio_handle = ${handle} AND u.account_status = 'active'
   `;
   if (!kit) return json({ error: "Page not found." }, { status: 404 });
 
   // The page-view log write doesn't gate what the visitor sees, so it runs
   // alongside the links fetch instead of blocking it — one round trip off
-  // the critical path of what is this app's highest-traffic read.
+  // the critical path of what is this app's highest-traffic read. Its
+  // failure is caught for the same reason: a broken analytics write must
+  // not take the agent's public page down with it.
   const [, links] = await Promise.all([
-    logEvent(db, kit.user_id, "page_view", { handle }),
+    recordPageView(db, request, kit.user_id, handle).catch((err) => console.error("Page view log failed", err)),
     db.sql`
       SELECT type, label, url, address, price, beds, baths, photo_url
       FROM bio_links WHERE user_id = ${kit.user_id} ORDER BY sort_order ASC, id ASC

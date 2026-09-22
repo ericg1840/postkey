@@ -27,7 +27,7 @@ export async function onRequestPost({ request, env }) {
   if (!(await checkRateLimit(db, `login:ip:${ip}`, { max: 20, windowMinutes: 15 }))) return TOO_MANY();
   if (email && !(await checkRateLimit(db, `login:email:${email}`, { max: 8, windowMinutes: 15 }))) return TOO_MANY();
 
-  const [user] = await db.sql`SELECT id, email, full_name, password_hash, account_status FROM users WHERE email = ${email}`;
+  const [user] = await db.sql`SELECT id, email, full_name, password_hash, account_status, session_version FROM users WHERE email = ${email}`;
   if (!user || !verifyPassword(password, user.password_hash)) {
     return json({ error: "Incorrect email or password." }, { status: 401 });
   }
@@ -38,7 +38,7 @@ export async function onRequestPost({ request, env }) {
   await db.sql`UPDATE users SET last_login_at = NOW() WHERE id = ${user.id}`;
   await logEvent(db, user.id, "login", { email: user.email });
 
-  const token = createSessionToken(user.id, env);
+  const token = createSessionToken(user.id, env, user.session_version ?? 0);
   return json(
     { user: { id: user.id, email: user.email, fullName: user.full_name } },
     { status: 200, headers: { "Set-Cookie": sessionCookie(token) } }

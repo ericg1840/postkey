@@ -17,7 +17,10 @@ CREATE TABLE users (
   -- NULL until the address is confirmed. See migrations/008_email_verification.sql.
   email_verified_at TIMESTAMP,
   verify_token_hash TEXT,
-  verify_token_expires TIMESTAMP
+  verify_token_expires TIMESTAMP,
+  -- Bumped to revoke every existing session. See
+  -- migrations/011_session_version_and_recurring_ledger.sql.
+  session_version INTEGER NOT NULL DEFAULT 0
 );
 
 -- One row per user; the admin dashboard's source of truth for tier and MRR.
@@ -151,6 +154,15 @@ CREATE TABLE content_posts (
 );
 
 CREATE INDEX content_posts_user_id_date_idx ON content_posts(user_id, date);
+
+-- One row per (recurring topic, month) that has already had its post
+-- generated, so a dismissed or moved suggestion isn't regenerated. See
+-- migrations/011_session_version_and_recurring_ledger.sql.
+CREATE TABLE content_recurring_generated (
+  topic_id INTEGER NOT NULL REFERENCES content_recurring_topics(id) ON DELETE CASCADE,
+  month TEXT NOT NULL,
+  PRIMARY KEY (topic_id, month)
+);
 
 CREATE TABLE content_ideas (
   id SERIAL PRIMARY KEY,

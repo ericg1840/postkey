@@ -106,25 +106,36 @@ export async function onRequestPost({ request, env }) {
   const existing = await db.sql`SELECT id FROM users WHERE email = ${email}`;
   if (existing.length > 0) return json({ error: "An account with that email already exists." }, { status: 409 });
 
-  const passwordHash = hashPassword(password);
-  const [user] = await db.sql`
-    INSERT INTO users (email, password_hash, full_name)
-    VALUES (${email}, ${passwordHash}, ${fullName})
-    RETURNING id, email, full_name
-  `;
-  await db.sql`INSERT INTO brand_kits (user_id, agent_name) VALUES (${user.id}, ${fullName})`;
-  await db.sql`INSERT INTO subscriptions (user_id, tier, status, monthly_amount_cents) VALUES (${user.id}, 'free', 'active', 0)`;
-  await logEvent(db, user.id, "signup", { email: user.email, anonId });
-
-  const token = createSessionToken(user.id, env);
-
   // Issued here rather than on first sight of the banner, so the welcome
   // email itself can carry the confirmation link — one email, not two.
   const verify = createVerifyToken();
-  await db.sql`
-    UPDATE users SET verify_token_hash = ${verify.tokenHash}, verify_token_expires = ${verify.expires.toISOString()}
-    WHERE id = ${user.id}
+  const passwordHash = hashPassword(password);
+
+  // The user, their brand kit and their subscription row go in as one
+  // statement, so it's all-or-nothing: separate INSERTs could leave an
+  // account with no brand kit if a later one failed. ON CONFLICT covers two
+  // signups for the same email racing past the check above — the loser gets
+  // the same 409 instead of a unique-violation 500.
+  const [user] = await db.sql`
+    WITH new_user AS (
+      INSERT INTO users (email, password_hash, full_name, verify_token_hash, verify_token_expires)
+      VALUES (${email}, ${passwordHash}, ${fullName}, ${verify.tokenHash}, ${verify.expires.toISOString()})
+      ON CONFLICT (email) DO NOTHING
+      RETURNING id, email, full_name
+    ),
+    kit AS (
+      INSERT INTO brand_kits (user_id, agent_name) SELECT id, ${fullName} FROM new_user
+    ),
+    sub AS (
+      INSERT INTO subscriptions (user_id, tier, status, monthly_amount_cents) SELECT id, 'free', 'active', 0 FROM new_user
+    )
+    SELECT id, email, full_name FROM new_user
   `;
+  if (!user) return json({ error: "An account with that email already exists." }, { status: 409 });
+
+  await logEvent(db, user.id, "signup", { email: user.email, anonId }).catch(() => {});
+
+  const token = createSessionToken(user.id, env);
 
   try {
     const firstName = fullName.split(/\s+/)[0];

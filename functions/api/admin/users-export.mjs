@@ -1,8 +1,14 @@
 import { requireAdmin } from "../../_lib/admin.mjs";
 
-function csvCell(value) {
-  const s = value === null || value === undefined ? "" : String(value);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+// A cell starting with one of these is run as a formula by Excel/Sheets —
+// and signup emails are user-controlled, so "=HYPERLINK(...)@x.com" is a
+// valid one. A leading apostrophe makes the spreadsheet treat it as text.
+const FORMULA_PREFIX = /^[=+\-@\t\r]/;
+
+export function csvCell(value) {
+  let s = value === null || value === undefined ? "" : String(value);
+  if (FORMULA_PREFIX.test(s)) s = `'${s}`;
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 export async function onRequestGet({ request, env }) {

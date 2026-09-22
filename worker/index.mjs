@@ -19,6 +19,7 @@ import * as drafts from "../functions/api/drafts.mjs";
 import * as contentPosts from "../functions/api/content/posts.mjs";
 import * as contentIdeas from "../functions/api/content/ideas.mjs";
 import * as contentAutofill from "../functions/api/content/autofill.mjs";
+import * as contentRecurring from "../functions/api/content/recurring.mjs";
 import * as adminStats from "../functions/api/admin/stats.mjs";
 import * as adminUsers from "../functions/api/admin/users.mjs";
 import * as adminUsersExport from "../functions/api/admin/users-export.mjs";
@@ -31,7 +32,10 @@ import * as verifyEmail from "../functions/api/auth/verify-email.mjs";
 import * as resendVerification from "../functions/api/auth/resend-verification.mjs";
 import { sendErrorAlert } from "../functions/_lib/alerts.mjs";
 
-const ROUTES = {
+// Every handler in functions/api/ has to be listed here by hand — one that
+// isn't falls through to the static site and silently serves index.html.
+// test/routes.test.mjs checks the two stay in step.
+export const ROUTES = {
   "/api/auth/login": { POST: login.onRequestPost },
   "/api/auth/logout": { POST: logout.onRequestPost },
   "/api/auth/me": { GET: me.onRequestGet },
@@ -53,6 +57,10 @@ const ROUTES = {
   },
   "/api/content/ideas": { GET: contentIdeas.onRequestGet, POST: contentIdeas.onRequestPost, PATCH: contentIdeas.onRequestPatch },
   "/api/content/autofill": { POST: contentAutofill.onRequestPost },
+  "/api/content/recurring": {
+    GET: contentRecurring.onRequestGet, POST: contentRecurring.onRequestPost,
+    PATCH: contentRecurring.onRequestPatch, DELETE: contentRecurring.onRequestDelete,
+  },
   "/api/admin/stats": { GET: adminStats.onRequestGet },
   "/api/admin/users": { GET: adminUsers.onRequestGet },
   "/api/admin/users-export": { GET: adminUsersExport.onRequestGet },

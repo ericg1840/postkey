@@ -1,5 +1,5 @@
-import { getDb } from "../_lib/db.mjs";
-import { getUserIdFromRequest, json } from "../_lib/auth.mjs";
+import { requireUser } from "../_lib/session.mjs";
+import { json } from "../_lib/auth.mjs";
 
 // Drafts hold form fields only — no photos, which never leave memory — so a
 // legitimate one is a couple of KB. Capped well above that so a real draft is
@@ -30,10 +30,10 @@ function toDraft(row) {
 }
 
 export async function onRequestGet({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
-  const db = getDb(env);
   const rows = await db.sql`
     SELECT id, tool, label, type_label, target_date, form, updated_at, deleted_at
       FROM post_drafts
@@ -51,8 +51,9 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPut({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
   const body = await request.json().catch(() => null);
   const id = String(body?.id || "").slice(0, 80);
@@ -68,8 +69,6 @@ export async function onRequestPut({ request, env }) {
   const label = String(body?.label || "").slice(0, 200);
   const typeLabel = String(body?.typeLabel || "").slice(0, 80);
   const targetDate = body?.date ? String(body.date).slice(0, 20) : null;
-
-  const db = getDb(env);
 
   // Only counts against the cap when it's a new draft — editing one you
   // already have must never fail because you're at the limit.
@@ -110,13 +109,13 @@ export async function onRequestPut({ request, env }) {
 }
 
 export async function onRequestDelete({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return json({ error: "Invalid draft id." }, { status: 400 });
 
-  const db = getDb(env);
   // Tombstone rather than DELETE, so another device that still has this draft
   // learns it was removed instead of pushing it back up.
   await db.sql`

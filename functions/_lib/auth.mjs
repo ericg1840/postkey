@@ -36,13 +36,24 @@ function base64url(input) {
   return Buffer.from(input).toString("base64url");
 }
 
-export function createSessionToken(userId, env) {
-  const payload = base64url(JSON.stringify({ uid: userId, exp: Date.now() + SESSION_MAX_AGE * 1000 }));
+// `sessionVersion` is copied from users.session_version when the token is
+// issued. Bumping that column (password change/reset, account disabled)
+// makes every token issued before it stop working — a signed token can't be
+// revoked any other way. Tokens from before the column existed carry no `sv`
+// and are read as 0, the column's default, so deploying this logs nobody out.
+export function createSessionToken(userId, env, sessionVersion = 0) {
+  const payload = base64url(JSON.stringify({ uid: userId, sv: sessionVersion, exp: Date.now() + SESSION_MAX_AGE * 1000 }));
   const sig = createHmac("sha256", getSecret(env)).update(payload).digest("base64url");
   return `${payload}.${sig}`;
 }
 
 export function verifySessionToken(token, env) {
+  return verifySession(token, env)?.uid ?? null;
+}
+
+// Same check as verifySessionToken, but also returns the session version the
+// token was issued under, for comparing against the user's current one.
+export function verifySession(token, env) {
   if (!token) return null;
   const [payload, sig] = token.split(".");
   if (!payload || !sig) return null;
@@ -53,7 +64,7 @@ export function verifySessionToken(token, env) {
   try {
     const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
     if (!data.uid || !data.exp || Date.now() > data.exp) return null;
-    return data.uid;
+    return { uid: data.uid, sv: Number.isInteger(data.sv) ? data.sv : 0 };
   } catch {
     return null;
   }
@@ -81,9 +92,17 @@ export function parseCookies(req) {
   return out;
 }
 
+// Signature and expiry only — says nothing about whether the account is
+// still active or the session has been revoked. Endpoints should go through
+// requireUser() in session.mjs, which checks both.
 export function getUserIdFromRequest(req, env) {
   const cookies = parseCookies(req);
   return verifySessionToken(cookies[COOKIE_NAME], env);
+}
+
+export function getSessionFromRequest(req, env) {
+  const cookies = parseCookies(req);
+  return verifySession(cookies[COOKIE_NAME], env);
 }
 
 export function sessionCookie(token) {

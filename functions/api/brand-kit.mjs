@@ -1,5 +1,5 @@
-import { getDb } from "../_lib/db.mjs";
-import { getUserIdFromRequest, json } from "../_lib/auth.mjs";
+import { requireUser } from "../_lib/session.mjs";
+import { json } from "../_lib/auth.mjs";
 
 // The headshot/logo are stored as data URLs and handed back on every
 // /api/auth/me, so an oversized one slows down every page load for that
@@ -9,10 +9,10 @@ import { getUserIdFromRequest, json } from "../_lib/auth.mjs";
 const MAX_ASSET_DATA_LENGTH = 2_000_000;
 
 export async function onRequestPut({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
-  const db = getDb(env);
   const body = await request.json().catch(() => null);
   if (!body) return json({ error: "Invalid request." }, { status: 400 });
   for (const field of ["headshotUrl", "logoUrl"]) {
@@ -60,10 +60,10 @@ export async function onRequestPut({ request, env }) {
 }
 
 export async function onRequestGet({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
-  const db = getDb(env);
   const [kit] = await db.sql`SELECT * FROM brand_kits WHERE user_id = ${userId}`;
   return json({ brandKit: kit || null });
 }

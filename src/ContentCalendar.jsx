@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Sparkles, Info, X, Pencil, Trash2, PartyPopper, Repeat } from "lucide-react";
 import { UI, ACCENT, WHITE, mixWithWhite, TopNav, writePostHandoff } from "./shared.jsx";
 import { holidaysByDate, upcomingHolidays } from "./lib/holidays.mjs";
@@ -101,11 +101,21 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
       .slice(0, 3);
   }, [monthKey, today, posts]);
 
+  // Paging through months quickly leaves several loads in flight, and they
+  // can finish out of order — without this, a slow response for a month
+  // already paged away from would overwrite the one on screen.
+  const currentMonthRef = useRef(monthKey);
+  useEffect(() => {
+    currentMonthRef.current = monthKey;
+  }, [monthKey]);
+
   const loadPosts = useCallback(async () => {
     try {
       const data = await api(`/api/content/posts?month=${monthKey}`);
+      if (currentMonthRef.current !== monthKey) return;
       setPosts(data.posts || []);
     } catch (err) {
+      if (currentMonthRef.current !== monthKey) return;
       setError(err.message || "Couldn't load your content calendar.");
     }
   }, [monthKey]);
@@ -114,8 +124,11 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
     try {
       const data = await api("/api/content/ideas");
       setIdeas(data.ideas || []);
-    } catch {
-      // Ideas are a secondary panel — a failed load there shouldn't block the calendar itself.
+    } catch (err) {
+      // Ideas are a secondary panel — a failed load there shouldn't block the
+      // calendar itself, but it must not vanish silently either: that's how
+      // the recurring-topics route went missing unnoticed.
+      console.error("Loading content ideas failed", err);
     }
   }, []);
 
@@ -123,8 +136,9 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
     try {
       const data = await api("/api/content/recurring");
       setRecurringTopics(data.topics || []);
-    } catch {
+    } catch (err) {
       // Same secondary-panel treatment as ideas — don't block the calendar over this.
+      console.error("Loading recurring topics failed", err);
     }
   }, []);
 

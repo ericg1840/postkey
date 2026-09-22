@@ -1,5 +1,5 @@
-import { getDb } from "../_lib/db.mjs";
-import { getUserIdFromRequest, json } from "../_lib/auth.mjs";
+import { requireUser } from "../_lib/session.mjs";
+import { json } from "../_lib/auth.mjs";
 import { logEvent } from "../_lib/activity.mjs";
 
 const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
@@ -9,10 +9,10 @@ const NAME_SIZES = new Set(["sm", "md", "lg", "xl"]);
 const BUTTON_STYLES = new Set(["rounded", "pill", "square"]);
 
 export async function onRequestGet({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
-  const db = getDb(env);
   const [kit] = await db.sql`SELECT bio_handle, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style, bio_bg_image_url, bio_bg_tint FROM brand_kits WHERE user_id = ${userId}`;
   const links = await db.sql`SELECT id, type, label, url, address, price, beds, baths, photo_url FROM bio_links WHERE user_id = ${userId} ORDER BY sort_order ASC, id ASC`;
 
@@ -44,8 +44,9 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPut({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
   const body = await request.json().catch(() => null);
   if (!body) return json({ error: "Invalid request." }, { status: 400 });
@@ -69,15 +70,23 @@ export async function onRequestPut({ request, env }) {
     if (!LINK_TYPES.has(l?.type)) return json({ error: "Invalid link type." }, { status: 400 });
   }
 
-  const db = getDb(env);
-
   if (handle) {
     const [taken] = await db.sql`SELECT user_id FROM brand_kits WHERE bio_handle = ${handle} AND user_id != ${userId}`;
     if (taken) return json({ error: "That handle is already taken." }, { status: 409 });
   }
 
-  try {
-    await db.sql`
+  // Diffed against the pre-save set so a fresh zillow-type link (an agent
+  // adding a listing to their public page) gets its own event, distinct
+  // from the general "links were saved" one fired below.
+  const existingZillowUrls = new Set(
+    (await db.sql`SELECT url FROM bio_links WHERE user_id = ${userId} AND type = 'zillow'`).map((r) => r.url)
+  );
+
+  // Profile update, delete-all-links and re-insert run as one transaction:
+  // as separate statements, an insert that failed after the delete left the
+  // agent's public page with no links at all.
+  const statements = [
+    db.sql`
       UPDATE brand_kits SET
         bio_handle = ${handle || null},
         bio_tagline = ${tagline},
@@ -91,25 +100,13 @@ export async function onRequestPut({ request, env }) {
         bio_bg_tint = ${bgTint},
         updated_at = NOW()
       WHERE user_id = ${userId}
-    `;
-  } catch (err) {
-    if (err?.code === "23505") return json({ error: "That handle is already taken." }, { status: 409 });
-    throw err;
-  }
-
-  // Diffed against the pre-save set so a fresh zillow-type link (an agent
-  // adding a listing to their public page) gets its own event, distinct
-  // from the general "links were saved" one fired below.
-  const existingZillowUrls = new Set(
-    (await db.sql`SELECT url FROM bio_links WHERE user_id = ${userId} AND type = 'zillow'`).map((r) => r.url)
-  );
-
-  await db.sql`DELETE FROM bio_links WHERE user_id = ${userId}`;
+    `,
+    db.sql`DELETE FROM bio_links WHERE user_id = ${userId}`,
+  ];
   if (links.length > 0) {
     // One INSERT ... SELECT FROM unnest() with parallel arrays instead of
-    // one INSERT per link — was N sequential HTTP round trips to Neon,
-    // now a single round trip regardless of link count.
-    await db.sql`
+    // one INSERT per link, so it's one statement regardless of link count.
+    statements.push(db.sql`
       INSERT INTO bio_links (user_id, type, label, url, sort_order, address, price, beds, baths, photo_url)
       SELECT * FROM unnest(
         ${links.map(() => userId)}::int[],
@@ -123,7 +120,14 @@ export async function onRequestPut({ request, env }) {
         ${links.map((l) => (l.baths ? String(l.baths).slice(0, 20) : null))}::text[],
         ${links.map((l) => (l.photoUrl ? String(l.photoUrl).slice(0, 1000) : null))}::text[]
       )
-    `;
+    `);
+  }
+
+  try {
+    await db.sql.transaction(statements);
+  } catch (err) {
+    if (err?.code === "23505") return json({ error: "That handle is already taken." }, { status: 409 });
+    throw err;
   }
 
   const newListings = links.filter((l) => l.type === "zillow" && !existingZillowUrls.has(String(l.url || "").slice(0, 2000)));

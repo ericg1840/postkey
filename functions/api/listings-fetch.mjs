@@ -1,5 +1,5 @@
-import { getUserIdFromRequest, json } from "../_lib/auth.mjs";
-import { getDb } from "../_lib/db.mjs";
+import { requireUser } from "../_lib/session.mjs";
+import { json } from "../_lib/auth.mjs";
 
 // Server-side fetch + parse of a Zillow listing page so the link-in-bio
 // editor can show a live address/price/beds/baths without the agent typing
@@ -7,13 +7,61 @@ import { getDb } from "../_lib/db.mjs";
 // open URL-fetching proxy. Zillow does run bot protection, so this can fail
 // on some requests — callers should treat manual entry as the fallback path,
 // not an edge case (see profile/BioEditorPage.jsx).
-function isZillowUrl(raw) {
+export function isZillowUrl(raw) {
   try {
     const u = new URL(raw);
     return /(^|\.)zillow\.com$/i.test(u.hostname) && u.protocol === "https:";
   } catch {
     return false;
   }
+}
+
+// Redirects are followed by hand so every hop is re-checked against
+// isZillowUrl — fetch()'s own redirect following would happily go wherever a
+// zillow.com redirect pointed, which made the host check above a formality.
+const MAX_REDIRECTS = 5;
+// A listing page is a few hundred KB; this only exists so a huge or
+// never-ending response can't hold the Worker's memory and CPU.
+export const MAX_HTML_BYTES = 3_000_000;
+
+export async function fetchZillow(url, fetchImpl = fetch) {
+  let current = url;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const res = await fetchImpl(current, {
+      redirect: "manual",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml",
+      },
+    });
+    if (res.status < 300 || res.status >= 400) return res;
+    const location = res.headers.get("location");
+    if (!location) return res;
+    const next = new URL(location, current).toString();
+    if (!isZillowUrl(next)) throw new Error("Redirected off zillow.com");
+    current = next;
+  }
+  throw new Error("Too many redirects");
+}
+
+// Reads at most maxBytes of the body, cancelling the rest.
+export async function readCapped(res, maxBytes = MAX_HTML_BYTES) {
+  if (!res.body) return "";
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  let received = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    received += value.byteLength;
+    if (received > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new Error("Response too large");
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+  return text + decoder.decode();
 }
 
 function pickJsonLd(html) {
@@ -41,8 +89,9 @@ function metaContent(html, property) {
 }
 
 export async function onRequestPost({ request, env }) {
-  const userId = getUserIdFromRequest(request, env);
-  if (!userId) return json({ error: "Not signed in." }, { status: 401 });
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
 
   const body = await request.json().catch(() => null);
   const url = body?.url?.trim();
@@ -50,12 +99,7 @@ export async function onRequestPost({ request, env }) {
 
   let res;
   try {
-    res = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml",
-      },
-    });
+    res = await fetchZillow(url);
   } catch {
     return json({ error: "Couldn't reach Zillow. Enter the details manually." }, { status: 502 });
   }
@@ -64,7 +108,12 @@ export async function onRequestPost({ request, env }) {
     return json({ error: "Zillow blocked this request. Enter the details manually." }, { status: 502 });
   }
 
-  const html = await res.text();
+  let html;
+  try {
+    html = await readCapped(res);
+  } catch {
+    return json({ error: "Couldn't read that listing. Enter the details manually." }, { status: 502 });
+  }
   const listing = pickJsonLd(html);
 
   const ogTitle = metaContent(html, "og:title");
@@ -80,7 +129,6 @@ export async function onRequestPost({ request, env }) {
     return json({ error: "Couldn't read that listing. Enter the details manually." }, { status: 422 });
   }
 
-  const db = getDb(env);
   await db.sql`UPDATE users SET zillow_pulls_count = zillow_pulls_count + 1 WHERE id = ${userId}`;
 
   return json({

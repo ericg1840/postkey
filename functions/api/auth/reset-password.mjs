@@ -16,10 +16,15 @@ export async function onRequestPost({ request, env }) {
     return json({ error: "That reset link is invalid or has expired." }, { status: 400 });
   }
 
+  // session_version is bumped too: a reset usually means the old password
+  // (and so possibly an open session somewhere) is compromised, so every
+  // existing session is signed out.
   const passwordHash = hashPassword(newPassword);
   await db.sql`
-    UPDATE users SET password_hash = ${passwordHash}, reset_token_hash = NULL, reset_token_expires = NULL
-    WHERE id = ${user.id}
+    UPDATE users
+       SET password_hash = ${passwordHash}, reset_token_hash = NULL, reset_token_expires = NULL,
+           session_version = session_version + 1
+     WHERE id = ${user.id}
   `;
 
   return json({ ok: true });
