@@ -59,6 +59,13 @@ function LiveAuthProvider({ children }) {
     setBrandKit(null);
   };
 
+  // Signs out every device this account is logged in on, this one included.
+  const logoutEverywhere = async () => {
+    await api("/api/auth/logout-all", { method: "POST" });
+    setUser(null);
+    setBrandKit(null);
+  };
+
   const saveBrandKit = async (kit) => {
     await api("/api/brand-kit", { method: "PUT", body: JSON.stringify(kit) });
     setBrandKit(kit);
@@ -77,7 +84,7 @@ function LiveAuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, brandKit, loading, refresh, signup, login, logout, saveBrandKit, requestPasswordReset, resetPassword, changePassword }}>
+    <AuthContext.Provider value={{ user, brandKit, loading, refresh, signup, login, logout, logoutEverywhere, saveBrandKit, requestPasswordReset, resetPassword, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

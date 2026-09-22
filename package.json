@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "migrate": "node scripts/migrate.mjs",
+    "deploy": "node scripts/migrate.mjs && npx wrangler deploy",
     "lint": "eslint .",
     "test": "node --test",
     "check": "npm run lint && npm test && npm run build"

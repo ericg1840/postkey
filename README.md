@@ -24,6 +24,26 @@ from `dist/` for everything else.
 The app can't run as a static site — accounts, the brand kit, saved posts and
 the planner all depend on those API routes and on Postgres (Neon).
 
+### Migrations run on every production deploy
+
+Cloudflare's Workers Builds deploys `main`. Its **Deploy command** should be
+`npm run deploy`, which applies any pending migrations and only then runs
+`wrangler deploy`. If a migration fails, or `DATABASE_URL` isn't available to
+the build, the deploy stops and the previous version keeps serving, so new
+code never goes live against a schema it doesn't match. (Migration 010 was
+never applied under the old manual process, which broke the planner.)
+
+Set this up once in the Cloudflare dashboard, under the Worker's
+**Settings → Build**:
+
+- **Deploy command:** `npm run deploy`
+- **Build variables and secrets:** add `DATABASE_URL` as a secret. Build
+  variables are separate from the Worker's runtime secrets, so the one set
+  with `wrangler secret put` isn't visible to the build.
+
+Leave the non-production branch deploy command as it is, so preview builds
+never touch the production database.
+
 ## Configuration
 
 Worker secrets/vars (`wrangler secret put NAME`):
@@ -34,7 +54,7 @@ Worker secrets/vars (`wrangler secret put NAME`):
 | `SESSION_SECRET` | yes | Signs session cookies |
 | `RESEND_API_KEY` | yes | Sends welcome, confirmation and password-reset email |
 | `RESEND_FROM_EMAIL` | no | Defaults to Resend's sandbox sender |
-| `ALERT_EMAIL` | no | Where 500s are reported. Unset means no alerts are sent — the app is otherwise unaffected |
+| `ALERT_EMAIL` | no | Where 500s are reported. Unset means no alerts are sent — the app is otherwise unaffected. While `RESEND_FROM_EMAIL` is unset, Resend's sandbox sender only delivers to the Resend account's own address, so use that address here |
 
 `ALERT_EMAIL` is worth setting. Without it, a broken endpoint is only visible
 in `wrangler tail`, which nobody is watching — that's how the planner stayed

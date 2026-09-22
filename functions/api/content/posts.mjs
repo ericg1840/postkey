@@ -1,6 +1,7 @@
 import { requireUser } from "../../_lib/session.mjs";
 import { json } from "../../_lib/auth.mjs";
 import { logEvent } from "../../_lib/activity.mjs";
+import { sendErrorAlert } from "../../_lib/alerts.mjs";
 
 const CATEGORIES = new Set(["community", "listing", "promo", "bts"]);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -49,7 +50,7 @@ function toPost(r) {
   };
 }
 
-export async function onRequestGet({ request, env }) {
+export async function onRequestGet({ request, env, ctx }) {
   const auth = await requireUser(request, env);
   if (auth.error) return auth.error;
   const { userId, db } = auth;
@@ -69,7 +70,18 @@ export async function onRequestGet({ request, env }) {
 
   if (!/^\d{4}-\d{2}$/.test(month)) return json({ error: "Invalid month." }, { status: 400 });
 
-  await generateRecurringPosts(db, userId, month);
+  // Generating this month's recurring suggestions is a nice-to-have on top
+  // of the agent's own plan. If it fails (a missed migration did exactly
+  // that once), the calendar still loads the posts that do exist, and the
+  // failure is logged and alerted on rather than taking the whole page down.
+  try {
+    await generateRecurringPosts(db, userId, month);
+  } catch (error) {
+    const ref = crypto.randomUUID().slice(0, 8);
+    console.error(`Recurring post generation failed [ref ${ref}]:`, error);
+    const alert = sendErrorAlert({ env, ref, pathname: "/api/content/posts (recurring generation)", method: "GET", error });
+    if (ctx?.waitUntil) ctx.waitUntil(alert); else await alert;
+  }
 
   const rows = await db.sql`
     SELECT id, date, title, category, status, source, posted

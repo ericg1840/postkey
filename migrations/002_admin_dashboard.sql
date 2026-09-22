@@ -23,15 +23,23 @@ INSERT INTO subscriptions (user_id, tier, status, monthly_amount_cents)
 SELECT id, 'free', 'active', 0 FROM users
 ON CONFLICT (user_id) DO NOTHING;
 
-CREATE TABLE IF NOT EXISTS activity_log (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  event_type TEXT NOT NULL,
-  detail TEXT NOT NULL DEFAULT '',
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS activity_log_created_at_idx ON activity_log(created_at DESC);
+-- Guarded because 003 renames this table to activity_events: without the
+-- check, replaying this file on an already-migrated database (which the
+-- deploy-time migration run can do) would create a second, empty
+-- activity_log table alongside the real one.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'activity_events') THEN
+    CREATE TABLE IF NOT EXISTS activity_log (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      event_type TEXT NOT NULL,
+      detail TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS activity_log_created_at_idx ON activity_log(created_at DESC);
+  END IF;
+END $$;
 
 -- To make yourself an admin, run:
 --   UPDATE users SET is_admin = true WHERE email = 'you@example.com';

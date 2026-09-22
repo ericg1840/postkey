@@ -5,6 +5,7 @@
 // development — only how they're invoked changed, not their internals.
 import * as login from "../functions/api/auth/login.mjs";
 import * as logout from "../functions/api/auth/logout.mjs";
+import * as logoutAll from "../functions/api/auth/logout-all.mjs";
 import * as me from "../functions/api/auth/me.mjs";
 import * as signup from "../functions/api/auth/signup.mjs";
 import * as requestReset from "../functions/api/auth/request-reset.mjs";
@@ -38,6 +39,7 @@ import { sendErrorAlert } from "../functions/_lib/alerts.mjs";
 export const ROUTES = {
   "/api/auth/login": { POST: login.onRequestPost },
   "/api/auth/logout": { POST: logout.onRequestPost },
+  "/api/auth/logout-all": { POST: logoutAll.onRequestPost },
   "/api/auth/me": { GET: me.onRequestGet },
   "/api/auth/signup": { POST: signup.onRequestPost },
   "/api/auth/request-reset": { POST: requestReset.onRequestPost },
