@@ -759,6 +759,46 @@ export function BrandSection({ brandKit, saveBrandKit }) {
   );
 }
 
+// Separate from the password form: signing out everywhere is its own
+// decision (a lost phone, a shared computer), not a step in changing a
+// password — though changing the password does it for every other device too.
+function SignOutEverywhere() {
+  const { logoutEverywhere } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const run = async () => {
+    if (!window.confirm("Log out of PostKey on every device, including this one?")) return;
+    setError("");
+    setBusy(true);
+    try {
+      await logoutEverywhere();
+    } catch (err) {
+      setError(err.message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="grid gap-3">
+      <h3 className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Log out of all devices</h3>
+      <p className="font-body text-xs" style={{ color: UI.inkSoft }}>
+        Lost a phone, or stayed signed in on a shared computer? This signs you out everywhere, including here.
+      </p>
+      {error && <div className="font-body text-xs" style={{ color: "#C0392B" }}>{error}</div>}
+      <button
+        type="button"
+        onClick={run}
+        disabled={busy}
+        className="press-fx font-body text-sm font-semibold rounded px-5 transition disabled:opacity-60 justify-self-start"
+        style={{ minHeight: 44, background: UI.stone, color: UI.ink }}
+      >
+        {busy ? "Logging out…" : "Log out everywhere"}
+      </button>
+    </div>
+  );
+}
+
 function AccountSection() {
   const { user, changePassword } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
@@ -810,7 +850,7 @@ function AccountSection() {
         <Field label="NEW PASSWORD" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={8} required />
         <Field label="CONFIRM NEW PASSWORD" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} minLength={8} required />
         {error && <div className="font-body text-xs" style={{ color: "#C0392B" }}>{error}</div>}
-        {done && <div className="font-body text-xs" style={{ color: UI.inkSoft }}>Password updated.</div>}
+        {done && <div className="font-body text-xs" style={{ color: UI.inkSoft }}>Password updated. Any other devices have been signed out.</div>}
         <button
           type="submit"
           disabled={busy}
@@ -820,6 +860,8 @@ function AccountSection() {
           {busy ? "Saving…" : "Update password"}
         </button>
       </form>
+
+      <SignOutEverywhere />
     </div>
   );
 }
