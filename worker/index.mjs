@@ -81,6 +81,7 @@ export const ROUTES = {
 // straight through.
 const SHARE_URL_TAGS = ['meta[property="og:image"]', 'meta[name="twitter:image"]', 'meta[property="og:url"]'];
 
+/* global HTMLRewriter -- provided by the Workers runtime */
 export function absolutizeShareTags(response, request) {
   const type = response.headers.get("content-type") || "";
   if (!type.includes("text/html") || typeof HTMLRewriter === "undefined") return response;
