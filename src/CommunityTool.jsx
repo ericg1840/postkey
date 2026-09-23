@@ -5,13 +5,14 @@ import {
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL, DEFAULT_HOUSE_URL,
   mixWithWhite, drawCover, wrapText, roundRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, PhotoReposition, TopNav, isMobileDevice,
-  Accordion, PrivacyBadge, splitHeadlineLastWord, drawHouseBackdrop, useDefaultImage, firstNameOf,
+  Accordion, PrivacyBadge, splitHeadlineLastWord, HeadlineInput, drawHouseBackdrop, useDefaultImage, firstNameOf,
   peekPostHandoff, clearPostHandoff, shareImageToFacebook,
   peekDraftHandoff, clearDraftHandoff, loadPostDrafts, SaveForLaterButton,
   canvasToPngBlob, canvasThumbDataUrl, downloadBlob, canvasBlockedMessage, THUMB_ASPECTS,
   makeFieldUpdater,
 } from "./shared.jsx";
 import { useAuth, api } from "./auth/AuthContext.jsx";
+import { LOCAL_STYLE_LABELS, ellipsizeLines, postTitle, postFileBase, clientTypeLabel } from "./lib/localPost.mjs";
 
 function drawStarPath(ctx, cx, cy, r) {
   const spikes = 5;
@@ -135,13 +136,13 @@ const TEMPLATES = {
 // only supplies headline copy for the "card" style, picked via the TOPIC
 // selector once "Local & Trending" is chosen here.
 const STYLES = {
-  card: { label: "Local & Trending", description: "Restaurants, local favorites & more" },
-  testimonial: { label: "Client Testimonial", description: "Reviews & client stories" },
-  tips: { label: "Tip List", description: "Title band + list over a photo" },
-  stats: { label: "Market Stats", description: "Big number + supporting stats" },
-  checklist: { label: "Checklist", description: "Headline card + checkmarks" },
-  quote: { label: "Quote Card", description: "Big pull-quote + your message" },
-  poll: { label: "This or That", description: "Two-option compare card" },
+  card: { label: LOCAL_STYLE_LABELS.card, description: "Restaurants, local favorites & more" },
+  testimonial: { label: LOCAL_STYLE_LABELS.testimonial, description: "Reviews & client stories" },
+  tips: { label: LOCAL_STYLE_LABELS.tips, description: "Title band + list over a photo" },
+  stats: { label: LOCAL_STYLE_LABELS.stats, description: "Big number + supporting stats" },
+  checklist: { label: LOCAL_STYLE_LABELS.checklist, description: "Headline card + checkmarks" },
+  quote: { label: LOCAL_STYLE_LABELS.quote, description: "Big pull-quote + your message" },
+  poll: { label: LOCAL_STYLE_LABELS.poll, description: "Two-option compare card" },
 };
 
 const DEFAULTS = {
@@ -175,6 +176,11 @@ const DEFAULTS = {
   accentColor: "#0F9D58",
   scriptFont: "Dancing Script",
 };
+
+// "Local Spotlight" for a card (its topic), "Market Stats" etc. otherwise.
+function postTypeLabel(form) {
+  return form.style === "card" ? TEMPLATES[form.template]?.label || STYLES.card.label : STYLES[form.style]?.label || "Local post";
+}
 
 export function CommunityTool({ onSwitchTool, onGoHome }) {
   const { user, brandKit, logout } = useAuth();
@@ -230,14 +236,23 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
 
   const applyTemplate = (key) => {
     const t = TEMPLATES[key];
-    setForm((f) => ({
-      ...f,
-      template: key,
-      style: "card",
-      word1: t.word1,
-      script: t.script,
-      badgeText: t.badge.replace("{agent}", firstNameOf(f.agentName)),
-    }));
+    setForm((f) => {
+      // The name and description fields start out holding the current
+      // topic's example text. If they're still untouched, swap in the new
+      // topic's example too — otherwise a Recipe post kept "The Kettle &
+      // Vine" as its recipe name. Anything the agent typed is left alone.
+      const prev = TEMPLATES[f.template];
+      const untouched = prev && f.subject === prev.subjectPlaceholder && f.body === prev.bodyPlaceholder;
+      return {
+        ...f,
+        template: key,
+        style: "card",
+        word1: t.word1,
+        script: t.script,
+        badgeText: t.badge.replace("{agent}", firstNameOf(f.agentName)),
+        ...(untouched ? { subject: t.subjectPlaceholder, body: t.bodyPlaceholder } : null),
+      };
+    });
   };
 
   const activeTemplate = TEMPLATES[form.template];
@@ -316,64 +331,38 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     });
 
     const contactH = Math.min(w, h) * 0.145;
-    const cardW = w * 0.74, cardH = h * 0.54;
-    const cardX = (w - cardW) / 2, cardY = h * 0.16;
-    ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.18)";
-    ctx.shadowBlur = w * 0.02;
-    ctx.fillStyle = WHITE;
-    roundRect(ctx, cardX, cardY, cardW, cardH, w * 0.012);
-    ctx.fill();
-    ctx.restore();
+    const cardW = w * 0.74;
+    // The card used to be a fixed 54% of the height, which left a big empty
+    // block under the signature for any review shorter than the example. Now
+    // the layout is measured first — circle, stars, quote, signature — and
+    // the card is sized to it (capped at the old height, where long quotes
+    // shrink and then truncate as before), then centered in the space above
+    // the contact band.
+    const maxCardH = h * 0.54;
 
     // The client's own photo takes priority in the circle (this is their
     // testimonial); the agent headshot is only a fallback. Turning off
     // "Use headshot" skips the circle entirely and gives the quote more room.
     const circleD = w * 0.19;
-    const circleCX = w / 2, circleCY = cardY;
+    const circleRing = w * 0.012;
     const circleImg = photo.img || headshot.img;
     const showCircle = form.useHeadshot !== false && !!circleImg;
-    if (showCircle) {
-      ctx.beginPath();
-      ctx.arc(circleCX, circleCY, circleD / 2 + w * 0.012, 0, Math.PI * 2);
-      ctx.fillStyle = WHITE;
-      ctx.fill();
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-      const img = circleImg;
-      const shortSide = Math.min(img.width, img.height);
-      const cropSize = shortSide * 0.82;
-      const sx = (img.width - cropSize) / 2;
-      ctx.drawImage(img, sx, 0, cropSize, cropSize, circleCX - circleD / 2, circleCY - circleD / 2, circleD, circleD);
-      ctx.restore();
-    }
 
     const starR = w * 0.02;
     const starGap = starR * 2.6;
     const rating = Math.max(0, Math.min(5, parseInt(form.rating, 10) || 0));
-    let starX = w / 2 - (starGap * 4) / 2;
-    const starY = showCircle ? cardY + circleD * 0.62 + h * 0.05 : cardY + h * 0.09;
-    for (let i = 0; i < 5; i++) {
-      drawStarPath(ctx, starX, starY, starR);
-      ctx.fillStyle = i < rating ? form.accentColor : mixWithWhite(form.accentColor, 0.75);
-      ctx.fill();
-      starX += starGap;
-    }
+    // Everything below is laid out as an offset from the card's top edge.
+    const starOffset = showCircle ? circleD * 0.62 + h * 0.05 : h * 0.09;
+    const quoteOffset = starOffset + h * 0.075;
 
-    ctx.textAlign = "center";
     const quoteMaxW = cardW * 0.82;
-    const qy = starY + h * 0.075;
-    const cardBottom = cardY + cardH;
     const sigSize = w * 0.045;
     const sigLineH = sigSize * 1.15;
     const typeSize = w * 0.018;
     const typeLineH = form.clientType ? typeSize * 1.6 : 0;
     const gapBeforeSig = h * 0.035;
     const bottomPad = h * 0.035;
-    const availableH = cardBottom - qy - bottomPad - gapBeforeSig - sigLineH - typeLineH;
+    const availableH = maxCardH - quoteOffset - bottomPad - gapBeforeSig - sigLineH - typeLineH;
 
     // Long quotes shrink to fit above the signature; if they still don't fit
     // even at the smallest readable size, truncate with an ellipsis instead
@@ -389,12 +378,56 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
       if (quoteLines.length * quoteLineH <= availableH || quoteSize <= minQuoteSize) break;
       quoteSize -= w * 0.0015;
     }
-    const maxLines = Math.max(1, Math.floor(availableH / quoteLineH));
-    if (quoteLines.length > maxLines) {
-      quoteLines = quoteLines.slice(0, maxLines);
-      quoteLines[maxLines - 1] = quoteLines[maxLines - 1].replace(/[.,;:\s]*$/, "") + "…";
+    quoteLines = ellipsizeLines(quoteLines, Math.max(1, Math.floor(availableH / quoteLineH)));
+
+    const contentH = quoteOffset + quoteLines.length * quoteLineH + gapBeforeSig + sigLineH + typeLineH + bottomPad;
+    const cardH = Math.min(maxCardH, Math.max(contentH, h * 0.3));
+    const aboveCard = showCircle ? circleD / 2 + circleRing : 0;
+    const regionH = h - contactH;
+    const cardY = Math.max(aboveCard + h * 0.04, (regionH - aboveCard - cardH) / 2 + aboveCard);
+    const cardX = (w - cardW) / 2;
+    // A short review in a card taller than its content (the minimum height)
+    // sits in the middle of the card rather than hugging the top.
+    const slack = Math.max(0, cardH - contentH) / 2;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.18)";
+    ctx.shadowBlur = w * 0.02;
+    ctx.fillStyle = WHITE;
+    roundRect(ctx, cardX, cardY, cardW, cardH, w * 0.012);
+    ctx.fill();
+    ctx.restore();
+
+    if (showCircle) {
+      const circleCX = w / 2, circleCY = cardY;
+      ctx.beginPath();
+      ctx.arc(circleCX, circleCY, circleD / 2 + circleRing, 0, Math.PI * 2);
+      ctx.fillStyle = WHITE;
+      ctx.fill();
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      const img = circleImg;
+      const shortSide = Math.min(img.width, img.height);
+      const cropSize = shortSide * 0.82;
+      const sx = (img.width - cropSize) / 2;
+      ctx.drawImage(img, sx, 0, cropSize, cropSize, circleCX - circleD / 2, circleCY - circleD / 2, circleD, circleD);
+      ctx.restore();
     }
 
+    let starX = w / 2 - (starGap * 4) / 2;
+    const starY = cardY + starOffset + slack;
+    for (let i = 0; i < 5; i++) {
+      drawStarPath(ctx, starX, starY, starR);
+      ctx.fillStyle = i < rating ? form.accentColor : mixWithWhite(form.accentColor, 0.75);
+      ctx.fill();
+      starX += starGap;
+    }
+
+    ctx.textAlign = "center";
+    const qy = cardY + quoteOffset + slack;
     ctx.font = `italic 500 ${quoteSize}px "Playfair Display", serif`;
     ctx.fillStyle = UI.ink;
     quoteLines.forEach((line, i) => ctx.fillText(line, w / 2, qy + i * quoteLineH));
@@ -407,8 +440,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     if (form.clientType) {
       ctx.font = `700 ${typeSize}px "Montserrat", sans-serif`;
       ctx.fillStyle = UI.inkSoft;
-      const typeLabel = form.clientType === "Seller" ? "SELLERS" : "BUYERS";
-      ctx.fillText(typeLabel, w / 2, sigY + typeLineH * 0.72);
+      ctx.fillText(clientTypeLabel(form.clientType, form.clientName), w / 2, sigY + typeLineH * 0.72);
     }
 
     ctx.textAlign = "left";
@@ -572,12 +604,13 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
       ctx.font = `700 ${quoteSize}px "Playfair Display", serif`;
       lines = wrapText(ctx, form.quoteText || "", cardW);
     }
+    lines = ellipsizeLines(lines, maxLines);
     const lineH = quoteSize * 1.32;
     const textStartY = afterMarkY + quoteSize * 0.85;
     ctx.fillStyle = inkColor;
-    lines.slice(0, maxLines).forEach((line, i) => ctx.fillText(line, cardX, textStartY + i * lineH));
+    lines.forEach((line, i) => ctx.fillText(line, cardX, textStartY + i * lineH));
 
-    const ruleY = textStartY + lines.slice(0, maxLines).length * lineH + h * 0.035;
+    const ruleY = textStartY + lines.length * lineH + h * 0.035;
     ctx.strokeStyle = form.accentColor;
     ctx.lineWidth = Math.max(2, w * 0.006);
     ctx.beginPath();
@@ -825,10 +858,18 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     ctx.fillStyle = mixWithWhite(form.accentColor, 0.9);
     ctx.fillRect(0, bodyY0 - 1, w, bodyH + 2);
     if (form.body) {
-      const bodySize = bodyH * 0.135;
-      ctx.font = `500 ${bodySize}px "Montserrat", sans-serif`;
+      // Shrink a long description to fit four lines before cutting it, and
+      // mark a cut with an ellipsis rather than silently dropping the end.
+      let bodySize = bodyH * 0.135;
+      let bodyLines;
+      for (;;) {
+        ctx.font = `500 ${bodySize}px "Montserrat", sans-serif`;
+        bodyLines = wrapText(ctx, form.body, w * 0.9);
+        if (bodyLines.length <= 4 || bodySize <= bodyH * 0.105) break;
+        bodySize *= 0.94;
+      }
+      bodyLines = ellipsizeLines(bodyLines, 4);
       ctx.fillStyle = UI.ink;
-      const bodyLines = wrapText(ctx, form.body, w * 0.9).slice(0, 4);
       const lineH = bodySize * 1.38;
       const blockH = bodyLines.length * lineH;
       const startY = bodyY0 + (bodyH - blockH) / 2 + bodySize * 0.9;
@@ -888,20 +929,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     ctx.fillRect(0, 0, w, h);
   };
   const styleThumbRefs = useRef({});
-  useEffect(() => {
-    if (!fontsReady) return;
-    Object.keys(STYLES).forEach((key) => drawStyleThumb(styleThumbRefs.current[key], key));
-  }, [form, photo.img, photo.focus, photo.zoom, headshot.img, logo.img, houseDefault, fontsReady]);
-
   // Small live previews of the other sizes in the social set.
   const setThumbRefs = useRef({});
-  useEffect(() => {
-    if (!fontsReady) return;
-    THUMB_ASPECTS.forEach((key) => {
-      const canvas = setThumbRefs.current[key];
-      if (canvas) drawToCanvas(canvas, key);
-    });
-  }, [form, photo.img, photo.focus, photo.zoom, headshot.img, logo.img, houseDefault, fontsReady]);
 
   const [showCustomize, setShowCustomize] = useState(false);
   const [showSocialSetPreview, setShowSocialSetPreview] = useState(false);
@@ -910,6 +939,25 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
   // "what are you posting" to "download" doesn't mean scrolling through
   // every section. At the `lg` breakpoint desktop keeps everything visible.
   const [mobileStep, setMobileStep] = useState(1);
+
+  // The layout thumbnails and social-set previews are ten more full-size
+  // renders on top of the main preview. Redrawing them all on every
+  // keystroke made typing lag, so they wait for a pause in typing and skip
+  // any that aren't on screen (a collapsed panel, another mobile step) —
+  // mobileStep and showSocialSetPreview are deps so they draw once revealed.
+  useEffect(() => {
+    if (!fontsReady) return;
+    const visible = (el) => el && el.offsetParent !== null;
+    const timer = setTimeout(() => {
+      Object.keys(STYLES).forEach((key) => {
+        if (visible(styleThumbRefs.current[key])) drawStyleThumb(styleThumbRefs.current[key], key);
+      });
+      THUMB_ASPECTS.forEach((key) => {
+        if (visible(setThumbRefs.current[key])) drawToCanvas(setThumbRefs.current[key], key);
+      });
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [form, photo.img, photo.focus, photo.zoom, headshot.img, logo.img, houseDefault, fontsReady, mobileStep, showSocialSetPreview]);
 
   // On desktop every step's content is already visible on one continuous
   // page (see the comment above), so clicking a step number there scrolls
@@ -935,7 +983,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
       // a bare "5") instead of anything resembling a market update. Only
       // seed it once — if any of the three has already been edited, leave
       // it alone rather than clobbering what the agent typed.
-      if (key === "stats" && f.subject === DEFAULTS.subject && f.bigNumber === DEFAULTS.bigNumber && f.listItems === DEFAULTS.listItems) {
+      const subjectUntouched = Object.values(TEMPLATES).some((t) => t.subjectPlaceholder === f.subject);
+      if (key === "stats" && subjectUntouched && f.bigNumber === DEFAULTS.bigNumber && f.listItems === DEFAULTS.listItems) {
         return {
           ...f,
           style: key,
@@ -969,9 +1018,9 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     api("/api/posts", {
       method: "POST",
       body: JSON.stringify({
-        category: form.style,
-        headline: form.subject || "",
-        template: form.template || form.style,
+        category: postTypeLabel(form),
+        headline: postTitle(form),
+        template: form.style === "card" ? form.template : form.style,
         imageData,
         thumbData,
       }),
@@ -984,8 +1033,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     setDownloading(true);
     setDownloadError("");
 
-    const safeName = (form.subject || "community-post").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-    const filename = `${safeName}-${form.template}.png`;
+    const filename = `${postFileBase(postTitle(form), postTypeLabel(form))}.png`;
 
     try {
       const blob = await canvasToPngBlob(canvas);
@@ -1023,8 +1071,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     if (!canvas) return;
     setSharingFacebook(true);
     setDownloadError("");
-    const safeName = (form.subject || "community-post").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-    const filename = `${safeName}-${form.template}.png`;
+    const filename = `${postFileBase(postTitle(form), postTypeLabel(form))}.png`;
 
     try {
       const blob = await canvasToPngBlob(canvas);
@@ -1043,21 +1090,40 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
 
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const downloadMenuRef = useRef(null);
+  useEffect(() => {
+    if (!showDownloadMenu) return;
+    const onPointer = (e) => { if (!downloadMenuRef.current?.contains(e.target)) setShowDownloadMenu(false); };
+    const onKey = (e) => { if (e.key === "Escape") setShowDownloadMenu(false); };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [showDownloadMenu]);
 
   const downloadAllSizes = async () => {
     setDownloadingAll(true);
     setDownloadError("");
-    const safeName = (form.subject || "community-post").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    const base = postFileBase(postTitle(form), postTypeLabel(form));
     const offscreen = document.createElement("canvas");
 
-    for (const aspectKey of Object.keys(ASPECTS)) {
-      drawToCanvas(offscreen, aspectKey);
-      if (aspectKey === "square") savePostToHistory(offscreen);
-      const blob = await canvasToPngBlob(offscreen);
-      downloadBlob(blob, `${safeName}-${form.template}-${aspectKey}.png`);
-      await new Promise((r) => setTimeout(r, 400));
+    // A blocked canvas (a cross-origin logo or headshot) throws on export —
+    // without this the button stayed stuck on "Preparing…" with no message.
+    try {
+      for (const aspectKey of Object.keys(ASPECTS)) {
+        drawToCanvas(offscreen, aspectKey);
+        if (aspectKey === "square") savePostToHistory(offscreen);
+        const blob = await canvasToPngBlob(offscreen);
+        downloadBlob(blob, `${base}-${aspectKey}.png`);
+        await new Promise((r) => setTimeout(r, 400));
+      }
+    } catch {
+      setDownloadError(canvasBlockedMessage("download"));
+    } finally {
+      setDownloadingAll(false);
     }
-    setDownloadingAll(false);
   };
 
   return (
@@ -1067,7 +1133,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-10">
         {/* PAGE HEADER */}
         <div className={mobileStep === 1 ? "mb-3 sm:mb-6" : "hidden md:block md:mb-6"}>
-          <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Community Posts</h1>
+          <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Create a Local Post</h1>
           <p className="font-body text-sm mt-1 hidden sm:block" style={{ color: UI.inkSoft }}>Stay visible even when you don't have a listing to share.</p>
         </div>
 
@@ -1110,7 +1176,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               <h3 className="font-body text-base font-semibold mb-3" style={{ color: UI.ink }}>What do you want to share?</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {Object.entries(STYLES).map(([key, s]) => (
-                  <button key={key} onClick={() => selectStyle(key)}
+                  <button key={key} type="button" onClick={() => selectStyle(key)} aria-pressed={form.style === key}
                     className="relative text-left rounded-2xl overflow-hidden transition font-body flex flex-col"
                     style={{
                       borderStyle: "solid",
@@ -1160,15 +1226,19 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                   </>
                 )}
 
+                {/* A div, not a <label>: a label with no control of its own
+                    forwards clicks to its first button, so tapping the word
+                    "TOPIC" reset the topic to Local Spotlight. */}
                 {form.style === "card" && (
-                  <label className="block">
+                  <div className="block">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>TOPIC</span>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2" role="group" aria-label="Topic">
                       {Object.entries(TEMPLATES).map(([key, t]) => (
                         <button
                           key={key}
                           type="button"
                           onClick={() => applyTemplate(key)}
+                          aria-pressed={form.template === key}
                           className="press-fx px-3 rounded-full font-body text-xs font-semibold transition"
                           style={{
                             minHeight: 44,
@@ -1181,17 +1251,16 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                         </button>
                       ))}
                     </div>
-                  </label>
+                  </div>
                 )}
 
                 {form.style === "card" && (
                   <label className="block">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
-                    <input className="input" value={`${form.word1} ${form.script}`.trim()}
-                      onChange={(e) => {
-                        const { lead, emphasis } = splitHeadlineLastWord(e.target.value);
-                        setForm((f) => ({ ...f, word1: lead, script: emphasis }));
-                      }} placeholder="Local Favorite!" />
+                    <HeadlineInput value={`${form.word1} ${form.script}`.trim()}
+                      split={splitHeadlineLastWord}
+                      onSplit={({ lead, emphasis }) => setForm((f) => ({ ...f, word1: lead, script: emphasis }))}
+                      placeholder="Local Favorite!" />
                     <div className="flex items-center justify-between gap-2 mt-1.5">
                       <span className="font-body text-xs" style={{ color: UI.inkSoft }}>The last word gets your accent color &amp; font:</span>
                       <span className="font-body text-sm font-bold flex-shrink-0" style={{ color: UI.ink }}>
@@ -1214,7 +1283,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>{activeTemplate.bodyLabel}</span>
                     <textarea className="input" rows={3} maxLength={200} value={form.body} onChange={update("body")} placeholder={activeTemplate.bodyPlaceholder} />
                     <span className="font-body text-sm font-semibold block mt-1" style={{ color: form.body.length > 120 ? ERROR : "#586171" }}>
-                      {form.body.length}/120 characters
+                      {form.body.length}/120 characters{form.body.length > 120 ? " — past this the text shrinks, then gets cut off" : ""}
                     </span>
                   </label>
                 )}
@@ -1235,8 +1304,9 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
 
                 {form.style === "stats" && (
                   <label className="block">
-                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>MEDIAN SALE PRICE</span>
+                    <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BIG NUMBER</span>
                     <input className="input" value={form.bigNumber} onChange={update("bigNumber")} placeholder="$450,000" />
+                    <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Your headline stat — median sale price, days on market, homes sold…</span>
                   </label>
                 )}
 
@@ -1267,7 +1337,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                       <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>YOUR MESSAGE</span>
                       <textarea className="input" rows={4} value={form.quoteText} onChange={update("quoteText")} placeholder="A fresh coat of paint is still the highest-ROI update you can make before listing." />
                       <span className="font-body text-sm font-semibold block mt-1" style={{ color: form.quoteText.length > 140 ? "#C0392B" : "#586171" }}>
-                        {form.quoteText.length}/140 characters
+                        {form.quoteText.length}/140 characters{form.quoteText.length > 140 ? " — may get cut off" : ""}
                       </span>
                     </label>
                   </>
@@ -1298,7 +1368,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                       <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>PASTE YOUR CLIENT'S REVIEW</span>
                       <textarea className="input" rows={4} value={form.quote} onChange={update("quote")} placeholder="Mariella was a joy to work with..." />
                       <span className="font-body text-sm font-semibold block mt-1" style={{ color: form.quote.length > 200 ? "#C0392B" : "#586171" }}>
-                        {form.quote.length}/200 characters
+                        {form.quote.length}/200 characters{form.quote.length > 200 ? " — may get cut off" : ""}
                       </span>
                     </label>
                     <div className="grid grid-cols-2 gap-3">
@@ -1316,8 +1386,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                     </div>
                     <UploadBox label="CLIENT / PROPERTY PHOTO (optional)" icon={ImageIcon} state={photo} hint="Drop or click to add a photo" />
                     <PhotoReposition state={photo} aspect={form.aspect} />
-                    <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer" style={{ borderColor: UI.line }}>
-                      <input type="checkbox" checked={form.useHeadshot} onChange={(e) => setForm((f) => ({ ...f, useHeadshot: e.target.checked }))} className="hidden" />
+                    <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer focus-within:ring-2 focus-within:ring-blue-600" style={{ borderColor: UI.line }}>
+                      <input type="checkbox" checked={form.useHeadshot} onChange={(e) => setForm((f) => ({ ...f, useHeadshot: e.target.checked }))} className="sr-only" />
                       <span className="flex-1 font-body text-xs font-semibold" style={{ color: UI.ink }}>
                         Show a photo in the circle
                         <span className="block font-normal mt-0.5" style={{ color: UI.inkSoft }}>Uses the photo above, or your headshot if none is added.</span>
@@ -1332,7 +1402,9 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                         {[1, 2, 3, 4, 5].map((n) => (
                           <button key={n} type="button" onClick={() => setForm((f) => ({ ...f, rating: n }))}
                             aria-label={`${n} star${n === 1 ? "" : "s"}`}
-                            style={{ color: n <= form.rating ? form.accentColor : UI.line, fontSize: "1.4rem", lineHeight: 1 }}>
+                            aria-pressed={n <= form.rating}
+                            className="press-fx flex items-center justify-center"
+                            style={{ color: n <= form.rating ? form.accentColor : UI.line, fontSize: "1.4rem", lineHeight: 1, minWidth: 40, minHeight: 44 }}>
                             ★
                           </button>
                         ))}
@@ -1537,10 +1609,11 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                     <Download size={13} /> {downloading ? "Preparing…" : `Download image (${ASPECTS[form.aspect].label})`}
                   </button>
 
-                  <div className="relative">
+                  <div className="relative" ref={downloadMenuRef}>
                     <button
                       type="button"
                       onClick={() => setShowDownloadMenu((s) => !s)}
+                      aria-expanded={showDownloadMenu}
                       className="press-fx font-body text-xs font-semibold flex items-center justify-center gap-1 px-2 transition"
                       style={{ color: UI.inkSoft, minHeight: 44 }}
                     >
@@ -1567,8 +1640,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                 <div className="flex justify-center mt-1">
                   <SaveForLaterButton
                     tool="community"
-                    label={form.subject}
-                    typeLabel={activeTemplate?.label}
+                    label={postTitle(form)}
+                    typeLabel={postTypeLabel(form)}
                     form={form}
                     draftId={draftId}
                     setDraftId={setDraftId}
@@ -1594,9 +1667,8 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
                 <span className="font-body text-xs font-semibold" style={{ color: UI.inkSoft }}>Download your complete social set</span>
                 <ChevronDown size={16} style={{ color: UI.inkSoft, transform: showSocialSetPreview ? "rotate(180deg)" : "none", transition: "transform 0.15s", flexShrink: 0 }} />
               </button>
-              {/* Canvases stay mounted (just visually hidden) so the
-                  existing draw effect — which only fires on form/photo/font
-                  changes, not on mount — doesn't need to know about this. */}
+              {/* Canvases stay mounted (just hidden); the thumbnail effect
+                  skips them while hidden and draws them when this opens. */}
               <div className={showSocialSetPreview ? "px-4 pb-4 grid grid-cols-3 gap-2" : "hidden"}>
                 {THUMB_ASPECTS.map((key) => (
                   <div key={key}>

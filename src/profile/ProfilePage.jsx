@@ -7,6 +7,7 @@ import {
   loadPostDrafts, deletePostDraft, syncPostDrafts, writeDraftHandoff,
 } from "../shared.jsx";
 import { useAuth, api } from "../auth/AuthContext.jsx";
+import { LOCAL_STYLE_LABELS } from "../lib/localPost.mjs";
 
 function formatPostDate(iso) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -255,7 +256,9 @@ function PostsSection({ onSwitchTool }) {
     api("/api/posts")
       .then((data) => {
         if (cancelled) return;
-        setPosts(data.posts || []);
+        // Local posts saved before the tool stored readable names carry the
+        // bare style key ("card", "poll") — show those as the style's name.
+        setPosts((data.posts || []).map((p) => (LOCAL_STYLE_LABELS[p.category] ? { ...p, category: LOCAL_STYLE_LABELS[p.category] } : p)));
         setLimit(data.limit ?? null);
       })
       .catch(() => { if (!cancelled) setError("Couldn't load your posts — try refreshing."); });

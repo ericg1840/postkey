@@ -1093,7 +1093,7 @@ export function PrivacyBadge() {
   return (
     <div className="flex items-center gap-1.5 font-body text-xs" style={{ color: UI.inkSoft }}>
       <Lock size={12} />
-      Private by design — listing photos never leave your device
+      Private by design — your photos are edited on this device, and only the finished post is saved to your library
     </div>
   );
 }
@@ -1423,4 +1423,34 @@ export function drawHouseBackdrop(ctx, w, h) {
   ctx.fillRect(houseX + houseW / 2 - doorW / 2, baseY - doorH, doorW, doorH);
 
   ctx.restore();
+}
+
+// The Headline field for layouts that split a headline into a plain part and
+// an emphasized word. The form only stores the two halves, and rebuilding the
+// field's text from them on every keystroke dropped a trailing space as soon
+// as it was typed — so "Local " snapped back to "Local" and a second word
+// could only be pasted in. This keeps what was actually typed, and only
+// takes the halves' version when they change from somewhere else (a topic
+// preset, a restored draft).
+//
+// `value` is the combined headline; `split` turns typed text into the halves
+// (splitHeadlineLastWord or splitHeadlineFirstWord) and `onSplit` stores them.
+export function HeadlineInput({ value, split, onSplit, ...inputProps }) {
+  const [text, setText] = useState(value);
+  const [synced, setSynced] = useState(value);
+  if (value !== synced) {
+    setSynced(value);
+    if (text.trim().split(/\s+/).join(" ") !== value) setText(value);
+  }
+  return (
+    <input
+      className="input"
+      {...inputProps}
+      value={text}
+      onChange={(e) => {
+        setText(e.target.value);
+        onSplit(split(e.target.value));
+      }}
+    />
+  );
 }
