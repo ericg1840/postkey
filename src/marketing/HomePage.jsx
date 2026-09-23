@@ -1,4 +1,4 @@
-import { Key, Sparkles, Lock, Palette, Home, MapPin, MessageCircle, Calendar, Link2, Heart, Send, Bookmark, Check, Instagram } from "lucide-react";
+import { Key, Sparkles, Lock, Palette, Home, MapPin, MessageCircle, Calendar, Link2, Heart, Send, Bookmark, Check } from "lucide-react";
 import { AUTH } from "../auth/AuthShell.jsx";
 import { ACCENT_PRESETS, Logo } from "../shared.jsx";
 
@@ -73,7 +73,7 @@ export function PostCard({ category, headline, color = PRIMARY, rotate = 0, top,
       <div className="relative flex items-end p-2.5" style={{ height: "64%", background: color }}>
         <span
           className="absolute rounded-full font-mono font-bold"
-          style={{ top: 8, left: 8, background: "rgba(255,255,255,0.92)", color, fontSize: "0.5rem", letterSpacing: "0.04em", padding: "3px 7px" }}
+          style={{ top: 8, left: 8, background: "rgba(255,255,255,0.92)", color, fontSize: "0.62rem", letterSpacing: "0.04em", padding: "3px 7px" }}
         >
           {category}
         </span>
@@ -153,7 +153,7 @@ function ExampleCard({ category, headline, sub, caption, cta, color = PRIMARY, h
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0) 38%, rgba(255,255,255,0.94) 96%)" }} />
         <span
           className="relative rounded-full font-mono font-bold self-start mb-auto"
-          style={{ background: "#FFFFFF", color, fontSize: "0.6rem", letterSpacing: "0.05em", padding: "5px 12px", border: `2px solid ${color}` }}
+          style={{ background: "#FFFFFF", color, fontSize: "0.7rem", letterSpacing: "0.05em", padding: "5px 12px", border: `2px solid ${color}` }}
         >
           {category}
         </span>
@@ -179,7 +179,7 @@ function ExampleCard({ category, headline, sub, caption, cta, color = PRIMARY, h
 function BrandKitRow({ label, children }) {
   return (
     <div className="flex items-center justify-between pb-3 mb-3" style={{ borderBottom: `1px solid ${AUTH.border}` }}>
-      <span className="font-mono font-semibold" style={{ color: AUTH.muted, letterSpacing: "0.04em", fontSize: "0.62rem" }}>{label.toUpperCase()}</span>
+      <span className="font-mono font-semibold" style={{ color: AUTH.muted, letterSpacing: "0.04em", fontSize: "0.7rem" }}>{label.toUpperCase()}</span>
       {children}
     </div>
   );
@@ -210,7 +210,7 @@ export function BrandKitPreview() {
         <div className="rounded-full" style={{ width: 24, height: 24, background: "#F1EFE8", border: `1px solid ${AUTH.border}` }} />
       </BrandKitRow>
       <div className="flex items-center justify-between">
-        <span className="font-mono font-semibold" style={{ color: AUTH.muted, letterSpacing: "0.04em", fontSize: "0.62rem" }}>CONTACT</span>
+        <span className="font-mono font-semibold" style={{ color: AUTH.muted, letterSpacing: "0.04em", fontSize: "0.7rem" }}>CONTACT</span>
         <span className="font-body" style={{ color: AUTH.ink, fontSize: "0.7rem" }}>555.123.4567</span>
       </div>
     </div>
@@ -245,10 +245,10 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
             <span className="font-bold text-lg sm:text-xl whitespace-nowrap" style={{ fontFamily: "'Space Grotesk', sans-serif", color: AUTH.ink }}>PostKey</span>
           </div>
           <nav className="hidden sm:flex items-center gap-7">
-            <a href="#expect" className="font-body text-sm font-semibold" style={{ color: AUTH.ink }}>What You Get</a>
-            <a href="#how-it-works" className="font-body text-sm font-semibold" style={{ color: AUTH.ink }}>How It Works</a>
+            <a href="#expect" className="font-body text-sm font-semibold inline-flex items-center" style={{ color: AUTH.ink, minHeight: 44 }}>What You Get</a>
+            <a href="#how-it-works" className="font-body text-sm font-semibold inline-flex items-center" style={{ color: AUTH.ink, minHeight: 44 }}>How It Works</a>
             {onAbout && (
-              <button onClick={onAbout} className="font-body text-sm font-semibold" style={{ color: AUTH.ink }}>About</button>
+              <button onClick={onAbout} className="font-body text-sm font-semibold" style={{ color: AUTH.ink, minHeight: 44 }}>About</button>
             )}
           </nav>
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
@@ -269,7 +269,7 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
 
       {/* HERO */}
       <section className="relative overflow-hidden" style={{ background: "#FFF6E7" }}>
-        <div className="absolute rounded-full pointer-events-none" style={{ top: -120, left: -100, width: 360, height: 360, background: PRIMARY, opacity: 0.14, filter: "blur(10px)" }} />
+        <div className="absolute rounded-full pointer-events-none hidden sm:block" style={{ top: -120, left: -100, width: 360, height: 360, background: PRIMARY, opacity: 0.14, filter: "blur(10px)" }} />
         <div className="absolute rounded-full pointer-events-none" style={{ bottom: -140, right: -80, width: 420, height: 420, background: PINK, opacity: 0.14, filter: "blur(10px)" }} />
         <div className="absolute rounded-full pointer-events-none hidden sm:block" style={{ top: 60, right: 120, width: 70, height: 70, background: GREEN, opacity: 0.18 }} />
 
@@ -279,14 +279,19 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
             <span className="font-body text-xs font-semibold" style={{ color: AUTH.ink }}>Built for real estate agents</span>
           </div>
 
-          <h1 className="font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif", color: AUTH.ink, fontSize: "clamp(2.2rem, 6vw, 3.4rem)", lineHeight: 1.1 }}>
-            Never wonder what to
-          </h1>
-          <h1
-            className="font-bold inline-block"
-            style={{ fontFamily: "'Dancing Script', cursive", color: PINK, fontSize: "clamp(2.6rem, 8vw, 4.6rem)", lineHeight: 1.15, transform: "rotate(-2deg)" }}
-          >
-            post again.
+          {/* One heading for search engines and screen readers, styled as two
+              lines. text-wrap: balance keeps a phone from stranding "to" on
+              a line of its own. */}
+          <h1 className="font-bold">
+            <span className="block" style={{ fontFamily: "'Space Grotesk', sans-serif", color: AUTH.ink, fontSize: "clamp(2.2rem, 6vw, 3.4rem)", lineHeight: 1.1, textWrap: "balance" }}>
+              Never wonder what to
+            </span>
+            <span
+              className="inline-block"
+              style={{ fontFamily: "'Dancing Script', cursive", color: PINK, fontSize: "clamp(2.6rem, 8vw, 4.6rem)", lineHeight: 1.15, transform: "rotate(-2deg)" }}
+            >
+              post again.
+            </span>
           </h1>
 
           <p className="font-body mt-5 mx-auto" style={{ color: AUTH.muted, fontSize: "1.05rem", maxWidth: 460, lineHeight: 1.55 }}>
@@ -300,7 +305,7 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
 
           <div className="flex items-center justify-center gap-2.5 mt-8 flex-wrap">
             <span className="flex items-center gap-1.5 font-body text-xs font-bold rounded-full px-3.5 py-2" style={{ color: GREEN, background: `${GREEN}20`, transform: "rotate(-2deg)" }}>
-              <Lock size={13} /> Photos stay private
+              <Lock size={13} /> Photos stay on your device
             </span>
             <span className="flex items-center gap-1.5 font-body text-xs font-bold rounded-full px-3.5 py-2" style={{ color: PURPLE, background: `${PURPLE}20`, transform: "rotate(1.5deg)" }}>
               <Sparkles size={13} /> No design skills needed
@@ -315,7 +320,7 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
         <div className="relative max-w-sm mx-auto px-6 pb-16 sm:pb-24 pt-14">
           <span
             className="absolute font-mono font-bold rounded-full bg-white z-10"
-            style={{ top: 30, left: 14, color: "#FFFFFF", background: PINK, border: "2px solid #1B2430", boxShadow: "3px 3px 0 #1B2430", fontSize: "0.62rem", letterSpacing: "0.05em", padding: "5px 12px", transform: "rotate(-8deg)" }}
+            style={{ top: 30, left: 14, color: "#FFFFFF", background: PINK, border: "2px solid #1B2430", boxShadow: "3px 3px 0 #1B2430", fontSize: "0.7rem", letterSpacing: "0.05em", padding: "5px 12px", transform: "rotate(-8deg)" }}
           >
             JUST LISTED
           </span>
@@ -497,40 +502,32 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
             <p className="font-body text-xs mt-3" style={{ color: AUTH.muted, maxWidth: 240 }}>
               Built for real estate agents. Create better content, stay consistent, and close more.
             </p>
-            <a
-              href="#"
-              aria-label="PostKey on Instagram"
-              className="inline-flex items-center justify-center rounded-full mt-4 transition hover:opacity-75 border"
-              style={{ width: 30, height: 30, borderColor: AUTH.border }}
-            >
-              <Instagram size={14} color={AUTH.ink} />
-            </a>
           </div>
           <div className="flex gap-10 sm:gap-14">
             <div>
               <span className="font-mono font-bold block mb-3" style={{ color: AUTH.ink, letterSpacing: "0.05em", fontSize: "0.68rem" }}>PRODUCT</span>
-              <div className="grid gap-2">
-                <a href="#expect" className="font-body text-xs" style={{ color: AUTH.muted }}>What You Get</a>
-                <a href="#how-it-works" className="font-body text-xs" style={{ color: AUTH.muted }}>How It Works</a>
+              <div className="grid">
+                <a href="#expect" className="font-body text-xs inline-flex items-center" style={{ color: AUTH.muted, minHeight: 44 }}>What You Get</a>
+                <a href="#how-it-works" className="font-body text-xs inline-flex items-center" style={{ color: AUTH.muted, minHeight: 44 }}>How It Works</a>
                 {onAbout && (
-                  <button onClick={onAbout} className="font-body text-xs text-left" style={{ color: AUTH.muted }}>About</button>
+                  <button onClick={onAbout} className="font-body text-xs text-left inline-flex items-center" style={{ color: AUTH.muted, minHeight: 44 }}>About</button>
                 )}
               </div>
             </div>
             <div>
               <span className="font-mono font-bold block mb-3" style={{ color: AUTH.ink, letterSpacing: "0.05em", fontSize: "0.68rem" }}>COMPANY</span>
-              <div className="grid gap-2">
+              <div className="grid">
                 {onPrivacy ? (
-                  <button onClick={onPrivacy} className="font-body text-xs text-left" style={{ color: AUTH.muted }}>Privacy Policy</button>
+                  <button onClick={onPrivacy} className="font-body text-xs text-left inline-flex items-center" style={{ color: AUTH.muted, minHeight: 44 }}>Privacy Policy</button>
                 ) : (
-                  <a href="#" className="font-body text-xs" style={{ color: AUTH.muted }}>Privacy Policy</a>
+                  <a href="#" className="font-body text-xs inline-flex items-center" style={{ color: AUTH.muted, minHeight: 44 }}>Privacy Policy</a>
                 )}
                 {onTerms ? (
-                  <button onClick={onTerms} className="font-body text-xs text-left" style={{ color: AUTH.muted }}>Terms of Service</button>
+                  <button onClick={onTerms} className="font-body text-xs text-left inline-flex items-center" style={{ color: AUTH.muted, minHeight: 44 }}>Terms of Service</button>
                 ) : (
-                  <a href="#" className="font-body text-xs" style={{ color: AUTH.muted }}>Terms of Service</a>
+                  <a href="#" className="font-body text-xs inline-flex items-center" style={{ color: AUTH.muted, minHeight: 44 }}>Terms of Service</a>
                 )}
-                <a href="mailto:support@postkey.app" className="font-body text-xs" style={{ color: AUTH.muted }}>Contact & Support</a>
+                <a href="mailto:support@postkey.app" className="font-body text-xs inline-flex items-center" style={{ color: AUTH.muted, minHeight: 44 }}>Contact & Support</a>
               </div>
             </div>
           </div>

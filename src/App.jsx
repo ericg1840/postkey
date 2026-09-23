@@ -1,7 +1,7 @@
 import { useState, useEffect, Suspense, lazy } from "react";
 import { Key } from "lucide-react";
-import { GlobalStyles, clearPostDrafts, syncPostDrafts } from "./shared.jsx";
-import { AuthProvider, useAuth, api } from "./auth/AuthContext.jsx";
+import { GlobalStyles, ToolFonts, clearPostDrafts, syncPostDrafts } from "./shared.jsx";
+import { AuthProvider, useAuth, api, mightBeSignedIn } from "./auth/AuthContext.jsx";
 import { AuthScreen } from "./auth/AuthScreen.jsx";
 import { ResetPasswordScreen } from "./auth/ResetPasswordScreen.jsx";
 import { ProfileReminder } from "./onboarding/ProfileReminder.jsx";
@@ -10,6 +10,10 @@ import { PublicBioPage } from "./profile/PublicBioPage.jsx";
 import { AUTH } from "./auth/AuthShell.jsx";
 import { trackPageView } from "./marketing/track.mjs";
 import { ErrorBoundary } from "./ErrorBoundary.jsx";
+// Imported directly rather than lazily: it's the first thing a new visitor
+// sees, and AuthShell already pulls this module into the main bundle, so a
+// lazy() wrapper only added a Suspense round before the page could paint.
+import { HomePage } from "./marketing/HomePage.jsx";
 
 // Only one of these is ever on screen at a time (either gated behind auth,
 // or a rarely-visited route like /admin or the marketing pages), so they're
@@ -24,7 +28,6 @@ const HelpPage = lazy(() => import("./HelpPage.jsx").then((m) => ({ default: m.H
 const BioEditorPage = lazy(() => import("./profile/BioEditorPage.jsx").then((m) => ({ default: m.BioEditorPage })));
 const OnboardingWizard = lazy(() => import("./onboarding/OnboardingWizard.jsx").then((m) => ({ default: m.OnboardingWizard })));
 const AdminDashboard = lazy(() => import("./admin/AdminDashboard.jsx").then((m) => ({ default: m.AdminDashboard })));
-const HomePage = lazy(() => import("./marketing/HomePage.jsx").then((m) => ({ default: m.HomePage })));
 const AboutPage = lazy(() => import("./marketing/AboutPage.jsx").then((m) => ({ default: m.AboutPage })));
 const LegalPage = lazy(() => import("./marketing/LegalPage.jsx").then((m) => ({ default: m.LegalPage })));
 
@@ -186,7 +189,24 @@ function AppShell() {
     );
   }
 
-  if (loading) return <LoadingScreen />;
+  if (loading) {
+    // A browser with no signed-in hint is almost certainly a new visitor, so
+    // show them the homepage now instead of a spinner while /api/auth/me
+    // answers. If it turns out they are signed in, the app replaces it.
+    const plainHomepageVisit = !adminRoute && !verifyParams && !authView && !showAbout && !legalView;
+    if (plainHomepageVisit && !mightBeSignedIn()) {
+      return (
+        <HomePage
+          onGetStarted={goGetStarted}
+          onLogIn={goLogIn}
+          onAbout={() => setShowAbout(true)}
+          onPrivacy={() => setLegalView("privacy")}
+          onTerms={() => setLegalView("terms")}
+        />
+      );
+    }
+    return <LoadingScreen />;
+  }
 
   if (adminRoute && user?.isAdmin) {
     return <AdminDashboard onExit={exitAdmin} />;
@@ -247,10 +267,23 @@ function AppShell() {
   );
 }
 
+// The editor/bio fonts, for anyone who'll need them: a signed-in agent, a
+// returning one whose session is still being checked (so the download starts
+// before the canvas tools mount and call document.fonts.load()), or a public
+// bio page, where the agent may have picked any script font for their name.
+// Kept at the root so it stays mounted across screens rather than being
+// dropped and re-added as the app moves from loading to a tool.
+function ToolFontsWhenNeeded() {
+  const { user, loading } = useAuth();
+  const needed = !!user || (loading && mightBeSignedIn()) || !!getBioHandle();
+  return needed ? <ToolFonts /> : null;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <GlobalStyles />
+      <ToolFontsWhenNeeded />
       <ErrorBoundary>
         <Suspense fallback={<LoadingScreen />}>
           <AppShell />

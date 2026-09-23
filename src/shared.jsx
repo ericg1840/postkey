@@ -878,10 +878,21 @@ export function PhotoReposition({ state, aspect }) {
   );
 }
 
+// The UI's own fonts (Public Sans, IBM Plex Mono, Fraunces, Space Grotesk,
+// Dancing Script) are linked from index.html, so they start downloading
+// alongside the JS. These are the extra families the post editors draw onto
+// the canvas and agents can pick for their bio page name — a dozen families
+// the marketing pages never use. Rendered only where they're needed (signed
+// in, or a public bio page), so first-time visitors don't download them.
+const TOOL_FONTS_URL = "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Pacifico&family=Great+Vibes&family=Sacramento&family=Caveat:wght@700&family=Parisienne&family=Poppins:wght@800&family=Outfit:wght@800&family=Bebas+Neue&family=Montserrat:wght@400;600;700;800;900&display=swap";
+
+export function ToolFonts() {
+  return <link rel="stylesheet" href={TOOL_FONTS_URL} />;
+}
+
 export function GlobalStyles() {
   return (
     <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Dancing+Script:wght@700&family=Pacifico&family=Great+Vibes&family=Sacramento&family=Caveat:wght@700&family=Parisienne&family=Poppins:wght@800&family=Space+Grotesk:wght@700&family=Outfit:wght@800&family=Bebas+Neue&family=Montserrat:wght@400;600;700;800;900&family=Fraunces:opsz,wght@9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
       .font-display { font-family: 'Fraunces', serif; }
       .font-body { font-family: 'Public Sans', sans-serif; }
       .font-mono { font-family: 'IBM Plex Mono', monospace; }
