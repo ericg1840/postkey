@@ -18,7 +18,7 @@ function esc(value) {
     .replace(/\\/g, "\\\\")
     .replace(/\n/g, "\\n")
     .replace(/,/g, "\\,")
-    .replace(/;/g, "\;");
+    .replace(/;/g, "\\;");
 }
 
 // RFC 2425 folding: lines longer than 75 octets continue on the next line

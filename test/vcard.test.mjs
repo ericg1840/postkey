@@ -47,7 +47,7 @@ describe("buildVCard", () => {
   // A brokerage like "Smith, Jones; Co" must not break the card's structure.
   test("escapes vCard syntax characters in values", () => {
     const c = buildVCard({ name: "A B", org: "Smith, Jones; Co\\x" });
-    assert.match(c, /ORG:Smith\\, Jones\; Co\\\\x/);
+    assert.ok(c.includes("ORG:Smith\\, Jones\\; Co\\\\x"), c);
   });
 
   test("folds long lines to 75 characters", () => {
