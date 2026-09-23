@@ -15,6 +15,8 @@ import {
   makeFieldUpdater,
 } from "./shared.jsx";
 import { useAuth, api } from "./auth/AuthContext.jsx";
+import { parsePlannedListing, exampleFieldsInUse } from "./lib/listingPost.mjs";
+import { postFileBase } from "./lib/localPost.mjs";
 
 // The four visual Styles, rendered as live thumbnail previews in "Choose
 // your look" so people pick with their eyes instead of reading captions.
@@ -39,12 +41,12 @@ const SINGLE_PHOTO_LAYOUTS = ["bold", "signature", "ribbon", "spotlight"];
 // per-occasion accent, kept separate from ACCENT (the app's own blue
 // highlight) so the cards read as a varied set rather than a form.
 const TEMPLATES = {
-  sold: { label: "Just Sold", description: "Celebrate a successful closing.", icon: HandCoins, color: "#E0298C", word1: "Just", script: "SOLD!", badge: "Another Home\nSold by\n{agent}", ribbon: "SOLD" },
-  just_listed: { label: "Just Listed", description: "Show off a beautiful new listing.", icon: Home, color: "#0043FF", word1: "Just", script: "Listed!", badge: "New on the\nMarket with\n{agent}", ribbon: "FOR\nSALE" },
-  open_house: { label: "Open House", description: "Invite buyers to an upcoming open.", icon: DoorOpen, color: "#0F9D58", word1: "Open", script: "House!", badge: "See You\nThere with\n{agent}", ribbon: "OPEN\nHOUSE" },
-  price_improvement: { label: "New Price", description: "Announce a price improvement.", icon: Tag, color: "#E8792E", word1: "New", script: "Price!", badge: "Priced to\nMove with\n{agent}", ribbon: "NEW\nPRICE" },
-  under_contract: { label: "Under Contract", description: "Let everyone know it's under contract.", icon: Handshake, color: "#7B3FE4", word1: "Under", script: "Contract!", badge: "Another One\nUnder Contract", ribbon: "UNDER\nCONTRACT" },
-  coming_soon: { label: "Coming Soon", description: "Generate excitement for what's next.", icon: Calendar, color: "#0043FF", word1: "Coming", script: "Soon!", badge: "Coming Soon\nwith\n{agent}", ribbon: "COMING\nSOON" },
+  sold: { label: "Just Sold", description: "Celebrate a successful closing.", icon: HandCoins, color: "#E0298C", word1: "Just", script: "SOLD!", badge: "Another Home\nSold by\n{agent}", ribbon: "SOLD", eyebrow: "Just closed" },
+  just_listed: { label: "Just Listed", description: "Show off a beautiful new listing.", icon: Home, color: "#0043FF", word1: "Just", script: "Listed!", badge: "New on the\nMarket with\n{agent}", ribbon: "FOR\nSALE", eyebrow: "Now on the market" },
+  open_house: { label: "Open House", description: "Invite buyers to an upcoming open.", icon: DoorOpen, color: "#0F9D58", word1: "Open", script: "House!", badge: "See You\nThere with\n{agent}", ribbon: "OPEN\nHOUSE", eyebrow: "Open house this weekend" },
+  price_improvement: { label: "New Price", description: "Announce a price improvement.", icon: Tag, color: "#E8792E", word1: "New", script: "Price!", badge: "Priced to\nMove with\n{agent}", ribbon: "NEW\nPRICE", eyebrow: "Price just improved" },
+  under_contract: { label: "Under Contract", description: "Let everyone know it's under contract.", icon: Handshake, color: "#7B3FE4", word1: "Under", script: "Contract!", badge: "Another One\nUnder Contract", ribbon: "UNDER\nCONTRACT", eyebrow: "Under contract" },
+  coming_soon: { label: "Coming Soon", description: "Generate excitement for what's next.", icon: Calendar, color: "#0043FF", word1: "Coming", script: "Soon!", badge: "Coming Soon\nwith\n{agent}", ribbon: "COMING\nSOON", eyebrow: "Coming soon" },
 };
 
 // Icon choices for the Ribbon layout's corner glyph. Kept as a standalone
@@ -76,6 +78,48 @@ const TEMPLATE_RIBBON_ICON = {
   coming_soon: "calendar",
 };
 
+// Every layout's wording for a post type, in one place — used both for the
+// starting form and when a post type is picked, so the two can't drift. They
+// did: the form started as "Just Sold" but Editorial, Collage and Modern
+// opened reading "JUST LISTED".
+function templateFields(key) {
+  const t = TEMPLATES[key];
+  return {
+    template: key,
+    word1: t.word1,
+    script: t.script,
+    bigHeadline: `${t.word1} ${t.script}`.toUpperCase(),
+    modernScript: t.word1.toLowerCase(),
+    modernHeadline: t.script.replace(/!+$/, ""),
+    ribbonLabel: t.ribbon,
+    ribbonIcon: TEMPLATE_RIBBON_ICON[key] || "house",
+    spotlightEyebrow: t.eyebrow,
+  };
+}
+
+// Draws-to-be text squeezed into one line of at most maxW: shrinks toward
+// minSize first, then cuts with an ellipsis if even that is too wide —
+// instead of running off the canvas or under the next photo. Leaves
+// ctx.font set to the chosen size. `font` maps a size to a CSS font string.
+function fitTextLine(ctx, text, maxW, size, minSize, font) {
+  let fitted = size;
+  ctx.font = font(fitted);
+  // Repeated because glyph widths don't scale exactly with font size — one
+  // proportional shrink can still leave the text a pixel or two too wide.
+  for (let i = 0; i < 4; i++) {
+    const width = ctx.measureText(text).width;
+    if (width <= maxW || fitted <= minSize) break;
+    fitted = Math.max(minSize, fitted * (maxW / width) * 0.995);
+    ctx.font = font(fitted);
+  }
+  let out = text;
+  if (ctx.measureText(out).width > maxW) {
+    while (out.length > 1 && ctx.measureText(`${out}…`).width > maxW) out = out.slice(0, -1);
+    out = `${out.trimEnd()}…`;
+  }
+  return { size: fitted, text: out };
+}
+
 // A rotating pool for the footer tip strip — one is picked at random per
 // visit so returning users see something new instead of the same line
 // every time.
@@ -101,11 +145,8 @@ function formatListingDate(dateStr) {
 
 const DEFAULTS = {
   layout: "bold",
-  template: "sold",
   aspect: "square",
-  word1: "Just",
-  script: "SOLD!",
-  bigHeadline: "JUST LISTED",
+  ...templateFields("sold"),
   banner: "",
   highlight: "",
   listingDate: "",
@@ -115,12 +156,8 @@ const DEFAULTS = {
   sqft: "3,028",
   price: "$2,295,000",
   badgeText: "Another Home\nSold by\n{agent}",
-  modernScript: "just",
-  modernHeadline: "Listed",
   bottomMessage: "Message for more details",
   ctaMessage: "Let's talk about your home goals!",
-  ribbonLabel: "SOLD",
-  ribbonIcon: "key",
   photoTint: 0,
   address2: "812 Willow Creek Ln, Warminster",
   beds2: "3",
@@ -132,7 +169,6 @@ const DEFAULTS = {
   price3: "$2,010,000",
   roundupSubtitle: "Take a look at our new luxury listings",
   roundupBg: "#23271E",
-  spotlightEyebrow: "Now on the market",
   spotlightCardBg: "#161B26",
   editorialBg: "#FFFFFF",
   collageBg: "#F7F4EF",
@@ -297,6 +333,13 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     const draftHandoffId = peekDraftHandoff();
     const draft = draftHandoffId ? loadPostDrafts().find((d) => d.id === draftHandoffId && d.tool === "listings") : null;
     const handoff = draft ? null : peekPostHandoff("listings");
+    // A planned post's title carries the address and often the post type
+    // ("419 Tall Oaks Dr — Just Listed"); split it rather than dropping the
+    // whole title into the address field.
+    const planned = handoff?.field === "address" ? parsePlannedListing(handoff.value) : null;
+    const plannedTemplate = planned?.templateKey
+      ? { ...templateFields(planned.templateKey), badgeText: TEMPLATES[planned.templateKey].badge.replace("{agent}", firstNameOf(agentName)) }
+      : null;
     return {
       ...DEFAULTS,
       agentName,
@@ -310,7 +353,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       accentColor: brandKit?.accentColor || DEFAULTS.accentColor,
       scriptFont: brandKit?.scriptFont || DEFAULTS.scriptFont,
       badgeText: DEFAULTS.badgeText.replace("{agent}", firstNameOf(agentName)),
-      ...(handoff ? { [handoff.field]: handoff.value } : null),
+      ...(planned ? { address: planned.address, ...plannedTemplate } : handoff ? { [handoff.field]: handoff.value } : null),
       ...(draft ? draft.form : null),
     };
   });
@@ -338,19 +381,21 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
   const applyTemplate = (key) => {
     const t = TEMPLATES[key];
-    setForm((f) => ({
-      ...f,
-      template: key,
-      word1: t.word1,
-      script: t.script,
-      badgeText: t.badge.replace("{agent}", firstNameOf(f.agentName)),
-      bigHeadline: `${t.word1} ${t.script}`.toUpperCase(),
-      modernScript: t.word1.toLowerCase(),
-      modernHeadline: t.script.replace(/!+$/, ""),
-      ribbonLabel: t.ribbon,
-      ribbonIcon: TEMPLATE_RIBBON_ICON[key] || "house",
-      listingDate: "",
-    }));
+    setForm((f) => {
+      const fields = templateFields(key);
+      return {
+        ...f,
+        ...fields,
+        badgeText: t.badge.replace("{agent}", firstNameOf(f.agentName)),
+        listingDate: "",
+        // Coming Soon's date writes "Available March 15" into the highlight
+        // line; leaving Coming Soon took that along into a Sold post.
+        highlight: f.template === "coming_soon" && /^Available /.test(f.highlight) ? "" : f.highlight,
+        // The Spotlight eyebrow follows the post type unless it was edited —
+        // a Sold post used to say "Now on the market".
+        spotlightEyebrow: Object.values(TEMPLATES).some((x) => x.eyebrow === f.spotlightEyebrow) ? fields.spotlightEyebrow : f.spotlightEyebrow,
+      };
+    });
   };
 
   // Coming Soon's one extra field — picking a date rewrites the highlight
@@ -591,9 +636,9 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.textAlign = "center";
     ctx.fillText(form.bigHeadline.toUpperCase(), w / 2, headlineY0 + headlineH * 0.55);
 
-    ctx.font = `500 ${headlineH * 0.2}px "Montserrat", sans-serif`;
+    const fittedAddr = fitTextLine(ctx, form.address || "", w * 0.88, headlineH * 0.2, headlineH * 0.14, (s) => `500 ${s}px "Montserrat", sans-serif`);
     ctx.fillStyle = mutedColor;
-    ctx.fillText(form.address, w / 2, headlineY0 + headlineH * 0.85);
+    ctx.fillText(fittedAddr.text, w / 2, headlineY0 + headlineH * 0.85);
 
     const statsY0 = headlineY0 + headlineH;
     const statsH = h * 0.06;
@@ -686,10 +731,12 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     else { ctx.fillStyle = placeholderColor; ctx.fillRect(pad, collageY0, mainW, collageH); }
 
     if (form.address) {
-      const bubbleFont = w * 0.024;
-      ctx.font = `700 ${bubbleFont}px "Montserrat", sans-serif`;
-      const textW = ctx.measureText(form.address.toUpperCase()).width;
       const padX = w * 0.02;
+      // Kept inside the main photo — a long address used to run under the
+      // side photos, leaving a stray fragment showing in the gap.
+      const fitted = fitTextLine(ctx, form.address.toUpperCase(), mainW - w * 0.05 - padX * 2, w * 0.024, w * 0.017, (s) => `700 ${s}px "Montserrat", sans-serif`);
+      const bubbleFont = fitted.size;
+      const textW = ctx.measureText(fitted.text).width;
       const padY = h * 0.012;
       const bw = textW + padX * 2;
       const bh = bubbleFont + padY * 2;
@@ -701,7 +748,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.fillStyle = WHITE;
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText(form.address.toUpperCase(), bx + padX, by + bh / 2 + bubbleFont * 0.02);
+      ctx.fillText(fitted.text, bx + padX, by + bh / 2 + bubbleFont * 0.02);
       ctx.textBaseline = "alphabetic";
     }
 
@@ -1133,9 +1180,9 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.save();
       ctx.shadowColor = "rgba(0,0,0,0.5)";
       ctx.shadowBlur = w * 0.008;
-      ctx.font = `700 ${photoH * 0.032}px "Montserrat", sans-serif`;
+      const fitted = fitTextLine(ctx, form.address, w * 0.88, photoH * 0.032, photoH * 0.022, (s) => `700 ${s}px "Montserrat", sans-serif`);
       ctx.fillStyle = WHITE;
-      ctx.fillText(form.address, w * 0.06, pillBottomY);
+      ctx.fillText(fitted.text, w * 0.06, pillBottomY);
       ctx.restore();
     }
 
@@ -1234,13 +1281,13 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
         y += priceSize * 1.4;
       }
 
-      let addrSize = availH * (price ? 0.24 : 0.3);
-      ctx.font = `600 ${addrSize}px "Public Sans", sans-serif`;
-      const addrW = ctx.measureText(address).width;
-      if (addrW > width) addrSize *= width / addrW;
-      ctx.font = `600 ${addrSize}px "Public Sans", sans-serif`;
+      // Shrinks only down to a readable size, then cuts — before, a long
+      // address kept shrinking until it was a hairline.
+      const baseAddrSize = availH * (price ? 0.24 : 0.3);
+      const fittedAddr = fitTextLine(ctx, address || "", width, baseAddrSize, Math.min(baseAddrSize, w * 0.02), (s) => `600 ${s}px "Public Sans", sans-serif`);
+      const addrSize = fittedAddr.size;
       ctx.fillStyle = textColor;
-      ctx.fillText(address, x, y + addrSize);
+      ctx.fillText(fittedAddr.text, x, y + addrSize);
 
       const ruleY = y + addrSize * 1.45;
       ctx.strokeStyle = tint(0.3);
@@ -1414,9 +1461,9 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillText(scriptWord, pad + w1wFinal + headSize * 0.2, cy);
 
     cy += cardH * 0.13;
-    ctx.font = `500 ${fs * 0.018}px "Public Sans", sans-serif`;
+    const fittedAddr = fitTextLine(ctx, form.address || "", w - pad * 2, fs * 0.018, fs * 0.015, (s) => `500 ${s}px "Public Sans", sans-serif`);
     ctx.fillStyle = cardSoft(0.75);
-    ctx.fillText(form.address, pad, cy);
+    ctx.fillText(fittedAddr.text, pad, cy);
 
     cy += cardH * 0.1;
     ctx.strokeStyle = cardSoft(0.18);
@@ -1550,29 +1597,44 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillRect(0, 0, w, h);
   };
   const styleThumbRefs = useRef({});
-  useEffect(() => {
-    if (!fontsReady) return;
-    STYLE_OPTIONS.forEach(({ key }) => {
-      const canvas = styleThumbRefs.current[key];
-      if (canvas) drawStyleThumb(canvas, key);
-    });
-  }, [form, photo.img, photo.focus, photo.zoom, photo2.img, photo3.img, headshot.img, logo.img, fontsReady]);
-
   // Small live previews of the other sizes in the social set, so the promise
   // of "we'll generate every size" is visible before anyone downloads.
   const thumbRefs = useRef({});
-  useEffect(() => {
-    if (!fontsReady) return;
-    THUMB_ASPECTS.forEach((key) => {
-      const canvas = thumbRefs.current[key];
-      if (canvas) drawToCanvas(canvas, key);
-    });
-  }, [form, photo.img, photo.focus, photo.zoom, photo2.img, photo3.img, headshot.img, logo.img, fontsReady]);
 
   const [showSocialSetPreview, setShowSocialSetPreview] = useState(false);
 
+  // On phones, only one step's content is visible at a time (see the
+  // `mobileStep === N ? … : "hidden"` panels below) so getting from "Post
+  // Type" to "Review & Download" doesn't mean scrolling through every section.
+  // At the `lg` breakpoint the classes always resolve to visible, so
+  // desktop keeps the original everything-at-once layout untouched.
+  const [mobileStep, setMobileStep] = useState(1);
+
+  // The design thumbnails and social-set previews are eleven more full-size
+  // renders on top of the main preview. Redrawing them all on every
+  // keystroke made typing lag, so they wait for a pause and skip any that
+  // aren't on screen (a collapsed panel, another mobile step) — mobileStep
+  // and showSocialSetPreview are deps so they draw once revealed.
+  useEffect(() => {
+    if (!fontsReady) return;
+    const visible = (el) => el && el.offsetParent !== null;
+    const timer = setTimeout(() => {
+      STYLE_OPTIONS.forEach(({ key }) => {
+        if (visible(styleThumbRefs.current[key])) drawStyleThumb(styleThumbRefs.current[key], key);
+      });
+      THUMB_ASPECTS.forEach((key) => {
+        if (visible(thumbRefs.current[key])) drawToCanvas(thumbRefs.current[key], key);
+      });
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [form, photo.img, photo.focus, photo.zoom, photo2.img, photo3.img, headshot.img, logo.img, fontsReady, mobileStep, showSocialSetPreview]);
+
   const [downloadError, setDownloadError] = useState("");
   const [downloading, setDownloading] = useState(false);
+
+  // Roundup shows three listings, so no one address names it.
+  const postName = () => (form.layout === "roundup" ? "Listings roundup" : form.address || `${form.word1} ${form.script}`.trim());
+  const fileBase = () => postFileBase(postName(), TEMPLATES[form.template]?.label);
 
   // Fire-and-forget save into the agent's post history — never blocks or
   // fails the download/share the agent actually asked for.
@@ -1589,8 +1651,10 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       method: "POST",
       body: JSON.stringify({
         category: TEMPLATES[form.template]?.label || form.template,
-        headline: `${form.word1} ${form.script}`.trim(),
-        template: TEMPLATES[form.template]?.label || form.template,
+        // The address is what tells one saved post from another — every
+        // Just Sold post used to be listed in the library as "Just SOLD!".
+        headline: postName(),
+        template: STYLE_OPTIONS.find((o) => o.key === form.layout)?.label || form.layout,
         imageData,
         thumbData,
       }),
@@ -1602,8 +1666,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     if (!canvas) return;
     setDownloading(true);
     setDownloadError("");
-    const safeName = (form.address || "social-post").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-    const filename = `${safeName}-${form.template}.png`;
+    const filename = `${fileBase()}.png`;
 
     try {
       const blob = await canvasToPngBlob(canvas);
@@ -1643,8 +1706,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     if (!canvas) return;
     setSharingFacebook(true);
     setDownloadError("");
-    const safeName = (form.address || "social-post").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-    const filename = `${safeName}-${form.template}.png`;
+    const filename = `${fileBase()}.png`;
 
     try {
       const blob = await canvasToPngBlob(canvas);
@@ -1669,25 +1731,25 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
   const downloadAllSizes = async () => {
     setDownloadingAll(true);
     setDownloadError("");
-    const safeName = (form.address || "social-post").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    const base = fileBase();
     const offscreen = document.createElement("canvas");
 
-    for (const aspectKey of Object.keys(ASPECTS)) {
-      drawToCanvas(offscreen, aspectKey);
-      if (aspectKey === "square") savePostToHistory(offscreen);
-      const blob = await canvasToPngBlob(offscreen);
-      downloadBlob(blob, `${safeName}-${form.template}-${aspectKey}.png`);
-      await new Promise((r) => setTimeout(r, 400));
+    // A blocked canvas (a cross-origin logo or headshot) throws on export —
+    // without this the button stayed stuck on "Preparing…" with no message.
+    try {
+      for (const aspectKey of Object.keys(ASPECTS)) {
+        drawToCanvas(offscreen, aspectKey);
+        if (aspectKey === "square") savePostToHistory(offscreen);
+        const blob = await canvasToPngBlob(offscreen);
+        downloadBlob(blob, `${base}-${aspectKey}.png`);
+        await new Promise((r) => setTimeout(r, 400));
+      }
+    } catch {
+      setDownloadError(canvasBlockedMessage("download"));
+    } finally {
+      setDownloadingAll(false);
     }
-    setDownloadingAll(false);
   };
-
-  // On phones, only one step's content is visible at a time (see the
-  // `mobileStep === N ? … : "hidden"` panels below) so getting from "Post
-  // Type" to "Review & Download" doesn't mean scrolling through every section.
-  // At the `lg` breakpoint the classes always resolve to visible, so
-  // desktop keeps the original everything-at-once layout untouched.
-  const [mobileStep, setMobileStep] = useState(1);
 
   // On desktop every step's content is already visible on one continuous
   // page (see the comment above), so clicking a step number there scrolls
@@ -1700,6 +1762,18 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
+
+  // The address and prices start filled in with a made-up listing so the
+  // preview looks real — which also makes it easy to post it by mistake.
+  const exampleFields = exampleFieldsInUse(
+    form,
+    DEFAULTS,
+    [
+      ...(form.layout === "modern" || form.layout === "signature" ? [] : ["address"]),
+      "price",
+      ...(form.layout === "roundup" ? ["address2", "price2", "address3", "price3"] : []),
+    ],
+  ).map((key) => ({ address: "address", price: "price", address2: "listing 2 address", price2: "listing 2 price", address3: "listing 3 address", price3: "listing 3 price" })[key]);
 
   const chooseTemplate = (key) => {
     applyTemplate(key);
@@ -1809,7 +1883,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 icon={ImageIcon}
                 state={photo}
                 hint="Drop hero photo or click to upload"
-                sublabel="JPG or PNG. Square works best for feed. Private by design — photos stay on your device."
+                sublabel="JPG or PNG. Square works best for feed. Photos are edited on your device, never uploaded on their own."
                 large
                 required
               />
@@ -1845,11 +1919,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   </label>
                   <label className="block">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
-                    <input className="input" value={form.beds} onChange={update("beds")} />
+                    <input className="input" inputMode="decimal" value={form.beds} onChange={update("beds")} />
                   </label>
                   <label className="block">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
-                    <input className="input" value={form.baths} onChange={update("baths")} />
+                    <input className="input" inputMode="decimal" value={form.baths} onChange={update("baths")} />
                   </label>
                 </div>
 
@@ -1874,11 +1948,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                       </label>
                       <label className="block">
                         <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
-                        <input className="input" value={form.beds2} onChange={update("beds2")} />
+                        <input className="input" inputMode="decimal" value={form.beds2} onChange={update("beds2")} />
                       </label>
                       <label className="block">
                         <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
-                        <input className="input" value={form.baths2} onChange={update("baths2")} />
+                        <input className="input" inputMode="decimal" value={form.baths2} onChange={update("baths2")} />
                       </label>
                     </div>
 
@@ -1894,11 +1968,11 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                       </label>
                       <label className="block">
                         <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BEDS</span>
-                        <input className="input" value={form.beds3} onChange={update("beds3")} />
+                        <input className="input" inputMode="decimal" value={form.beds3} onChange={update("beds3")} />
                       </label>
                       <label className="block">
                         <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>BATHS</span>
-                        <input className="input" value={form.baths3} onChange={update("baths3")} />
+                        <input className="input" inputMode="decimal" value={form.baths3} onChange={update("baths3")} />
                       </label>
                     </div>
                   </>
@@ -2185,6 +2259,16 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 />
               </div>
 
+              {exampleFields.length > 0 && (
+                <div className="flex items-start gap-2 rounded-lg p-2.5 mt-2.5 sm:mt-4 font-body text-xs" role="status" style={{ background: mixWithWhite("#E8792E", 0.88), color: UI.ink }}>
+                  <span className="flex-1">
+                    <strong>Still using example details:</strong> {exampleFields.join(", ")}. Replace them before posting.
+                  </span>
+                  <button type="button" onClick={() => goToStep(2)} className="press-fx font-semibold underline flex-shrink-0" style={{ color: UI.ink }}>
+                    Edit
+                  </button>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-2 mt-2.5 sm:mt-4">
                 <button
                   onClick={downloadImage}
@@ -2234,9 +2318,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 </div>
                 <ChevronDown size={18} style={{ color: UI.inkSoft, transform: showSocialSetPreview ? "rotate(180deg)" : "none", transition: "transform 0.15s", flexShrink: 0 }} />
               </button>
-              {/* Canvases stay mounted (just visually hidden) so the existing
-                  draw effect — which only fires on form/photo/font changes, not
-                  on mount — doesn't need to know about the collapse state. */}
+              {/* Canvases stay mounted (just hidden); the thumbnail effect
+                  skips them while hidden and draws them when this opens. */}
               <div className={showSocialSetPreview ? "px-5 pb-5 border-t" : "hidden"} style={{ borderColor: UI.line }}>
                 <div className="flex justify-end pt-4">
                   <button
