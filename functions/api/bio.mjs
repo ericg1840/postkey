@@ -4,7 +4,8 @@ import { logEvent } from "../_lib/activity.mjs";
 
 const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 
-const LINK_TYPES = new Set(["website", "facebook", "instagram", "tiktok", "linkedin", "zillow", "realtor", "broker", "custom"]);
+const LINK_TYPES = new Set(["website", "facebook", "instagram", "tiktok", "linkedin", "zillow", "realtor", "broker", "review", "custom"]);
+const LISTING_STATUSES = new Set(["just_listed", "open_house", "under_contract", "sold"]);
 const NAME_SIZES = new Set(["sm", "md", "lg", "xl"]);
 const BUTTON_STYLES = new Set(["rounded", "pill", "square"]);
 
@@ -13,8 +14,8 @@ export async function onRequestGet({ request, env }) {
   if (auth.error) return auth.error;
   const { userId, db } = auth;
 
-  const [kit] = await db.sql`SELECT bio_handle, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style, bio_bg_image_url, bio_bg_tint, bio_show_contact, bio_show_license, bio_show_eho FROM brand_kits WHERE user_id = ${userId}`;
-  const links = await db.sql`SELECT id, type, label, url, address, price, beds, baths, photo_url FROM bio_links WHERE user_id = ${userId} ORDER BY sort_order ASC, id ASC`;
+  const [kit] = await db.sql`SELECT bio_handle, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style, bio_bg_image_url, bio_bg_tint, bio_show_contact, bio_show_license, bio_show_eho, bio_title FROM brand_kits WHERE user_id = ${userId}`;
+  const links = await db.sql`SELECT id, type, label, url, address, price, beds, baths, photo_url, sqft, status FROM bio_links WHERE user_id = ${userId} ORDER BY sort_order ASC, id ASC`;
 
   return json({
     profile: {
@@ -31,6 +32,7 @@ export async function onRequestGet({ request, env }) {
       showContact: !!kit?.bio_show_contact,
       showLicense: !!kit?.bio_show_license,
       showEho: !!kit?.bio_show_eho,
+      title: kit?.bio_title || "",
     },
     links: links.map((l) => ({
       id: String(l.id),
@@ -42,6 +44,8 @@ export async function onRequestGet({ request, env }) {
       beds: l.beds || "",
       baths: l.baths || "",
       photoUrl: l.photo_url || "",
+      sqft: l.sqft || "",
+      status: l.status || "just_listed",
     })),
   });
 }
@@ -68,6 +72,7 @@ export async function onRequestPut({ request, env }) {
   const showContact = body.showContact === true;
   const showLicense = body.showLicense === true;
   const showEho = body.showEho === true;
+  const title = String(body.title || "").trim().slice(0, 40);
 
   if (handle && !HANDLE_RE.test(handle)) {
     return json({ error: "Handle can only use lowercase letters, numbers, and hyphens." }, { status: 400 });
@@ -107,6 +112,7 @@ export async function onRequestPut({ request, env }) {
         bio_show_contact = ${showContact},
         bio_show_license = ${showLicense},
         bio_show_eho = ${showEho},
+        bio_title = ${title},
         updated_at = NOW()
       WHERE user_id = ${userId}
     `,
@@ -116,7 +122,7 @@ export async function onRequestPut({ request, env }) {
     // One INSERT ... SELECT FROM unnest() with parallel arrays instead of
     // one INSERT per link, so it's one statement regardless of link count.
     statements.push(db.sql`
-      INSERT INTO bio_links (user_id, type, label, url, sort_order, address, price, beds, baths, photo_url)
+      INSERT INTO bio_links (user_id, type, label, url, sort_order, address, price, beds, baths, photo_url, sqft, status)
       SELECT * FROM unnest(
         ${links.map(() => userId)}::int[],
         ${links.map((l) => l.type)}::text[],
@@ -127,7 +133,9 @@ export async function onRequestPut({ request, env }) {
         ${links.map((l) => (l.price ? String(l.price).slice(0, 50) : null))}::text[],
         ${links.map((l) => (l.beds ? String(l.beds).slice(0, 20) : null))}::text[],
         ${links.map((l) => (l.baths ? String(l.baths).slice(0, 20) : null))}::text[],
-        ${links.map((l) => (l.photoUrl ? String(l.photoUrl).slice(0, 1000) : null))}::text[]
+        ${links.map((l) => (l.photoUrl ? String(l.photoUrl).slice(0, 1000) : null))}::text[],
+        ${links.map((l) => (l.sqft ? String(l.sqft).slice(0, 20) : null))}::text[],
+        ${links.map((l) => (l.type === "zillow" && LISTING_STATUSES.has(l.status) ? l.status : null))}::text[]
       )
     `);
   }

@@ -884,7 +884,7 @@ export function PhotoReposition({ state, aspect }) {
 // the canvas and agents can pick for their bio page name — a dozen families
 // the marketing pages never use. Rendered only where they're needed (signed
 // in, or a public bio page), so first-time visitors don't download them.
-const TOOL_FONTS_URL = "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Pacifico&family=Great+Vibes&family=Sacramento&family=Caveat:wght@700&family=Parisienne&family=Poppins:wght@800&family=Outfit:wght@800&family=Bebas+Neue&family=Montserrat:wght@400;600;700;800;900&display=swap";
+const TOOL_FONTS_URL = "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Pacifico&family=Great+Vibes&family=Sacramento&family=Caveat:wght@700&family=Parisienne&family=Poppins:wght@800&family=Outfit:wght@800&family=Bebas+Neue&family=Montserrat:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap";
 
 export function ToolFonts() {
   return <link rel="stylesheet" href={TOOL_FONTS_URL} />;

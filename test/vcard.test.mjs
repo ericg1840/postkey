@@ -64,3 +64,19 @@ describe("buildVCard", () => {
     assert.match(c, /N:;Solo;;;/);
   });
 });
+
+import { vcardFilename } from "../functions/api/bio-vcard.mjs";
+
+describe("vcardFilename", () => {
+  test("names the file after the agent", () => {
+    assert.equal(vcardFilename("Billy-Jo Salkowski", "bj"), "Billy-Jo Salkowski.vcf");
+  });
+  // A quote or slash in a name must not break the Content-Disposition header.
+  test("strips characters that aren't safe in a filename header", () => {
+    assert.equal(vcardFilename('Jane "JD" Doe/Smith', "jane"), "Jane JD DoeSmith.vcf");
+  });
+  test("falls back to the handle", () => {
+    assert.equal(vcardFilename("", "jane"), "jane.vcf");
+    assert.equal(vcardFilename("😀", "jane"), "jane.vcf");
+  });
+});

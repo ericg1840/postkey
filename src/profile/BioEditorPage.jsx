@@ -3,21 +3,27 @@ import {
   Plus, X, Loader2, CheckCircle2, RefreshCw, Copy, Check, ExternalLink,
   ChevronDown, ChevronUp, GripVertical, Smartphone, Monitor, RotateCcw, Eye, ImagePlus,
 } from "lucide-react";
-import { UI, ACCENT, ACCENT_PRESETS, ERROR, WHITE, TopNav, SCRIPT_FONTS, scriptFontCss, DEFAULT_HEADSHOT_URL } from "../shared.jsx";
+import { UI, ACCENT, ACCENT_PRESETS, ERROR, WHITE, TopNav, DEFAULT_HEADSHOT_URL } from "../shared.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { QrCodeButton } from "./QrCodeButton.jsx";
-import {
-  LINK_TYPES, SOCIAL_TYPES, BioLinksList, ContactButtons, ComplianceFooter, textOn, relativeLuminance,
-  NAME_SIZES, nameSizePx, THEME_PRESETS, BUTTON_STYLES, bgStyle, resizeImageToDataUrl,
-} from "./bioShared.jsx";
+import { BioPage, LISTING_STATUSES } from "./BioPage.jsx";
+import { TOKENS, DEFAULT_ACCENT, readableAccent } from "../lib/bioTheme.mjs";
+import { LINK_TYPES, SOCIAL_TYPES, resizeImageToDataUrl } from "./bioShared.jsx";
 
 const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 const CONTENT_TYPES = LINK_TYPES.filter((t) => !SOCIAL_TYPES.has(t.id));
 const SOCIAL_LINK_TYPES = LINK_TYPES.filter((t) => SOCIAL_TYPES.has(t.id));
 const TAGLINE_MAX = 80;
 
+// Suggestions for the title before the brokerage. Free text, since
+// designations vary by state and brokerage.
+const TITLE_SUGGESTIONS = ["REALTOR®", "Real Estate Agent", "Broker", "Associate Broker", "Broker Associate", "Salesperson", "Team Lead"];
+
+// Accent quick picks: RE/MAX blue (default), navy, red, green.
+const ACCENT_SWATCHES = ["#003DA5", "#0B2A5B", "#DC1C2E", "#1F6F5C"];
+
 const DEFAULTS = {
-  handle: "", tagline: "", brokerage: "", bgColor: UI.ink, boxColor: "#2E3B4C",
+  handle: "", tagline: "", brokerage: "", title: "", bgColor: UI.ink, boxColor: DEFAULT_ACCENT,
   nameFont: "", nameSize: "md", buttonStyle: "rounded", bgImageUrl: "", bgTint: 40,
   showContact: false, showLicense: false, showEho: false,
 };
@@ -99,6 +105,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
           showContact: !!data.profile?.showContact,
           showLicense: !!data.profile?.showLicense,
           showEho: !!data.profile?.showEho,
+          title: data.profile?.title || "",
         };
         const loadedLinks = data.links || [];
         setProfile(loadedProfile);
@@ -139,12 +146,13 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
     contact: profile.showContact && (kitPhone || kitEmail) ? { phone: kitPhone, email: kitEmail } : null,
     license: profile.showLicense ? kitLicense : "",
     showEho: profile.showEho,
+    brokeragePhone: (brandKit?.officePhone || "").trim(),
   };
 
   function addLink(type) {
     setLinks((prev) => [
       ...prev,
-      { id: newLinkId(), type: type.id, label: type.label, url: "", fetching: false, fetched: false, address: "", price: "", beds: "", baths: "" },
+      { id: newLinkId(), type: type.id, label: type.label, url: "", fetching: false, fetched: false, address: "", price: "", beds: "", baths: "", sqft: "", status: "just_listed" },
     ]);
     setContentMenuOpen(false);
     setSocialMenuOpen(false);
@@ -239,19 +247,11 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
   }
 
   function resetToDefault() {
-    if (!window.confirm("Reset colors, fonts, and layout to defaults? Your links and handle are kept. This won't save until you click Save Changes.")) return;
-    setProfile((p) => ({
-      ...p,
-      bgColor: DEFAULTS.bgColor,
-      boxColor: DEFAULTS.boxColor,
-      nameFont: DEFAULTS.nameFont,
-      nameSize: DEFAULTS.nameSize,
-      buttonStyle: DEFAULTS.buttonStyle,
-      bgImageUrl: DEFAULTS.bgImageUrl,
-      bgTint: DEFAULTS.bgTint,
-    }));
+    if (!window.confirm("Reset the accent color and remove the header photo? Your links and details are kept. This won't save until you click Save Changes.")) return;
+    setProfile((p) => ({ ...p, boxColor: DEFAULTS.boxColor, bgImageUrl: DEFAULTS.bgImageUrl }));
     setSaveStatus("idle");
   }
+
 
   function copyLink() {
     if (!publicUrl) return;
@@ -266,13 +266,12 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
       <TopNav active="bio" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} onLogoClick={onGoHome} />
       {fullPreviewOpen && (
         <FullPreview
-          profile={profile}
           onClose={() => setFullPreviewOpen(false)}
           onSave={save}
           saveStatus={saveStatus}
           hasUnsavedChanges={hasUnsavedChanges}
         >
-          <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, links, ...profile, ...previewExtras }} />
+          <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, links, handle: savedHandle, ...profile, ...previewExtras }} />
         </FullPreview>
       )}
       <div className="max-w-6xl mx-auto px-3 sm:px-6 py-6 sm:py-10">
@@ -350,7 +349,25 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                     </div>
                     <div>
                       <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Brokerage / Company</label>
-                      <input value={profile.brokerage} onChange={(e) => setField("brokerage")(e.target.value)} placeholder="Coastal Living Realty" className="input" />
+                      <input value={profile.brokerage} onChange={(e) => setField("brokerage")(e.target.value)} placeholder="RE/MAX Main Line" className="input" />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }} htmlFor="bio-title">Title (optional)</label>
+                      <input
+                        id="bio-title"
+                        list="bio-title-suggestions"
+                        value={profile.title}
+                        maxLength={40}
+                        onChange={(e) => setField("title")(e.target.value)}
+                        placeholder="e.g. REALTOR® or Real Estate Agent"
+                        className="input"
+                      />
+                      <datalist id="bio-title-suggestions">
+                        {TITLE_SUGGESTIONS.map((t) => <option key={t} value={t} />)}
+                      </datalist>
+                      <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>
+                        Shown before your brokerage. Only use REALTOR® if you're a member of the National Association of REALTORS®.
+                      </p>
                     </div>
                     <div className="sm:col-span-2">
                       <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Your link</label>
@@ -394,41 +411,48 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
               </Section>
 
               <Section number={2} title="Appearance">
-                <p className="font-mono text-xs uppercase tracking-wide mb-2" style={{ color: UI.inkSoft }}>Theme</p>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {THEME_PRESETS.map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setProfile((p) => ({ ...p, bgColor: t.bg, boxColor: t.box }))}
-                      className="font-body text-sm rounded-lg px-3.5 py-2 border transition"
-                      style={{
-                        borderColor: profile.bgColor === t.bg && profile.boxColor === t.box ? ACCENT : UI.line,
-                        color: profile.bgColor === t.bg && profile.boxColor === t.box ? ACCENT : UI.ink,
-                        fontWeight: profile.bgColor === t.bg && profile.boxColor === t.box ? 700 : 400,
-                      }}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
+                <p className="font-mono text-xs uppercase tracking-wide mb-2" style={{ color: UI.inkSoft }}>Accent color</p>
+                <p className="font-body text-xs mb-2.5" style={{ color: UI.inkSoft }}>
+                  Used for your Save My Contact button, icons, and the header.
+                </p>
+                <div className="flex flex-wrap items-center gap-2.5 mb-3">
+                  {[...new Set([...ACCENT_SWATCHES, ...(brandKit?.accentColor ? [brandKit.accentColor.toUpperCase()] : [])])].map((c) => {
+                    const selected = (profile.boxColor || "").toUpperCase() === c.toUpperCase();
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setField("boxColor")(c)}
+                        aria-label={`Accent ${c}${c.toUpperCase() === (brandKit?.accentColor || "").toUpperCase() ? " (your brand color)" : ""}`}
+                        aria-pressed={selected}
+                        className="rounded-full transition"
+                        style={{ width: 36, height: 36, background: c, boxShadow: selected ? `0 0 0 2px ${WHITE}, 0 0 0 4px ${UI.ink}` : `inset 0 0 0 1px rgba(0,0,0,0.12)` }}
+                      />
+                    );
+                  })}
                 </div>
-
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <ColorField label="Background" value={profile.bgColor} onChange={setField("bgColor")} />
-                  <ColorField label="Buttons" value={profile.boxColor} onChange={setField("boxColor")} />
+                <div className="mb-1 max-w-[220px]">
+                  <ColorField label="Custom" value={profile.boxColor} onChange={setField("boxColor")} />
                 </div>
+                {readableAccent(profile.boxColor) !== (profile.boxColor || "").toUpperCase() && /^#[0-9a-f]{6}$/i.test(profile.boxColor || "") && (
+                  <p className="font-body text-xs mb-3" style={{ color: UI.inkSoft }}>
+                    That color is too light for white text, so your page uses a darker shade of it.
+                  </p>
+                )}
 
-                <p className="font-mono text-xs uppercase tracking-wide mb-2" style={{ color: UI.inkSoft }}>Background image (optional)</p>
+                <p className="font-mono text-xs uppercase tracking-wide mt-4 mb-2" style={{ color: UI.inkSoft }}>Header photo (optional)</p>
+                <p className="font-body text-xs mb-2.5" style={{ color: UI.inkSoft }}>
+                  Shown blurred behind a deep shade of your accent at the top of the page — your office, a listing, or your town.
+                </p>
                 {profile.bgImageUrl ? (
                   <div className="rounded-xl overflow-hidden mb-2 relative" style={{ height: 100 }}>
                     <img src={profile.bgImageUrl} alt="" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0" style={{ background: profile.bgColor, opacity: profile.bgTint / 100 }} />
                     <button
                       type="button"
                       onClick={() => setField("bgImageUrl")("")}
                       className="press-fx absolute top-2 right-2 rounded-full flex items-center justify-center"
                       style={{ background: "rgba(0,0,0,0.5)", color: "#FFFFFF", width: 32, height: 32 }}
-                      aria-label="Remove background image"
+                      aria-label="Remove header photo"
                     >
                       <X size={14} />
                     </button>
@@ -443,59 +467,6 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                   </label>
                 )}
                 {bgImageError && <p className="font-body text-[11px] mb-2" style={{ color: ERROR }}>{bgImageError}</p>}
-                {profile.bgImageUrl && (
-                  <div className="mb-4">
-                    <label className="font-mono text-xs uppercase tracking-wide flex items-center justify-between mb-1.5" style={{ color: UI.inkSoft }}>
-                      <span>Tint intensity</span>
-                      <span>{profile.bgTint}%</span>
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="90"
-                      value={profile.bgTint}
-                      onChange={(e) => setField("bgTint")(Number(e.target.value))}
-                      className="w-full"
-                      style={{ accentColor: ACCENT }}
-                    />
-                  </div>
-                )}
-
-                <p className="font-mono text-xs uppercase tracking-wide mb-2" style={{ color: UI.inkSoft }}>Button style</p>
-                <div className="flex gap-2 mb-4">
-                  {BUTTON_STYLES.map((b) => (
-                    <button
-                      key={b.id}
-                      type="button"
-                      onClick={() => setField("buttonStyle")(b.id)}
-                      className="font-body text-sm px-3.5 py-2 border transition flex-1"
-                      style={{
-                        borderColor: profile.buttonStyle === b.id ? ACCENT : UI.line,
-                        color: profile.buttonStyle === b.id ? ACCENT : UI.ink,
-                        fontWeight: profile.buttonStyle === b.id ? 700 : 400,
-                        borderRadius: b.radius === 999 ? 999 : b.radius,
-                      }}
-                    >
-                      {b.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Font</label>
-                    <select className="input" value={profile.nameFont} onChange={(e) => setField("nameFont")(e.target.value)}>
-                      <option value="">Default (PostKey Serif)</option>
-                      {SCRIPT_FONTS.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="font-mono text-xs uppercase tracking-wide block mb-1.5" style={{ color: UI.inkSoft }}>Name size</label>
-                    <select className="input" value={profile.nameSize} onChange={(e) => setField("nameSize")(e.target.value)}>
-                      {NAME_SIZES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                    </select>
-                  </div>
-                </div>
               </Section>
 
               <Section number={3} title="Content / Links" accent={ACCENT_PRESETS[4]}>
@@ -664,11 +635,8 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
               {previewMode === "mobile" ? (
                 <div className="rounded-[2.4rem] border-4 p-2.5 shadow-2xl mx-auto" style={{ borderColor: "#1A1D22", background: "#1A1D22", maxWidth: 320 }}>
                   <div className="w-24 h-5 rounded-full mx-auto mb-1" style={{ background: "#1A1D22" }} />
-                  <div
-                    className="rounded-[1.9rem] overflow-hidden min-h-[560px] px-6 py-8 flex flex-col items-center transition-colors duration-200"
-                    style={bgStyle(profile.bgColor, profile.bgImageUrl, profile.bgTint)}
-                  >
-                    <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, links, ...profile, ...previewExtras }} />
+                  <div className="rounded-[1.9rem] overflow-hidden min-h-[560px] flex" style={{ background: TOKENS.page }}>
+                    <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, links, handle: savedHandle, ...profile, ...previewExtras }} />
                   </div>
                 </div>
               ) : (
@@ -683,13 +651,8 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                       </span>
                     )}
                   </div>
-                  <div
-                    className="rounded-xl overflow-hidden min-h-[560px] px-6 py-10 flex flex-col items-center transition-colors duration-200"
-                    style={bgStyle(profile.bgColor, profile.bgImageUrl, profile.bgTint)}
-                  >
-                    <div className="w-full max-w-sm">
-                      <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, links, ...profile, ...previewExtras }} />
-                    </div>
+                  <div className="rounded-xl overflow-hidden min-h-[560px] flex" style={{ background: TOKENS.page }}>
+                    <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, links, handle: savedHandle, ...profile, ...previewExtras }} />
                   </div>
                 </div>
               )}
@@ -701,47 +664,10 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
   );
 }
 
-function PreviewContent({ name, headshotUrl, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links, contact, license, showEho }) {
-  return (
-    <>
-      <div className="w-20 h-20 rounded-full p-1 mb-4" style={{ background: boxColor || ACCENT }}>
-        {headshotUrl ? (
-          <img src={headshotUrl} alt="" className="w-full h-full rounded-full object-cover" />
-        ) : (
-          <div className="font-display w-full h-full rounded-full flex items-center justify-center text-lg" style={{ background: UI.ink, color: "#FDFBF7" }}>
-            {(name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
-          </div>
-        )}
-      </div>
-      <h2
-        className={nameFont ? "text-center mb-0.5" : "font-display text-center mb-0.5"}
-        style={{
-          color: textOn(bgColor),
-          font: nameFont ? scriptFontCss(nameFont, nameSizePx(nameSize)) : undefined,
-          fontSize: nameFont ? undefined : `${nameSizePx(nameSize)}px`,
-          fontWeight: nameFont ? undefined : 700,
-        }}
-      >
-        {name || "Your Name"}
-      </h2>
-      {brokerage && (
-        <p className="font-body text-sm text-center mb-1" style={{ color: relativeLuminance(bgColor) > 0.5 ? UI.inkSoft : "#9FB4E8" }}>{brokerage}</p>
-      )}
-      <p className="font-body text-xs text-center mb-6 opacity-70 max-w-[260px]" style={{ color: textOn(bgColor) }}>{tagline}</p>
-
-      {contact && (
-        <div className="w-full mb-4">
-          <ContactButtons contact={contact} bgColor={bgColor} boxColor={boxColor} buttonStyle={buttonStyle} asLink={false} />
-        </div>
-      )}
-
-      <BioLinksList links={links} bgColor={bgColor} boxColor={boxColor} buttonStyle={buttonStyle} asLink={false} />
-
-      <ComplianceFooter name={name} brokerage={brokerage} license={license} showEho={showEho} bgColor={bgColor} />
-
-      <p className="font-mono text-[10px] tracking-[0.1em] uppercase mt-8 opacity-40" style={{ color: textOn(bgColor) }}>Powered by PostKey</p>
-    </>
-  );
+// The editor's previews render the real page component with the current,
+// possibly unsaved, state — nothing in them navigates.
+function PreviewContent({ handle, ...data }) {
+  return <BioPage data={data} handle={handle} asLink={false} />;
 }
 
 function TypeMenu({ types, onPick }) {
@@ -825,7 +751,9 @@ function LinkRow({ link, isFirst, isLast, onMove, onUpdate, onRemove, onFetch })
           </span>
           <LabeledMini label="Beds" value={link.beds} onChange={(v) => onUpdate("beds", v)} />
           <LabeledMini label="Baths" value={link.baths} onChange={(v) => onUpdate("baths", v)} />
+          <LabeledMini label="Sq ft" value={link.sqft} onChange={(v) => onUpdate("sqft", v)} />
           <LabeledMini label="Price" value={link.price} onChange={(v) => onUpdate("price", v)} />
+          <StatusSelect value={link.status} onChange={(v) => onUpdate("status", v)} />
           <button onClick={onFetch} className="font-body flex items-center gap-1 text-[11px] transition" style={{ color: UI.inkSoft }} onMouseEnter={(e) => e.currentTarget.style.color = ACCENT} onMouseLeave={(e) => e.currentTarget.style.color = UI.inkSoft}>
             <RefreshCw size={11} /> Re-fetch
           </button>
@@ -835,24 +763,42 @@ function LinkRow({ link, isFirst, isLast, onMove, onUpdate, onRemove, onFetch })
       {isZillow && !link.fetched && !link.fetching && (
         <div className="mt-2.5 ml-8 pl-3 border-l-2 flex flex-wrap items-center gap-x-4 gap-y-1.5" style={{ borderColor: UI.line }}>
           <span className="font-body text-[11px]" style={{ color: UI.inkSoft }}>Or enter manually:</span>
-          <LabeledMini label="Address" value={link.address} onChange={(v) => onUpdate("address", v)} />
+          <LabeledMini label="Address" value={link.address} onChange={(v) => onUpdate("address", v)} wide />
           <LabeledMini label="Beds" value={link.beds} onChange={(v) => onUpdate("beds", v)} />
           <LabeledMini label="Baths" value={link.baths} onChange={(v) => onUpdate("baths", v)} />
+          <LabeledMini label="Sq ft" value={link.sqft} onChange={(v) => onUpdate("sqft", v)} />
           <LabeledMini label="Price" value={link.price} onChange={(v) => onUpdate("price", v)} />
+          <StatusSelect value={link.status} onChange={(v) => onUpdate("status", v)} />
         </div>
       )}
     </div>
   );
 }
 
-function LabeledMini({ label, value, onChange }) {
+function StatusSelect({ value, onChange }) {
+  return (
+    <label className="font-body flex items-center gap-1 text-[11px]" style={{ color: UI.inkSoft }}>
+      Status
+      <select
+        value={value || "just_listed"}
+        onChange={(e) => onChange(e.target.value)}
+        className="font-body bg-transparent border-b outline-none text-[11px]"
+        style={{ borderColor: UI.line, color: UI.ink }}
+      >
+        {LISTING_STATUSES.map((st) => <option key={st.id} value={st.id}>{st.label}</option>)}
+      </select>
+    </label>
+  );
+}
+
+function LabeledMini({ label, value, onChange, wide = false }) {
   return (
     <span className="font-body flex items-center gap-1 text-[11px]" style={{ color: UI.inkSoft }}>
       {label}
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="font-body w-14 bg-transparent border-b outline-none px-0.5"
+        className={`font-body ${wide ? "w-40" : "w-14"} bg-transparent border-b outline-none px-0.5`}
         style={{ borderColor: UI.line, color: UI.ink }}
         onFocus={(e) => e.currentTarget.style.borderColor = ACCENT}
         onBlur={(e) => e.currentTarget.style.borderColor = UI.line}
@@ -915,7 +861,7 @@ function ToggleRow({ label, detail, missing, extra, checked, onChange, disabled 
 // Full-screen look at the page exactly as edited — unsaved changes included —
 // laid out like the real public page. Most useful on a phone, where the
 // side-by-side live preview sits below the whole editor.
-function FullPreview({ profile, onClose, onSave, saveStatus, hasUnsavedChanges, children }) {
+function FullPreview({ onClose, onSave, saveStatus, hasUnsavedChanges, children }) {
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -958,10 +904,8 @@ function FullPreview({ profile, onClose, onSave, saveStatus, hasUnsavedChanges, 
           </button>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto" style={bgStyle(profile.bgColor, profile.bgImageUrl, profile.bgTint)}>
-        <div className="w-full max-w-sm mx-auto px-6 py-12 flex flex-col items-center">
-          {children}
-        </div>
+      <div className="flex-1 overflow-y-auto" style={{ background: TOKENS.page }}>
+        {children}
       </div>
     </div>
   );

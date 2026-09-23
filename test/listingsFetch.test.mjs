@@ -61,3 +61,39 @@ test("isZillowUrl only accepts https zillow.com hosts", () => {
   assert.equal(isZillowUrl("https://zillow.com.evil.example/x"), false);
   assert.equal(isZillowUrl("https://notzillow.com/x"), false);
 });
+
+import { parseListing } from "../functions/api/listings-fetch.mjs";
+
+describe("parseListing", () => {
+  const ld = (obj) => `<script type="application/ld+json">${JSON.stringify(obj)}</script>`;
+
+  test("builds street, town and state from structured data", () => {
+    const html = ld({
+      "@type": "SingleFamilyResidence",
+      name: "419 Tall Oaks Dr, Wayne, PA 19087",
+      address: { streetAddress: "419 Tall Oaks Dr", addressLocality: "Wayne", addressRegion: "PA" },
+      numberOfRooms: 4,
+      floorSize: { value: 2150 },
+      offers: { price: 649000 },
+    }) + '<meta property="og:image" content="https://photos.zillowstatic.com/x.jpg">' + '"bathrooms": 2.5';
+    assert.deepEqual(parseListing(html), {
+      address: "419 Tall Oaks Dr, Wayne, PA",
+      price: "$649,000",
+      beds: "4",
+      baths: "2.5",
+      sqft: "2,150",
+      photoUrl: "https://photos.zillowstatic.com/x.jpg",
+    });
+  });
+
+  test("falls back to the page's embedded JSON for square footage", () => {
+    const html = '<meta property="og:title" content="12 Elm St | Zillow">"livingArea": 1840';
+    const out = parseListing(html);
+    assert.equal(out.address, "12 Elm St");
+    assert.equal(out.sqft, "1,840");
+  });
+
+  test("unknown fields are empty strings", () => {
+    assert.deepEqual(parseListing("<html></html>"), { address: "", price: "", beds: "", baths: "", sqft: "", photoUrl: "" });
+  });
+});

@@ -88,6 +88,37 @@ function metaContent(html, property) {
   return m ? m[1] : "";
 }
 
+const fmtNumber = (n) => Math.round(n).toLocaleString("en-US");
+
+// Pulls what a listing card shows out of a Zillow page: JSON-LD first
+// (structured, when Zillow includes it), then the page's embedded JSON and
+// og: tags as fallbacks. Every field is a display string, "" when unknown.
+export function parseListing(html) {
+  const listing = pickJsonLd(html);
+  const addr = listing?.address && typeof listing.address === "object" ? listing.address : null;
+
+  // "419 Tall Oaks Dr, Wayne, PA" — the street plus town and state when
+  // Zillow gives them separately, else whatever single line it has.
+  const composed = addr?.streetAddress
+    ? [addr.streetAddress, addr.addressLocality, addr.addressRegion].filter(Boolean).join(", ")
+    : "";
+  const ogTitle = metaContent(html, "og:title");
+  const address = composed || listing?.name || ogTitle.split(" | ")[0] || "";
+
+  const rawPrice = Number(listing?.offers?.price || html.match(/"price"\s*:\s*(\d+)/)?.[1]);
+  const price = Number.isFinite(rawPrice) && rawPrice > 0 ? `$${fmtNumber(rawPrice)}` : "";
+  const beds = String(listing?.numberOfRooms || html.match(/"bedrooms"\s*:\s*(\d+)/)?.[1] || "");
+  const baths = String(html.match(/"bathrooms"\s*:\s*([\d.]+)/)?.[1] || "");
+  const rawSqft = Number(
+    listing?.floorSize?.value
+      || String(listing?.floorSize || "").replace(/[^\d.]/g, "")
+      || html.match(/"livingArea(?:Value)?"\s*:\s*(\d+)/)?.[1],
+  );
+  const sqft = Number.isFinite(rawSqft) && rawSqft > 0 ? fmtNumber(rawSqft) : "";
+
+  return { address, price, beds, baths, sqft, photoUrl: metaContent(html, "og:image") || "" };
+}
+
 export async function onRequestPost({ request, env }) {
   const auth = await requireUser(request, env);
   if (auth.error) return auth.error;
@@ -114,28 +145,12 @@ export async function onRequestPost({ request, env }) {
   } catch {
     return json({ error: "Couldn't read that listing. Enter the details manually." }, { status: 502 });
   }
-  const listing = pickJsonLd(html);
-
-  const ogTitle = metaContent(html, "og:title");
-  const ogImage = metaContent(html, "og:image");
-
-  const address = listing?.name || listing?.address?.streetAddress || ogTitle.split(" | ")[0] || "";
-  const rawPrice = Number(listing?.offers?.price || html.match(/"price"\s*:\s*(\d+)/)?.[1]);
-  const price = Number.isFinite(rawPrice) && rawPrice > 0 ? `$${rawPrice.toLocaleString()}` : "";
-  const beds = listing?.numberOfRooms || html.match(/"bedrooms"\s*:\s*(\d+)/)?.[1] || "";
-  const baths = html.match(/"bathrooms"\s*:\s*([\d.]+)/)?.[1] || "";
-
+  const { address, price, beds, baths, sqft, photoUrl } = parseListing(html);
   if (!address) {
     return json({ error: "Couldn't read that listing. Enter the details manually." }, { status: 422 });
   }
 
   await db.sql`UPDATE users SET zillow_pulls_count = zillow_pulls_count + 1 WHERE id = ${userId}`;
 
-  return json({
-    address,
-    price: String(price || ""),
-    beds: String(beds || ""),
-    baths: String(baths || ""),
-    photoUrl: ogImage || "",
-  });
+  return json({ address, price, beds, baths, sqft, photoUrl });
 }

@@ -24,7 +24,7 @@ export async function onRequestGet({ request, env }) {
   const db = getDb(env);
   const [kit] = await db.sql`
     SELECT k.user_id, agent_name, headshot_url, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style, bio_bg_image_url, bio_bg_tint,
-           agent_phone, agent_email, license_number, bio_show_contact, bio_show_license, bio_show_eho
+           agent_phone, agent_email, license_number, office_phone, bio_title, bio_show_contact, bio_show_license, bio_show_eho
     FROM brand_kits k
     JOIN users u ON u.id = k.user_id
     WHERE k.bio_handle = ${handle} AND u.account_status = 'active'
@@ -39,7 +39,7 @@ export async function onRequestGet({ request, env }) {
   const [, links] = await Promise.all([
     recordPageView(db, request, kit.user_id, handle).catch((err) => console.error("Page view log failed", err)),
     db.sql`
-      SELECT type, label, url, address, price, beds, baths, photo_url
+      SELECT type, label, url, address, price, beds, baths, photo_url, sqft, status
       FROM bio_links WHERE user_id = ${kit.user_id} ORDER BY sort_order ASC, id ASC
     `,
   ]);
@@ -63,6 +63,11 @@ export async function onRequestGet({ request, env }) {
       : null,
     license: kit.bio_show_license ? (kit.license_number || "").trim() : "",
     showEho: !!kit.bio_show_eho,
+    title: kit.bio_title || "",
+    // The brokerage's own office number, for the footer disclosure (PA and
+    // other states want brokerage name + phone on advertising). It's a
+    // business line the agent already prints on every graphic.
+    brokeragePhone: (kit.office_phone || "").trim(),
     links: links.map((l) => ({
       type: l.type,
       label: l.label,
@@ -72,6 +77,8 @@ export async function onRequestGet({ request, env }) {
       beds: l.beds || "",
       baths: l.baths || "",
       photoUrl: l.photo_url || "",
+      sqft: l.sqft || "",
+      status: l.status || "just_listed",
     })),
   });
 }
