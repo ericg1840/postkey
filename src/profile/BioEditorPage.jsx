@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { UI, ACCENT, ACCENT_PRESETS, ERROR, WHITE, TopNav, SCRIPT_FONTS, scriptFontCss, DEFAULT_HEADSHOT_URL } from "../shared.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
+import { QrCodeButton } from "./QrCodeButton.jsx";
 import {
   LINK_TYPES, SOCIAL_TYPES, BioLinksList, textOn, relativeLuminance,
   NAME_SIZES, nameSizePx, THEME_PRESETS, BUTTON_STYLES, bgStyle, resizeImageToDataUrl,
@@ -65,6 +66,10 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
   const [copied, setCopied] = useState(false);
   const [previewMode, setPreviewMode] = useState("mobile"); // mobile | desktop
   const [nameDraft, setNameDraft] = useState("");
+  // The handle as last saved — what's actually live. The View / copy / QR
+  // controls use this, not the field being edited, so a half-typed handle
+  // change can't produce a QR code that points nowhere.
+  const [savedHandle, setSavedHandle] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -87,6 +92,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
           bgTint: data.profile?.bgTint ?? DEFAULTS.bgTint,
         });
         setLinks(data.links || []);
+        setSavedHandle(data.profile?.handle || "");
       } catch (err) {
         if (!cancelled) setLoadError(err.message);
       } finally {
@@ -105,7 +111,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
     (t) => t.id === "custom" || !links.some((l) => l.type === t.id)
   );
   const availableSocialTypes = SOCIAL_LINK_TYPES.filter((t) => !links.some((l) => l.type === t.id));
-  const publicUrl = profile.handle ? `${window.location.origin}/u/${profile.handle}` : "";
+  const publicUrl = savedHandle ? `${window.location.origin}/u/${savedHandle}` : "";
 
   function addLink(type) {
     setLinks((prev) => [
@@ -188,6 +194,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Couldn't save.");
 
+      setSavedHandle(profile.handle || "");
       if (nameDraft.trim() && nameDraft.trim() !== name) {
         await saveBrandKit({ ...brandKit, agentName: nameDraft.trim() });
       }
@@ -254,9 +261,12 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                 )}
               </div>
               {publicUrl && (
+                <div className="flex items-center gap-2">
+                <QrCodeButton url={publicUrl} handle={savedHandle} />
                 <button onClick={copyLink} className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 border font-mono text-xs transition" style={{ borderColor: UI.line, color: UI.inkSoft }} onMouseEnter={(e) => e.currentTarget.style.color = ACCENT} onMouseLeave={(e) => e.currentTarget.style.color = UI.inkSoft}>
                   {publicUrl.replace(/^https?:\/\//, "")} {copied ? <Check size={12} /> : <Copy size={12} />}
                 </button>
+                </div>
               )}
             </div>
           )}
