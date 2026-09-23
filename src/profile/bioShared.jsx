@@ -1,6 +1,6 @@
 import {
   Globe, Facebook, Instagram, Home, Building2, Briefcase, Link as LinkIcon,
-  BedDouble, Bath, Star, ChevronRight, Linkedin,
+  BedDouble, Bath, Star, ChevronRight, Linkedin, Phone, MessageSquare, Mail, UserPlus,
 } from "lucide-react";
 import { UI } from "../shared.jsx";
 import { linkProps } from "../lib/bioLinks.mjs";
@@ -268,6 +268,82 @@ export function BioLinksList({ links, bgColor, boxColor, buttonStyle, asLink }) 
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// Call / Text / Email, from the phone and email in the agent's brand kit,
+// plus "Save my contact" (a vCard from /api/bio-vcard). Only rendered when
+// the agent has switched contact details on for their page — the public API
+// sends `contact: null` otherwise. The editor preview renders the same
+// markup inert (asLink false), like BioLinksList.
+export function ContactButtons({ contact, handle, bgColor, boxColor, buttonStyle, asLink }) {
+  if (!contact) return null;
+  const actions = [
+    contact.phone && { label: "Call", icon: Phone, href: `tel:${contact.phone}` },
+    contact.phone && { label: "Text", icon: MessageSquare, href: `sms:${contact.phone}` },
+    contact.email && { label: "Email", icon: Mail, href: `mailto:${contact.email}` },
+  ].filter(Boolean);
+  const Tag = asLink ? "a" : "div";
+  const radius = buttonRadius(buttonStyle);
+  const text = textOn(boxColor);
+
+  return (
+    <div className="w-full flex flex-col gap-2.5">
+      {actions.length > 0 && (
+        <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${actions.length}, minmax(0, 1fr))` }}>
+          {actions.map(({ label, icon: Icon, href }) => (
+            <Tag
+              key={label}
+              {...(asLink ? { href } : {})}
+              className="bio-link-row flex flex-col items-center justify-center gap-1 py-3 hover:-translate-y-0.5"
+              style={{ backgroundColor: boxColor, borderRadius: radius === 999 ? 24 : radius, color: text, minHeight: 64 }}
+            >
+              <Icon size={19} />
+              <span className="font-body text-sm font-semibold">{label}</span>
+            </Tag>
+          ))}
+        </div>
+      )}
+      <Tag
+        {...(asLink ? { href: `/api/bio-vcard?handle=${encodeURIComponent(handle || "")}` } : {})}
+        className="bio-link-row flex items-center justify-center gap-2 px-4 hover:-translate-y-0.5 border-2"
+        style={{ borderColor: boxColor, borderRadius: radius, color: textOn(bgColor), background: "transparent", minHeight: 48 }}
+      >
+        <UserPlus size={18} />
+        <span className="font-body text-sm font-semibold">Save my contact</span>
+      </Tag>
+    </div>
+  );
+}
+
+// The Equal Housing Opportunity mark: a house outline around an equals sign.
+function EqualHousingIcon({ size = 26, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M16 3 2 13v2.5h3V29h22V15.5h3V13Z" fill="none" stroke={color} strokeWidth="2.2" strokeLinejoin="round" />
+      <rect x="10" y="15" width="12" height="2.6" fill={color} />
+      <rect x="10" y="20.5" width="12" height="2.6" fill={color} />
+    </svg>
+  );
+}
+
+// Advertising disclosures many states require: who the agent is licensed
+// with, their license number, and (optionally) the Equal Housing
+// Opportunity mark. Each piece is opt-in from the editor.
+export function ComplianceFooter({ name, brokerage, license, showEho, bgColor }) {
+  if (!license && !showEho) return null;
+  const color = textOn(bgColor);
+  const line = [name, brokerage, license && `License #${license}`].filter(Boolean).join(" · ");
+  return (
+    <div className="flex flex-col items-center gap-2 mt-10 text-center" style={{ color, opacity: 0.75 }}>
+      {license && <p className="font-body text-xs">{line}</p>}
+      {showEho && (
+        <div className="flex items-center gap-1.5">
+          <EqualHousingIcon size={22} color={color} />
+          <span className="font-body text-[11px] font-semibold uppercase tracking-[0.06em]">Equal Housing Opportunity</span>
+        </div>
+      )}
     </div>
   );
 }

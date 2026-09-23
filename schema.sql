@@ -75,7 +75,12 @@ CREATE TABLE brand_kits (
   bio_brokerage TEXT NOT NULL DEFAULT '',
   bio_button_style TEXT NOT NULL DEFAULT 'rounded',
   bio_bg_image_url TEXT,
-  bio_bg_tint INTEGER NOT NULL DEFAULT 40
+  bio_bg_tint INTEGER NOT NULL DEFAULT 40,
+  -- Opt-in contact buttons and licensing disclosures on the public page.
+  -- See migrations/012_bio_contact.sql.
+  bio_show_contact BOOLEAN NOT NULL DEFAULT false,
+  bio_show_license BOOLEAN NOT NULL DEFAULT false,
+  bio_show_eho BOOLEAN NOT NULL DEFAULT false
 );
 
 -- One row per link on an agent's link-in-bio page.

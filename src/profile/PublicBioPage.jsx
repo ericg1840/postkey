@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, RotateCw } from "lucide-react";
 import { UI, ACCENT, scriptFontCss } from "../shared.jsx";
-import { BioLinksList, textOn, relativeLuminance, nameSizePx, bgStyle } from "./bioShared.jsx";
+import { BioLinksList, ContactButtons, ComplianceFooter, textOn, relativeLuminance, nameSizePx, bgStyle } from "./bioShared.jsx";
 
 // What the browser tab (and a bookmark) calls this page: the agent, not
 // PostKey's own marketing title from index.html.
@@ -80,7 +80,7 @@ export function PublicBioPage({ handle }) {
     return <LoadFailed onRetry={() => { setState((s) => ({ ...s, loading: true, failed: false })); setAttempt((n) => n + 1); }} />;
   }
 
-  const { name, headshotUrl, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, bgImageUrl, bgTint, links } = state.data;
+  const { name, headshotUrl, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, bgImageUrl, bgTint, links, contact, license, showEho } = state.data;
 
   return (
     <div
@@ -121,7 +121,15 @@ export function PublicBioPage({ handle }) {
           <p className="font-body text-sm text-center mb-8 opacity-70 max-w-[280px]" style={{ color: textOn(bgColor) }}>{tagline}</p>
         )}
 
+        {contact && (
+          <div className="w-full mb-4">
+            <ContactButtons contact={contact} handle={handle} bgColor={bgColor} boxColor={boxColor} buttonStyle={buttonStyle} asLink />
+          </div>
+        )}
+
         <BioLinksList links={links} bgColor={bgColor} boxColor={boxColor} buttonStyle={buttonStyle} asLink />
+
+        <ComplianceFooter name={name} brokerage={brokerage} license={license} showEho={showEho} bgColor={bgColor} />
 
         <a
           href="/"
