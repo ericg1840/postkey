@@ -73,6 +73,34 @@ export const ROUTES = {
   "/api/track": { POST: track.onRequestPost },
 };
 
+// Link-preview scrapers (Facebook, LinkedIn, iMessage) mostly ignore a
+// relative og:image, and index.html can't hardcode a domain — the same build
+// serves the workers.dev URL and any custom domain. So the page's og:image,
+// twitter:image and og:url are rewritten here to absolute URLs on whatever
+// origin the request came in on. Only touches HTML; everything else passes
+// straight through.
+const SHARE_URL_TAGS = ['meta[property="og:image"]', 'meta[name="twitter:image"]', 'meta[property="og:url"]'];
+
+/* global HTMLRewriter -- provided by the Workers runtime */
+export function absolutizeShareTags(response, request) {
+  const type = response.headers.get("content-type") || "";
+  if (!type.includes("text/html") || typeof HTMLRewriter === "undefined") return response;
+  const url = new URL(request.url);
+  const rewriter = new HTMLRewriter();
+  for (const selector of SHARE_URL_TAGS) {
+    rewriter.on(selector, {
+      element(el) {
+        const value = el.getAttribute("content") || "/";
+        // og:url is the page itself (minus any query string, which can
+        // carry reset/verify tokens); the images resolve against the origin.
+        const absolute = selector.includes("og:url") ? `${url.origin}${url.pathname}` : new URL(value, url.origin).href;
+        el.setAttribute("content", absolute);
+      },
+    });
+  }
+  return rewriter.transform(response);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const { pathname } = new URL(request.url);
@@ -110,6 +138,7 @@ export default {
     // Not an API route — serve the built static site (index.html fallback
     // for client-side routing is handled by the `not_found_handling` setting
     // on the assets binding in wrangler.toml).
-    return env.ASSETS.fetch(request);
+    const response = await env.ASSETS.fetch(request);
+    return absolutizeShareTags(response, request);
   },
 };

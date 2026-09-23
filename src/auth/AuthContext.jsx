@@ -22,6 +22,32 @@ export async function api(path, options) {
   return data;
 }
 
+// A hint, not a credential: whether this browser was signed in last time we
+// checked. The session cookie itself is HttpOnly, so without this the app
+// can't tell a returning agent from a first-time visitor until
+// /api/auth/me answers — and made every visitor stare at a spinner for
+// that round trip before the homepage appeared. Logged-out visitors (no
+// hint) now get the homepage immediately; signed-in ones still wait, so
+// they never see the marketing page flash up first.
+const SIGNED_IN_HINT_KEY = "postkey_signed_in";
+
+export function mightBeSignedIn() {
+  try {
+    return localStorage.getItem(SIGNED_IN_HINT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function setSignedInHint(signedIn) {
+  try {
+    if (signedIn) localStorage.setItem(SIGNED_IN_HINT_KEY, "1");
+    else localStorage.removeItem(SIGNED_IN_HINT_KEY);
+  } catch {
+    // Storage unavailable — visitors just get the spinner, as before.
+  }
+}
+
 function LiveAuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [brandKit, setBrandKit] = useState(null);
@@ -29,6 +55,7 @@ function LiveAuthProvider({ children }) {
 
   const refresh = useCallback(async () => {
     const data = await api("/api/auth/me");
+    setSignedInHint(!!data.user);
     setUser(data.user || null);
     setBrandKit(data.brandKit || null);
     return data;
@@ -55,6 +82,7 @@ function LiveAuthProvider({ children }) {
 
   const logout = async () => {
     await api("/api/auth/logout", { method: "POST" });
+    setSignedInHint(false);
     setUser(null);
     setBrandKit(null);
   };
@@ -62,6 +90,7 @@ function LiveAuthProvider({ children }) {
   // Signs out every device this account is logged in on, this one included.
   const logoutEverywhere = async () => {
     await api("/api/auth/logout-all", { method: "POST" });
+    setSignedInHint(false);
     setUser(null);
     setBrandKit(null);
   };

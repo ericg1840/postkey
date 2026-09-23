@@ -10,7 +10,33 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PostKey" />
-  <title>PostKey</title>
+  <title>PostKey — Branded social posts for real estate agents</title>
+  <meta name="description" content="Create on-brand listing, sold, and community posts in minutes. Set your logo, colors, and headshot once — every graphic and caption comes out ready to share." />
+
+  <!-- Link previews (Facebook, LinkedIn, iMessage, Slack, X). Scrapers don't
+       run JavaScript, so these have to be in the static HTML. worker/index.mjs
+       rewrites og:image and og:url to absolute URLs for whichever domain
+       served the page, since most scrapers ignore relative ones. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="PostKey" />
+  <meta property="og:title" content="PostKey — Never wonder what to post again" />
+  <meta property="og:description" content="Branded listing, sold, and community posts for real estate agents — ready in minutes." />
+  <meta property="og:image" content="/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="PostKey: branded social posts for real estate agents" />
+  <meta property="og:url" content="/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="PostKey — Never wonder what to post again" />
+  <meta name="twitter:description" content="Branded listing, sold, and community posts for real estate agents — ready in minutes." />
+  <meta name="twitter:image" content="/og-image.png" />
+
+  <!-- The UI's own fonts, fetched in parallel with the JS instead of after it.
+       The editors' extra script fonts load separately, only when signed in
+       (ToolFonts in src/shared.jsx). -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,700&family=Space+Grotesk:wght@700&family=Dancing+Script:wght@700&display=swap" />
 </head>
 <body>
   <div id="root"></div>
