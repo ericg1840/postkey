@@ -12,7 +12,7 @@ import {
   makeFieldUpdater,
 } from "./shared.jsx";
 import { useAuth, api } from "./auth/AuthContext.jsx";
-import { LOCAL_STYLE_LABELS, ellipsizeLines, postTitle, postFileBase } from "./lib/localPost.mjs";
+import { LOCAL_STYLE_LABELS, ellipsizeLines, postTitle, postFileBase, clientTypeLabel } from "./lib/localPost.mjs";
 
 function drawStarPath(ctx, cx, cy, r) {
   const spikes = 5;
@@ -331,64 +331,38 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     });
 
     const contactH = Math.min(w, h) * 0.145;
-    const cardW = w * 0.74, cardH = h * 0.54;
-    const cardX = (w - cardW) / 2, cardY = h * 0.16;
-    ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.18)";
-    ctx.shadowBlur = w * 0.02;
-    ctx.fillStyle = WHITE;
-    roundRect(ctx, cardX, cardY, cardW, cardH, w * 0.012);
-    ctx.fill();
-    ctx.restore();
+    const cardW = w * 0.74;
+    // The card used to be a fixed 54% of the height, which left a big empty
+    // block under the signature for any review shorter than the example. Now
+    // the layout is measured first — circle, stars, quote, signature — and
+    // the card is sized to it (capped at the old height, where long quotes
+    // shrink and then truncate as before), then centered in the space above
+    // the contact band.
+    const maxCardH = h * 0.54;
 
     // The client's own photo takes priority in the circle (this is their
     // testimonial); the agent headshot is only a fallback. Turning off
     // "Use headshot" skips the circle entirely and gives the quote more room.
     const circleD = w * 0.19;
-    const circleCX = w / 2, circleCY = cardY;
+    const circleRing = w * 0.012;
     const circleImg = photo.img || headshot.img;
     const showCircle = form.useHeadshot !== false && !!circleImg;
-    if (showCircle) {
-      ctx.beginPath();
-      ctx.arc(circleCX, circleCY, circleD / 2 + w * 0.012, 0, Math.PI * 2);
-      ctx.fillStyle = WHITE;
-      ctx.fill();
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-      const img = circleImg;
-      const shortSide = Math.min(img.width, img.height);
-      const cropSize = shortSide * 0.82;
-      const sx = (img.width - cropSize) / 2;
-      ctx.drawImage(img, sx, 0, cropSize, cropSize, circleCX - circleD / 2, circleCY - circleD / 2, circleD, circleD);
-      ctx.restore();
-    }
 
     const starR = w * 0.02;
     const starGap = starR * 2.6;
     const rating = Math.max(0, Math.min(5, parseInt(form.rating, 10) || 0));
-    let starX = w / 2 - (starGap * 4) / 2;
-    const starY = showCircle ? cardY + circleD * 0.62 + h * 0.05 : cardY + h * 0.09;
-    for (let i = 0; i < 5; i++) {
-      drawStarPath(ctx, starX, starY, starR);
-      ctx.fillStyle = i < rating ? form.accentColor : mixWithWhite(form.accentColor, 0.75);
-      ctx.fill();
-      starX += starGap;
-    }
+    // Everything below is laid out as an offset from the card's top edge.
+    const starOffset = showCircle ? circleD * 0.62 + h * 0.05 : h * 0.09;
+    const quoteOffset = starOffset + h * 0.075;
 
-    ctx.textAlign = "center";
     const quoteMaxW = cardW * 0.82;
-    const qy = starY + h * 0.075;
-    const cardBottom = cardY + cardH;
     const sigSize = w * 0.045;
     const sigLineH = sigSize * 1.15;
     const typeSize = w * 0.018;
     const typeLineH = form.clientType ? typeSize * 1.6 : 0;
     const gapBeforeSig = h * 0.035;
     const bottomPad = h * 0.035;
-    const availableH = cardBottom - qy - bottomPad - gapBeforeSig - sigLineH - typeLineH;
+    const availableH = maxCardH - quoteOffset - bottomPad - gapBeforeSig - sigLineH - typeLineH;
 
     // Long quotes shrink to fit above the signature; if they still don't fit
     // even at the smallest readable size, truncate with an ellipsis instead
@@ -406,6 +380,54 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     }
     quoteLines = ellipsizeLines(quoteLines, Math.max(1, Math.floor(availableH / quoteLineH)));
 
+    const contentH = quoteOffset + quoteLines.length * quoteLineH + gapBeforeSig + sigLineH + typeLineH + bottomPad;
+    const cardH = Math.min(maxCardH, Math.max(contentH, h * 0.3));
+    const aboveCard = showCircle ? circleD / 2 + circleRing : 0;
+    const regionH = h - contactH;
+    const cardY = Math.max(aboveCard + h * 0.04, (regionH - aboveCard - cardH) / 2 + aboveCard);
+    const cardX = (w - cardW) / 2;
+    // A short review in a card taller than its content (the minimum height)
+    // sits in the middle of the card rather than hugging the top.
+    const slack = Math.max(0, cardH - contentH) / 2;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.18)";
+    ctx.shadowBlur = w * 0.02;
+    ctx.fillStyle = WHITE;
+    roundRect(ctx, cardX, cardY, cardW, cardH, w * 0.012);
+    ctx.fill();
+    ctx.restore();
+
+    if (showCircle) {
+      const circleCX = w / 2, circleCY = cardY;
+      ctx.beginPath();
+      ctx.arc(circleCX, circleCY, circleD / 2 + circleRing, 0, Math.PI * 2);
+      ctx.fillStyle = WHITE;
+      ctx.fill();
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(circleCX, circleCY, circleD / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      const img = circleImg;
+      const shortSide = Math.min(img.width, img.height);
+      const cropSize = shortSide * 0.82;
+      const sx = (img.width - cropSize) / 2;
+      ctx.drawImage(img, sx, 0, cropSize, cropSize, circleCX - circleD / 2, circleCY - circleD / 2, circleD, circleD);
+      ctx.restore();
+    }
+
+    let starX = w / 2 - (starGap * 4) / 2;
+    const starY = cardY + starOffset + slack;
+    for (let i = 0; i < 5; i++) {
+      drawStarPath(ctx, starX, starY, starR);
+      ctx.fillStyle = i < rating ? form.accentColor : mixWithWhite(form.accentColor, 0.75);
+      ctx.fill();
+      starX += starGap;
+    }
+
+    ctx.textAlign = "center";
+    const qy = cardY + quoteOffset + slack;
     ctx.font = `italic 500 ${quoteSize}px "Playfair Display", serif`;
     ctx.fillStyle = UI.ink;
     quoteLines.forEach((line, i) => ctx.fillText(line, w / 2, qy + i * quoteLineH));
@@ -418,8 +440,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
     if (form.clientType) {
       ctx.font = `700 ${typeSize}px "Montserrat", sans-serif`;
       ctx.fillStyle = UI.inkSoft;
-      const typeLabel = form.clientType === "Seller" ? "SELLERS" : "BUYERS";
-      ctx.fillText(typeLabel, w / 2, sigY + typeLineH * 0.72);
+      ctx.fillText(clientTypeLabel(form.clientType, form.clientName), w / 2, sigY + typeLineH * 0.72);
     }
 
     ctx.textAlign = "left";
@@ -1112,7 +1133,7 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-10">
         {/* PAGE HEADER */}
         <div className={mobileStep === 1 ? "mb-3 sm:mb-6" : "hidden md:block md:mb-6"}>
-          <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Community Posts</h1>
+          <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Create a Local Post</h1>
           <p className="font-body text-sm mt-1 hidden sm:block" style={{ color: UI.inkSoft }}>Stay visible even when you don't have a listing to share.</p>
         </div>
 

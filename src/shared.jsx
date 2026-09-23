@@ -1093,7 +1093,7 @@ export function PrivacyBadge() {
   return (
     <div className="flex items-center gap-1.5 font-body text-xs" style={{ color: UI.inkSoft }}>
       <Lock size={12} />
-      Private by design — listing photos never leave your device
+      Private by design — your photos are edited on this device, and only the finished post is saved to your library
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
-import { ellipsizeLines, postTitle, postFileBase } from "../src/lib/localPost.mjs";
+import { ellipsizeLines, postTitle, postFileBase, clientTypeLabel } from "../src/lib/localPost.mjs";
 
 describe("ellipsizeLines", () => {
   test("leaves text that fits alone", () => {
@@ -37,5 +37,22 @@ describe("postFileBase", () => {
   test("falls back when the title is empty or all symbols", () => {
     assert.equal(postFileBase("", "Market Stats"), "local-post-market-stats");
     assert.equal(postFileBase("!!!", "Quote Card"), "local-post-quote-card");
+  });
+});
+
+describe("clientTypeLabel", () => {
+  test("singular for one client", () => {
+    assert.equal(clientTypeLabel("Buyer", "Mariella Torres"), "BUYER");
+    assert.equal(clientTypeLabel("Seller", "Jon"), "SELLER");
+  });
+
+  test("plural for a couple or family", () => {
+    assert.equal(clientTypeLabel("Buyer", "Mariella & Jon"), "BUYERS");
+    assert.equal(clientTypeLabel("Seller", "Sam and Alex Lee"), "SELLERS");
+    assert.equal(clientTypeLabel("Buyer", "The Torres Family"), "BUYERS");
+  });
+
+  test("a name merely containing 'and' stays singular", () => {
+    assert.equal(clientTypeLabel("Buyer", "Andrea Sandoval"), "BUYER");
   });
 });

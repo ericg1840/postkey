@@ -41,3 +41,11 @@ export function postFileBase(title, typeLabel) {
   const slug = (text) => (text || "").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase();
   return [slug(title) || "local-post", slug(typeLabel)].filter(Boolean).join("-");
 }
+
+// The line under a testimonial's signature: "BUYER" for one client, "BUYERS"
+// when the name is a couple or family ("Mariella & Jon", "The Torres Family").
+export function clientTypeLabel(clientType, clientName) {
+  const plural = /\s(&|and|\+)\s|\bfamily\b/i.test(clientName || "");
+  const word = clientType === "Seller" ? "SELLER" : "BUYER";
+  return plural ? `${word}S` : word;
+}
