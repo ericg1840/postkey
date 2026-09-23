@@ -52,9 +52,14 @@ export async function onRequestPost({ request, env }) {
   return json({ topic: toTopic(row) });
 }
 
-// Only toggles active — day/title/category are cheap to redo as a new rule,
-// and this is the field the calendar actually needs to flip live (pausing a
-// recurring topic without losing the posts it already generated).
+// Any of active / title / dayOfMonth / category; fields left out keep their
+// value. Pausing is the common case (flipped live from the planner), but a
+// typo in a rule's title shouldn't mean deleting and recreating it.
+//
+// Edits only reach months that haven't been generated yet: a month is
+// generated once per rule (see content_recurring_generated), and the posts
+// already made from it belong to the agent now — they may have been edited,
+// moved or confirmed, so rewriting them from the rule would undo that.
 export async function onRequestPatch({ request, env }) {
   const auth = await requireUser(request, env);
   if (auth.error) return auth.error;
@@ -64,10 +69,44 @@ export async function onRequestPatch({ request, env }) {
   if (!Number.isInteger(id)) return json({ error: "Invalid topic id." }, { status: 400 });
 
   const body = await request.json().catch(() => null);
-  if (!body || typeof body.active !== "boolean") return json({ error: "Invalid request." }, { status: 400 });
+  if (!body) return json({ error: "Invalid request." }, { status: 400 });
+
+  let active = null;
+  if (body.active !== undefined) {
+    if (typeof body.active !== "boolean") return json({ error: "Invalid request." }, { status: 400 });
+    active = body.active;
+  }
+
+  let dayOfMonth = null;
+  if (body.dayOfMonth !== undefined) {
+    dayOfMonth = Number(body.dayOfMonth);
+    if (!Number.isInteger(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
+      return json({ error: "Day must be between 1 and 31." }, { status: 400 });
+    }
+  }
+
+  let title = null;
+  if (body.title !== undefined) {
+    title = String(body.title || "").trim().slice(0, 200);
+    if (!title) return json({ error: "Title is required." }, { status: 400 });
+  }
+
+  let category = null;
+  if (body.category !== undefined) {
+    if (!CATEGORIES.has(body.category)) return json({ error: "Invalid category." }, { status: 400 });
+    category = body.category;
+  }
+
+  if (active === null && dayOfMonth === null && title === null && category === null) {
+    return json({ error: "Invalid request." }, { status: 400 });
+  }
 
   const [row] = await db.sql`
-    UPDATE content_recurring_topics SET active = ${body.active}
+    UPDATE content_recurring_topics SET
+      active = COALESCE(${active}, active),
+      day_of_month = COALESCE(${dayOfMonth}, day_of_month),
+      title = COALESCE(${title}, title),
+      category = COALESCE(${category}, category)
     WHERE id = ${id} AND user_id = ${userId}
     RETURNING id, day_of_month, title, category, active
   `;

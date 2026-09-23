@@ -184,6 +184,17 @@ export async function onRequestDelete({ request, env }) {
   const id = Number(new URL(request.url).searchParams.get("id"));
   if (!Number.isInteger(id)) return json({ error: "Invalid post id." }, { status: 400 });
 
-  await db.sql`DELETE FROM content_posts WHERE id = ${id} AND user_id = ${userId}`;
+  // Dismissing a suggestion that came from a saved idea puts the idea back
+  // on the list — turning it down for that day isn't discarding the idea.
+  // Deleting a confirmed post is a deliberate removal, so that one doesn't.
+  await db.sql`
+    WITH removed AS (
+      DELETE FROM content_posts WHERE id = ${id} AND user_id = ${userId}
+      RETURNING idea_id, status
+    )
+    UPDATE content_ideas SET added_at = NULL
+     WHERE user_id = ${userId}
+       AND id IN (SELECT idea_id FROM removed WHERE status = 'suggested' AND idea_id IS NOT NULL)
+  `;
   return json({ ok: true });
 }

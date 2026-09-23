@@ -8,7 +8,8 @@ pick a layout, and export a finished image ready to post.
   social size
 - **Local** — community and lifestyle posts: local spotlights, market stats,
   testimonials, tips, checklists, quotes, this-or-that
-- **Planner** — a month view for deciding what to post and when
+- **Planner** — agenda, week and month views for deciding what to post and
+  when, with saved ideas, recurring topics and auto-fill suggestions
 - **Captions** — generated listing descriptions
 - **Bio** — a public link-in-bio page at `/u/<handle>`
 

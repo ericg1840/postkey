@@ -50,9 +50,14 @@ export async function onRequestPatch({ request, env }) {
   if (idea.added_at) return json({ error: "Idea already added." }, { status: 400 });
 
   // The target date becomes the post's date, which the calendar places by
-  // string match — so anything that isn't YYYY-MM-DD (ideas saved before
-  // the POST validated it) lands on today rather than nowhere.
-  const date = DATE_RE.test(idea.target_date || "") ? idea.target_date : new Date().toISOString().slice(0, 10);
+  // string match — so an idea with no usable date (none set, or saved before
+  // the POST validated it) lands on today rather than nowhere. "Today" is
+  // the client's local date when it sends one, since the Worker only knows
+  // UTC (the same trap autofill.mjs's resolveToday guards against).
+  const body = await request.json().catch(() => ({}));
+  const date = DATE_RE.test(idea.target_date || "")
+    ? idea.target_date
+    : DATE_RE.test(body?.today || "") ? body.today : new Date().toISOString().slice(0, 10);
 
   // Claiming the idea (added_at IS NULL -> NOW()) and creating the post in
   // one statement means a double-click, or two tabs, can't turn one idea
@@ -61,10 +66,10 @@ export async function onRequestPatch({ request, env }) {
     WITH claimed AS (
       UPDATE content_ideas SET added_at = NOW()
        WHERE id = ${id} AND user_id = ${userId} AND added_at IS NULL
-      RETURNING title, category
+      RETURNING id, title, category
     )
-    INSERT INTO content_posts (user_id, date, title, category, status, source)
-    SELECT ${userId}, ${date}, title, category, 'suggested', 'idea' FROM claimed
+    INSERT INTO content_posts (user_id, date, title, category, status, source, idea_id)
+    SELECT ${userId}, ${date}, title, category, 'suggested', 'idea', id FROM claimed
     RETURNING id, date, title, category, status, source, posted
   `;
   if (!post) return json({ error: "Idea already added." }, { status: 400 });
@@ -100,4 +105,16 @@ export async function onRequestPost({ request, env }) {
   `;
   await logEvent(db, userId, "content_idea_added", { category }).catch(() => {});
   return json({ idea: toIdea(row) });
+}
+
+export async function onRequestDelete({ request, env }) {
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
+  const { userId, db } = auth;
+
+  const id = Number(new URL(request.url).searchParams.get("id"));
+  if (!Number.isInteger(id)) return json({ error: "Invalid idea id." }, { status: 400 });
+
+  await db.sql`DELETE FROM content_ideas WHERE id = ${id} AND user_id = ${userId}`;
+  return json({ ok: true });
 }

@@ -1,9 +1,8 @@
 import { requireUser } from "../../_lib/session.mjs";
 import { json } from "../../_lib/auth.mjs";
 
-// A light rotating pool of generic prompts, cycled per open day so a
-// month with nothing planned yet still gets a few concrete starting
-// points — these are suggestions, not real posts, and stay in
+// Generic prompts, used once there's nothing of the agent's own to suggest
+// (see planSuggestions). These are suggestions, not real posts, and stay in
 // status:'suggested' until the agent explicitly confirms one.
 const SUGGESTION_POOL = [
   { title: "Local favorite: a spot worth recommending", category: "community" },
@@ -12,6 +11,86 @@ const SUGGESTION_POOL = [
   { title: "Client shoutout or recent success story", category: "community" },
   { title: "Seasonal promo — remind people you're open for business", category: "promo" },
 ];
+
+// Spread suggestions out (every 3rd open day) instead of filling every
+// single gap, and cap them so autofill reads as a nudge, not a takeover.
+const MAX_SUGGESTIONS = 4;
+const SPREAD = 3;
+// Enough listing follow-ups to be useful without crowding out ideas and
+// variety.
+const MAX_FOLLOW_UPS = 2;
+
+// "419 Tall Oaks Dr — Just Listed" -> "419 Tall Oaks Dr": the address (or
+// whatever leads the title) is what a follow-up is about, not the old status.
+export function listingSubject(title) {
+  return String(title || "").split(/\s+[—–|-]\s+/)[0].trim();
+}
+
+// Decides what auto-fill adds, and where. Pure, so it can be tested without a
+// database. In order of preference, since the agent's own material beats a
+// generic prompt:
+//   1. Saved ideas with a target date on an open day this month go on that day.
+//   2. The remaining picks (every SPREAD-th open day) take, in turn: saved
+//      ideas without a date (oldest first), a follow-up on a recent listing,
+//      then the generic pool — skipping any title already on the month.
+//
+// `ideas` are unconverted ideas ({ id, title, category, targetDate }),
+// `recentListings` are titles of recently planned listing posts (newest
+// first), `existing` is the month's posts ({ date, title }).
+export function planSuggestions({ month, today, existing, ideas = [], recentListings = [] }) {
+  const [year, mo] = month.split("-").map(Number);
+  const daysInMonth = new Date(year, mo, 0).getDate();
+  const takenDates = new Set(existing.map((p) => p.date));
+  const takenTitles = new Set(existing.map((p) => p.title.toLowerCase()));
+
+  const openDays = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateKey = `${month}-${String(d).padStart(2, "0")}`;
+    if (dateKey >= today && !takenDates.has(dateKey)) openDays.push(dateKey);
+  }
+
+  const out = [];
+  const add = (s) => {
+    out.push(s);
+    takenDates.add(s.date);
+    takenTitles.add(s.title.toLowerCase());
+  };
+
+  const usedIdeas = new Set();
+  for (const idea of ideas) {
+    if (out.length >= MAX_SUGGESTIONS) break;
+    if (!idea.targetDate || !openDays.includes(idea.targetDate) || takenDates.has(idea.targetDate)) continue;
+    usedIdeas.add(idea.id);
+    add({ date: idea.targetDate, title: idea.title, category: idea.category, source: "idea", ideaId: idea.id });
+  }
+
+  const queue = [];
+  for (const idea of ideas) {
+    if (!usedIdeas.has(idea.id) && !idea.targetDate) {
+      queue.push({ title: idea.title, category: idea.category, source: "idea", ideaId: idea.id });
+    }
+  }
+  const subjects = new Set();
+  for (const title of recentListings) {
+    const subject = listingSubject(title);
+    if (!subject || subjects.has(subject.toLowerCase()) || subjects.size >= MAX_FOLLOW_UPS) continue;
+    subjects.add(subject.toLowerCase());
+    // Already followed up on this month (by title), so don't repeat it.
+    if ([...takenTitles].some((t) => t.includes(subject.toLowerCase()) && t.startsWith("follow-up"))) continue;
+    queue.push({ title: `Follow-up: ${subject} — open house, price or status update`, category: "listing", source: "autofill" });
+  }
+  queue.push(...SUGGESTION_POOL.map((s) => ({ ...s, source: "autofill" })));
+
+  const remaining = openDays.filter((d) => !takenDates.has(d));
+  for (let i = 0; i < remaining.length && out.length < MAX_SUGGESTIONS; i += SPREAD) {
+    let next;
+    while ((next = queue.shift()) && takenTitles.has(next.title.toLowerCase()));
+    if (!next) break;
+    add({ date: remaining[i], ...next, ideaId: next.ideaId ?? null });
+  }
+
+  return out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}
 
 function toUtcDateKey(d) {
   return d.toISOString().slice(0, 10);
@@ -39,44 +118,59 @@ export async function onRequestPost({ request, env }) {
 
   const body = await request.json().catch(() => ({}));
   const month = /^\d{4}-\d{2}$/.test(body.month) ? body.month : new Date().toISOString().slice(0, 7);
-
-  const existing = await db.sql`
-    SELECT date FROM content_posts WHERE user_id = ${userId} AND date LIKE ${month + "-%"}
-  `;
-  const takenDates = new Set(existing.map((r) => r.date));
-
-  const [year, mo] = month.split("-").map(Number);
-  const daysInMonth = new Date(year, mo, 0).getDate();
   const today = resolveToday(body.today, toUtcDateKey(new Date()));
+  // Listings from roughly the last two months are the ones still worth a
+  // follow-up (open house, price change, under contract, sold).
+  const since = toUtcDateKey(new Date(Date.parse(`${today}T00:00:00Z`) - 60 * 86_400_000));
 
-  const openDays = [];
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateKey = `${month}-${String(d).padStart(2, "0")}`;
-    if (dateKey < today) continue;
-    if (takenDates.has(dateKey)) continue;
-    openDays.push(dateKey);
-  }
+  const [existing, ideaRows, listingRows] = await Promise.all([
+    db.sql`SELECT date, title FROM content_posts WHERE user_id = ${userId} AND date LIKE ${month + "-%"}`,
+    db.sql`
+      SELECT id, title, category, target_date FROM content_ideas
+       WHERE user_id = ${userId} AND added_at IS NULL
+       ORDER BY created_at ASC, id ASC LIMIT 20
+    `,
+    db.sql`
+      SELECT title FROM content_posts
+       WHERE user_id = ${userId} AND category = 'listing' AND status = 'confirmed'
+         AND source <> 'autofill' AND date >= ${since} AND date <= ${today}
+       ORDER BY date DESC, id DESC LIMIT 10
+    `,
+  ]);
 
-  // Spread suggestions out (every 3rd open day) instead of filling every
-  // single gap, and cap at 4 so autofill reads as a nudge, not a takeover.
-  const picks = [];
-  for (let i = 0; i < openDays.length && picks.length < 4; i += 3) {
-    picks.push(openDays[i]);
-  }
-
+  const picks = planSuggestions({
+    month,
+    today,
+    existing,
+    ideas: ideaRows.map((r) => ({ id: r.id, title: r.title, category: r.category, targetDate: r.target_date })),
+    recentListings: listingRows.map((r) => r.title),
+  });
   if (picks.length === 0) return json({ posts: [] });
 
-  const rows = await Promise.all(picks.map((dateKey, i) => {
-    const suggestion = SUGGESTION_POOL[i % SUGGESTION_POOL.length];
+  const rows = await Promise.all(picks.map((pick) => {
+    if (pick.ideaId) {
+      // Same claim-then-insert as "Add to plan" (ideas.mjs): if the idea was
+      // converted some other way meanwhile, nothing is inserted for it.
+      return db.sql`
+        WITH claimed AS (
+          UPDATE content_ideas SET added_at = NOW()
+           WHERE id = ${pick.ideaId} AND user_id = ${userId} AND added_at IS NULL
+          RETURNING id, title, category
+        )
+        INSERT INTO content_posts (user_id, date, title, category, status, source, idea_id)
+        SELECT ${userId}, ${pick.date}, title, category, 'suggested', 'idea', id FROM claimed
+        RETURNING id, date, title, category, status, source, posted
+      `.then(([row]) => row);
+    }
     return db.sql`
       INSERT INTO content_posts (user_id, date, title, category, status, source)
-      VALUES (${userId}, ${dateKey}, ${suggestion.title}, ${suggestion.category}, 'suggested', 'autofill')
+      VALUES (${userId}, ${pick.date}, ${pick.title}, ${pick.category}, 'suggested', 'autofill')
       RETURNING id, date, title, category, status, source, posted
     `.then(([row]) => row);
   }));
 
   return json({
-    posts: rows.map((r) => ({
+    posts: rows.filter(Boolean).map((r) => ({
       id: r.id, date: r.date, title: r.title, category: r.category,
       status: r.status, source: r.source, posted: r.posted,
     })),
