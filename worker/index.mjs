@@ -63,7 +63,10 @@ export const ROUTES = {
     GET: contentPosts.onRequestGet, POST: contentPosts.onRequestPost,
     PATCH: contentPosts.onRequestPatch, DELETE: contentPosts.onRequestDelete,
   },
-  "/api/content/ideas": { GET: contentIdeas.onRequestGet, POST: contentIdeas.onRequestPost, PATCH: contentIdeas.onRequestPatch },
+  "/api/content/ideas": {
+    GET: contentIdeas.onRequestGet, POST: contentIdeas.onRequestPost,
+    PATCH: contentIdeas.onRequestPatch, DELETE: contentIdeas.onRequestDelete,
+  },
   "/api/content/autofill": { POST: contentAutofill.onRequestPost },
   "/api/content/recurring": {
     GET: contentRecurring.onRequestGet, POST: contentRecurring.onRequestPost,
