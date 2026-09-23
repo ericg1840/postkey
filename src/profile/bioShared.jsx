@@ -1,14 +1,13 @@
 import {
-  Globe, Facebook, Instagram, Home, Building2, Briefcase, Link as LinkIcon,
-  BedDouble, Bath, Star, ChevronRight, Linkedin, Phone, MessageSquare, Mail, UserPlus,
+  Globe, Facebook, Instagram, Home, Building2, Briefcase, Link as LinkIcon, Linkedin, Star,
 } from "lucide-react";
-import { UI } from "../shared.jsx";
-import { linkProps } from "../lib/bioLinks.mjs";
 
-// Lucide has no TikTok mark, so this draws the note glyph as a filled path —
-// matching lucide's own icon API (size + color, color resolved through
-// currentColor) so it drops into the same <Icon size={..} color={..} />
-// call sites as every other icon in LINK_TYPES.
+// What the Key Link editor offers. The public page itself is rendered by
+// BioPage.jsx; this is just the editor's catalogue of link types and a photo
+// helper.
+
+// Lucide has no TikTok mark, so this draws the note glyph as a filled path,
+// matching lucide's icon API (size + color).
 function TikTokIcon({ size = 24, color, style, ...props }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" style={{ color, ...style }} {...props}>
@@ -20,11 +19,12 @@ function TikTokIcon({ size = 24, color, style, ...props }) {
   );
 }
 
-// Each type carries its own badge color — reads as a system of distinct,
-// purposeful buttons rather than one repeated blue icon for everything.
+// Badge colors here are the editor's own list styling; the public page uses
+// the agent's accent for every icon.
 export const LINK_TYPES = [
   { id: "website", label: "Website", icon: Globe, placeholder: "yourname.com", color: "#2563EB" },
   { id: "zillow", label: "Zillow Listing", icon: Home, placeholder: "zillow.com/homedetails/...", color: "#16A34A" },
+  { id: "review", label: "Leave a Review", icon: Star, placeholder: "Google or Zillow review link", color: "#D97706" },
   { id: "realtor", label: "Realtor.com", icon: Building2, placeholder: "realtor.com/agent/you", color: "#0D9488" },
   { id: "broker", label: "Brokerage Site", icon: Briefcase, placeholder: "yourbrokerage.com", color: "#7C3AED" },
   { id: "custom", label: "Custom Link", icon: LinkIcon, placeholder: "https://...", color: "#4F46E5" },
@@ -33,68 +33,13 @@ export const LINK_TYPES = [
   { id: "tiktok", label: "TikTok", icon: TikTokIcon, placeholder: "tiktok.com/@yourhandle", color: "#111111" },
   { id: "linkedin", label: "LinkedIn", icon: Linkedin, placeholder: "linkedin.com/in/you", color: "#0A66C2" },
 ];
-const LINK_TYPE_MAP = Object.fromEntries(LINK_TYPES.map((t) => [t.id, t]));
 
-// Social links get pulled out of the flat list and shown as a row of round
-// icon buttons right under the tagline — that's what actually reads as
-// "social" at a glance, versus one more full-width row.
+// Shown as a row of icons on the public page rather than as link rows.
 export const SOCIAL_TYPES = new Set(["facebook", "instagram", "tiktok", "linkedin"]);
 
-// Quick-start color combos for the Appearance section — each just sets
-// background/button colors, so picking one is a starting point, not a lock-in.
-export const THEME_PRESETS = [
-  { id: "coastal", label: "Coastal", bg: "#0F172A", box: "#2563EB" },
-  { id: "luxury", label: "Luxury", bg: "#111111", box: "#B8860B" },
-  { id: "modern", label: "Modern", bg: "#FFFFFF", box: "#111111" },
-  { id: "minimal", label: "Minimal", bg: "#F3EFE6", box: "#5B6472" },
-];
-
-export const BUTTON_STYLES = [
-  { id: "rounded", label: "Rounded", radius: 12 },
-  { id: "pill", label: "Pill", radius: 999 },
-  { id: "square", label: "Square", radius: 4 },
-];
-export function buttonRadius(id) {
-  return (BUTTON_STYLES.find((b) => b.id === id) || BUTTON_STYLES[0]).radius;
-}
-
-export function hexToRgb(hex) {
-  const m = hex.replace("#", "");
-  const bigint = parseInt(m.length === 3 ? m.split("").map((c) => c + c).join("") : m, 16);
-  return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
-}
-export function relativeLuminance(hex) {
-  if (!/^#[0-9a-f]{3,6}$/i.test(hex)) return 0;
-  const { r, g, b } = hexToRgb(hex);
-  const a = [r, g, b].map((v) => {
-    v /= 255;
-    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
-}
-export function textOn(hex) {
-  return relativeLuminance(hex) > 0.5 ? UI.ink : "#FDFBF7";
-}
-
-// When a background photo is set, the page's background color becomes a
-// tint overlaid on the photo (not a separate flat fill) — same idea as the
-// "photo with a color wash" templates agents are used to seeing elsewhere.
-export function bgStyle(bgColor, bgImageUrl, bgTint) {
-  if (!bgImageUrl) return { backgroundColor: bgColor };
-  const { r, g, b } = hexToRgb(bgColor);
-  const alpha = Math.max(0, Math.min(100, bgTint ?? 40)) / 100;
-  return {
-    backgroundImage: `linear-gradient(rgba(${r}, ${g}, ${b}, ${alpha}), rgba(${r}, ${g}, ${b}, ${alpha})), url(${bgImageUrl})`,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-  };
-}
-
 // Downscales + re-encodes an uploaded photo client-side before it's stored
-// as a data URL, same pattern as the headshot/logo uploads — but a
-// full-bleed background photo from a phone camera can be tens of MB
-// unresized, which is too large to store as inline text and too slow to
-// upload; this keeps it to a sane size without a separate file host.
+// as a data URL, same pattern as the headshot/logo uploads — a phone camera
+// photo can be tens of MB unresized.
 export function resizeImageToDataUrl(file, maxDim = 1600, quality = 0.82) {
   return new Promise((resolve, reject) => {
     if (!file || !file.type.startsWith("image/")) { reject(new Error("Choose an image file.")); return; }
@@ -117,233 +62,4 @@ export function resizeImageToDataUrl(file, maxDim = 1600, quality = 0.82) {
     };
     reader.readAsDataURL(file);
   });
-}
-
-// Paired with the "Name style" font picker — same idea, but for size.
-export const NAME_SIZES = [
-  { id: "sm", label: "Small", px: 22 },
-  { id: "md", label: "Medium", px: 30 },
-  { id: "lg", label: "Large", px: 38 },
-  { id: "xl", label: "Extra Large", px: 46 },
-];
-export function nameSizePx(id) {
-  return (NAME_SIZES.find((s) => s.id === id) || NAME_SIZES[1]).px;
-}
-
-// How far apart two hex colors are (0-441). Link-type badge colors are fixed
-// per type, so on a button the agent colored the same (the blue Website
-// badge on blue buttons) the icon circle vanished into the button.
-function colorDistance(a, b) {
-  if (!/^#[0-9a-f]{3,6}$/i.test(a || "") || !/^#[0-9a-f]{3,6}$/i.test(b || "")) return Infinity;
-  const x = hexToRgb(a);
-  const y = hexToRgb(b);
-  return Math.hypot(x.r - y.r, x.g - y.g, x.b - y.b);
-}
-
-// Gives the icon circle a ring in the button's text color when it would
-// otherwise blend into the button.
-export function badgeRing(badgeColor, boxColor) {
-  return colorDistance(badgeColor, boxColor) < 90 ? `0 0 0 2px ${textOn(boxColor)}55` : null;
-}
-
-// asLink: true renders real <a href> tags (the public page); false renders
-// inert <div>s with identical markup (the in-editor preview, which lives
-// inside an app the click shouldn't navigate away from).
-export function BioLinksList({ links, bgColor, boxColor, buttonStyle, asLink }) {
-  const social = links.filter((l) => SOCIAL_TYPES.has(l.type) && (l.url || asLink === false));
-  const rest = links.filter((l) => !SOCIAL_TYPES.has(l.type));
-  const boxTextColor = textOn(boxColor);
-  const boxSubColor = relativeLuminance(boxColor) > 0.5 ? UI.inkSoft : "#B9C0CC";
-  const Row = asLink ? "a" : "div";
-  const radius = buttonRadius(buttonStyle);
-
-  return (
-    <div className="w-full flex flex-col items-center gap-4">
-      {social.length > 0 && (
-        <div className="flex items-center gap-3.5">
-          {social.map((link, i) => {
-            const typeInfo = LINK_TYPE_MAP[link.type] || LINK_TYPE_MAP.custom;
-            const Icon = typeInfo.icon;
-            return (
-              <Row
-                key={link.id ?? `s${i}`}
-                {...(asLink ? linkProps(link) : {})}
-                aria-label={typeInfo.label}
-                className="bio-link-icon w-11 h-11 rounded-full flex items-center justify-center shrink-0 hover:scale-105"
-                style={{ background: typeInfo.color, boxShadow: [badgeRing(typeInfo.color, bgColor), "0 3px 10px rgba(0,0,0,0.25)"].filter(Boolean).join(", ") }}
-              >
-                <Icon size={19} color="#FFFFFF" />
-              </Row>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="w-full flex flex-col gap-2.5">
-        {links.length === 0 && (
-          <p className="font-body text-center text-xs italic opacity-50" style={{ color: textOn(bgColor) }}>
-            Your links will appear here
-          </p>
-        )}
-
-        {rest.map((link, i) => {
-          const typeInfo = LINK_TYPE_MAP[link.type] || LINK_TYPE_MAP.custom;
-          const Icon = typeInfo.icon;
-          const isZillow = link.type === "zillow";
-          const hasListing = isZillow && (link.address || link.fetched);
-
-          if (hasListing && link.photoUrl) {
-            const stats = [
-              link.beds && { icon: BedDouble, label: "Beds", value: link.beds },
-              link.baths && { icon: Bath, label: "Baths", value: link.baths },
-            ].filter(Boolean);
-
-            return (
-              <Row
-                key={link.id ?? i}
-                {...(asLink ? linkProps(link) : {})}
-                className="bio-link-row overflow-hidden block"
-                style={{ backgroundColor: boxColor, borderRadius: radius === 999 ? 24 : radius }}
-              >
-                <img
-                  src={link.photoUrl}
-                  alt=""
-                  className="w-full h-44 object-cover"
-                  loading={i === 0 ? "eager" : "lazy"}
-                  decoding="async"
-                />
-                <div className="p-4">
-                  <span
-                    className="font-mono inline-flex items-center gap-1 text-[10px] tracking-[0.08em] uppercase px-2.5 py-1 rounded-full mb-2.5 shadow-sm"
-                    style={{ background: typeInfo.color, color: "#FFFFFF", boxShadow: badgeRing(typeInfo.color, boxColor) || undefined }}
-                  >
-                    <Star size={10} fill="#FFFFFF" /> Featured Listing
-                  </span>
-                  <p className="font-display text-lg font-bold" style={{ color: boxTextColor }}>{link.address}</p>
-                  {(stats.length > 0) && (
-                    <div className="flex items-center gap-5 mt-2.5 pt-2.5 border-t" style={{ borderColor: relativeLuminance(boxColor) > 0.5 ? "rgba(27,36,48,0.12)" : "rgba(255,255,255,0.12)" }}>
-                      {stats.map((s) => (
-                        <span key={s.label} className="flex items-center gap-1.5 font-body text-sm" style={{ color: boxSubColor }}>
-                          <s.icon size={16} />
-                          <span className="font-semibold" style={{ color: boxTextColor }}>{s.value}</span> {s.label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {link.price && (
-                    <p className="font-display text-2xl font-bold mt-2.5" style={{ color: boxTextColor }}>{link.price}</p>
-                  )}
-                </div>
-              </Row>
-            );
-          }
-
-          const title = hasListing ? (link.address || link.label || typeInfo.label) : (link.label || typeInfo.label);
-          // Listing stats (beds/baths/price) are worth showing — the raw
-          // URL isn't. A visitor should see "Website" or "Zillow Listing"
-          // and click through, not read out the link before they click it.
-          const sub = hasListing
-            ? [link.beds && `${link.beds} bed`, link.baths && `${link.baths} bath`, link.price].filter(Boolean).join(" · ")
-            : "";
-
-          return (
-            <Row
-              key={link.id ?? i}
-              {...(asLink ? linkProps(link) : {})}
-              className="bio-link-row flex items-center gap-3.5 px-4 py-3.5 hover:-translate-y-0.5"
-              style={{ backgroundColor: boxColor, borderRadius: radius }}
-            >
-              <div
-                className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: typeInfo.color, boxShadow: [badgeRing(typeInfo.color, boxColor), "0 2px 8px rgba(0,0,0,0.2)"].filter(Boolean).join(", ") }}
-              >
-                <Icon size={19} style={{ color: "#FFFFFF" }} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-body text-base font-semibold line-clamp-2 break-words" style={{ color: boxTextColor }}>{title}</p>
-                {sub && <p className="font-body text-xs truncate" style={{ color: boxSubColor }}>{sub}</p>}
-              </div>
-              <ChevronRight size={20} style={{ color: boxTextColor, opacity: 0.5 }} className="shrink-0" />
-            </Row>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// Call / Text / Email, from the phone and email in the agent's brand kit,
-// plus "Save my contact" (a vCard from /api/bio-vcard). Only rendered when
-// the agent has switched contact details on for their page — the public API
-// sends `contact: null` otherwise. The editor preview renders the same
-// markup inert (asLink false), like BioLinksList.
-export function ContactButtons({ contact, handle, bgColor, boxColor, buttonStyle, asLink }) {
-  if (!contact) return null;
-  const actions = [
-    contact.phone && { label: "Call", icon: Phone, href: `tel:${contact.phone}` },
-    contact.phone && { label: "Text", icon: MessageSquare, href: `sms:${contact.phone}` },
-    contact.email && { label: "Email", icon: Mail, href: `mailto:${contact.email}` },
-  ].filter(Boolean);
-  const Tag = asLink ? "a" : "div";
-  const radius = buttonRadius(buttonStyle);
-  const text = textOn(boxColor);
-
-  return (
-    <div className="w-full flex flex-col gap-2.5">
-      {actions.length > 0 && (
-        <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${actions.length}, minmax(0, 1fr))` }}>
-          {actions.map(({ label, icon: Icon, href }) => (
-            <Tag
-              key={label}
-              {...(asLink ? { href } : {})}
-              className="bio-link-row flex flex-col items-center justify-center gap-1 py-3 hover:-translate-y-0.5"
-              style={{ backgroundColor: boxColor, borderRadius: radius === 999 ? 24 : radius, color: text, minHeight: 64 }}
-            >
-              <Icon size={19} />
-              <span className="font-body text-sm font-semibold">{label}</span>
-            </Tag>
-          ))}
-        </div>
-      )}
-      <Tag
-        {...(asLink ? { href: `/api/bio-vcard?handle=${encodeURIComponent(handle || "")}` } : {})}
-        className="bio-link-row flex items-center justify-center gap-2 px-4 hover:-translate-y-0.5 border-2"
-        style={{ borderColor: boxColor, borderRadius: radius, color: textOn(bgColor), background: "transparent", minHeight: 48 }}
-      >
-        <UserPlus size={18} />
-        <span className="font-body text-sm font-semibold">Save my contact</span>
-      </Tag>
-    </div>
-  );
-}
-
-// The Equal Housing Opportunity mark: a house outline around an equals sign.
-function EqualHousingIcon({ size = 26, color }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-      <path d="M16 3 2 13v2.5h3V29h22V15.5h3V13Z" fill="none" stroke={color} strokeWidth="2.2" strokeLinejoin="round" />
-      <rect x="10" y="15" width="12" height="2.6" fill={color} />
-      <rect x="10" y="20.5" width="12" height="2.6" fill={color} />
-    </svg>
-  );
-}
-
-// Advertising disclosures many states require: who the agent is licensed
-// with, their license number, and (optionally) the Equal Housing
-// Opportunity mark. Each piece is opt-in from the editor.
-export function ComplianceFooter({ name, brokerage, license, showEho, bgColor }) {
-  if (!license && !showEho) return null;
-  const color = textOn(bgColor);
-  const line = [name, brokerage, license && `License #${license}`].filter(Boolean).join(" · ");
-  return (
-    <div className="flex flex-col items-center gap-2 mt-10 text-center" style={{ color, opacity: 0.75 }}>
-      {license && <p className="font-body text-xs">{line}</p>}
-      {showEho && (
-        <div className="flex items-center gap-1.5">
-          <EqualHousingIcon size={22} color={color} />
-          <span className="font-body text-[11px] font-semibold uppercase tracking-[0.06em]">Equal Housing Opportunity</span>
-        </div>
-      )}
-    </div>
-  );
 }

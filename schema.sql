@@ -69,7 +69,7 @@ CREATE TABLE brand_kits (
   bio_handle TEXT UNIQUE,
   bio_tagline TEXT NOT NULL DEFAULT '',
   bio_bg_color TEXT NOT NULL DEFAULT '#1B2430',
-  bio_box_color TEXT NOT NULL DEFAULT '#2E3B4C',
+  bio_box_color TEXT NOT NULL DEFAULT '#003DA5', -- the page's accent color
   bio_name_font TEXT NOT NULL DEFAULT '',
   bio_name_size TEXT NOT NULL DEFAULT 'md',
   bio_brokerage TEXT NOT NULL DEFAULT '',
@@ -80,7 +80,10 @@ CREATE TABLE brand_kits (
   -- See migrations/012_bio_contact.sql.
   bio_show_contact BOOLEAN NOT NULL DEFAULT false,
   bio_show_license BOOLEAN NOT NULL DEFAULT false,
-  bio_show_eho BOOLEAN NOT NULL DEFAULT false
+  bio_show_eho BOOLEAN NOT NULL DEFAULT false,
+  -- Shown before the brokerage, e.g. "REALTOR®". See
+  -- migrations/013_bio_redesign.sql.
+  bio_title TEXT NOT NULL DEFAULT ''
 );
 
 -- One row per link on an agent's link-in-bio page.
@@ -96,7 +99,10 @@ CREATE TABLE bio_links (
   price TEXT,
   beds TEXT,
   baths TEXT,
-  photo_url TEXT
+  photo_url TEXT,
+  -- See migrations/013_bio_redesign.sql.
+  sqft TEXT,
+  status TEXT -- just_listed | open_house | under_contract | sold
 );
 
 CREATE INDEX bio_links_user_id_idx ON bio_links(user_id);

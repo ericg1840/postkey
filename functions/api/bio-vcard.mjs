@@ -6,6 +6,13 @@ import { buildVCard } from "../_lib/vcard.mjs";
 // headshots are downscaled to 640px on upload, so a real one is well under.
 const MAX_PHOTO_BYTES = 400_000;
 
+// "Jane Doe.vcf" — what the contact shows up as in Downloads/Files. Kept to
+// characters every OS accepts in a filename, falling back to the handle.
+export function vcardFilename(name, handle) {
+  const clean = String(name || "").replace(/[^A-Za-z0-9 .'-]/g, "").replace(/\s+/g, " ").trim().slice(0, 60);
+  return `${clean || handle}.vcf`;
+}
+
 // "Save my contact" on a public Key Link page. Served from here rather than
 // built in the browser because iOS Safari handles a real text/vcard response
 // (it opens the add-contact sheet) far more reliably than a blob download.
@@ -44,7 +51,7 @@ export async function onRequestGet({ request, env }) {
   return new Response(card, {
     headers: {
       "Content-Type": "text/vcard; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${handle}.vcf"`,
+      "Content-Disposition": `attachment; filename="${vcardFilename(kit.agent_name, handle)}"`,
       "Cache-Control": "no-store",
     },
   });
