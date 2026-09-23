@@ -66,11 +66,16 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
   const [saveError, setSaveError] = useState("");
   const [copied, setCopied] = useState(false);
   const [previewMode, setPreviewMode] = useState("mobile"); // mobile | desktop
+  const [fullPreviewOpen, setFullPreviewOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   // The handle as last saved — what's actually live. The View / copy / QR
   // controls use this, not the field being edited, so a half-typed handle
   // change can't produce a QR code that points nowhere.
   const [savedHandle, setSavedHandle] = useState("");
+  // The exact profile/links objects last loaded or saved. Every edit makes
+  // a new object, so "is it still this one?" says whether anything changed
+  // since — without comparing field by field (bgImageUrl can be megabytes).
+  const [savedState, setSavedState] = useState({ profile: null, links: null });
 
   useEffect(() => {
     let cancelled = false;
@@ -80,7 +85,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || "Couldn't load your Key Link page.");
         if (cancelled) return;
-        setProfile({
+        const loadedProfile = {
           handle: data.profile?.handle || DEFAULTS.handle,
           tagline: data.profile?.tagline || DEFAULTS.tagline,
           brokerage: data.profile?.brokerage || brandKit?.brokerageName || DEFAULTS.brokerage,
@@ -94,8 +99,11 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
           showContact: !!data.profile?.showContact,
           showLicense: !!data.profile?.showLicense,
           showEho: !!data.profile?.showEho,
-        });
-        setLinks(data.links || []);
+        };
+        const loadedLinks = data.links || [];
+        setProfile(loadedProfile);
+        setLinks(loadedLinks);
+        setSavedState({ profile: loadedProfile, links: loadedLinks });
         setSavedHandle(data.profile?.handle || "");
       } catch (err) {
         if (!cancelled) setLoadError(err.message);
@@ -107,6 +115,11 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
   }, []);
 
   const name = brandKit?.agentName || user?.fullName || "";
+  const hasUnsavedChanges = !loading && (
+    profile !== savedState.profile
+    || links !== savedState.links
+    || (nameDraft.trim() !== "" && nameDraft.trim() !== name)
+  );
   useEffect(() => { setNameDraft(name); }, [name]);
 
   const contentLinks = links.filter((l) => !SOCIAL_TYPES.has(l.type));
@@ -199,6 +212,10 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
     if (profile.handle && !HANDLE_RE.test(profile.handle)) { setHandleError("Lowercase letters, numbers, and hyphens only."); return; }
     setSaveStatus("saving");
     setSaveError("");
+    // What's being saved, as of the click — edits made while the request is
+    // in flight still count as unsaved afterwards.
+    const savingProfile = profile;
+    const savingLinks = links;
     try {
       const res = await fetch("/api/bio", {
         method: "PUT",
@@ -213,6 +230,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
       if (nameDraft.trim() && nameDraft.trim() !== name) {
         await saveBrandKit({ ...brandKit, agentName: nameDraft.trim() });
       }
+      setSavedState({ profile: savingProfile, links: savingLinks });
       setSaveStatus("saved");
     } catch (err) {
       setSaveStatus("error");
@@ -246,6 +264,17 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
   return (
     <div className="min-h-dvh" style={{ background: UI.page }}>
       <TopNav active="bio" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} onLogoClick={onGoHome} />
+      {fullPreviewOpen && (
+        <FullPreview
+          profile={profile}
+          onClose={() => setFullPreviewOpen(false)}
+          onSave={save}
+          saveStatus={saveStatus}
+          hasUnsavedChanges={hasUnsavedChanges}
+        >
+          <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, links, ...profile, ...previewExtras }} />
+        </FullPreview>
+      )}
       <div className="max-w-6xl mx-auto px-3 sm:px-6 py-6 sm:py-10">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
           <div>
@@ -261,7 +290,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
             <div className="flex flex-col items-end gap-2">
               <div className="flex items-center gap-2">
                 {saveStatus === "saving" && <span className="font-body text-xs flex items-center gap-1.5" style={{ color: UI.inkSoft }}><Loader2 size={13} className="animate-spin" /> Saving…</span>}
-                {saveStatus === "saved" && <span className="font-body text-xs flex items-center gap-1.5" style={{ color: "#3F8F5F" }}><CheckCircle2 size={13} /> All changes saved</span>}
+                {saveStatus === "saved" && !hasUnsavedChanges && <span className="font-body text-xs flex items-center gap-1.5" style={{ color: "#3F8F5F" }}><CheckCircle2 size={13} /> All changes saved</span>}
                 {saveStatus === "error" && <span className="font-body text-xs" style={{ color: ERROR }}>{saveError}</span>}
                 {publicUrl && (
                   <a
@@ -587,17 +616,17 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                 >
                   <Check size={16} /> {saveStatus === "saving" ? "Saving…" : "Save Changes"}
                 </button>
-                {publicUrl && (
-                  <a
-                    href={publicUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="press-fx font-body text-sm font-semibold rounded-lg px-5 transition flex items-center gap-2 border"
-                    style={{ minHeight: 44, borderColor: UI.line, color: UI.ink }}
-                  >
-                    <Eye size={16} /> Preview
-                  </a>
-                )}
+                {/* Shows the page as edited, saved or not. It used to link to the
+                    published page, which only ever showed the last save — the
+                    same thing "View Live Link" already does. */}
+                <button
+                  type="button"
+                  onClick={() => setFullPreviewOpen(true)}
+                  className="press-fx font-body text-sm font-semibold rounded-lg px-5 transition flex items-center gap-2 border"
+                  style={{ minHeight: 44, borderColor: UI.line, color: UI.ink }}
+                >
+                  <Eye size={16} /> Preview
+                </button>
                 <button
                   onClick={resetToDefault}
                   className="press-fx font-body text-sm flex items-center gap-1.5 transition px-1"
@@ -880,5 +909,60 @@ function ToggleRow({ label, detail, missing, extra, checked, onChange, disabled 
         />
       </span>
     </label>
+  );
+}
+
+// Full-screen look at the page exactly as edited — unsaved changes included —
+// laid out like the real public page. Most useful on a phone, where the
+// side-by-side live preview sits below the whole editor.
+function FullPreview({ profile, onClose, onSave, saveStatus, hasUnsavedChanges, children }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-label="Preview of your Key Link page">
+      <div
+        className="flex items-center justify-between gap-3 px-4 py-2"
+        style={{ background: UI.ink, color: WHITE, paddingTop: "calc(0.5rem + env(safe-area-inset-top))" }}
+      >
+        <span className="font-body text-xs sm:text-sm">
+          Preview{hasUnsavedChanges ? " · includes changes you haven't saved" : " · matches your live page"}
+        </span>
+        <div className="flex items-center gap-2">
+          {hasUnsavedChanges && (
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={saveStatus === "saving"}
+              className="press-fx font-body text-xs sm:text-sm font-bold rounded-lg px-3 disabled:opacity-60"
+              style={{ minHeight: 40, background: "#0F9D58", color: WHITE }}
+            >
+              {saveStatus === "saving" ? "Saving…" : "Save"}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="press-fx font-body text-xs sm:text-sm font-semibold rounded-lg px-3 flex items-center gap-1.5"
+            style={{ minHeight: 40, background: "rgba(255,255,255,0.12)", color: WHITE }}
+          >
+            <X size={14} /> Close
+          </button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto" style={bgStyle(profile.bgColor, profile.bgImageUrl, profile.bgTint)}>
+        <div className="w-full max-w-sm mx-auto px-6 py-12 flex flex-col items-center">
+          {children}
+        </div>
+      </div>
+    </div>
   );
 }
