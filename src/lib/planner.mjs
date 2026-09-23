@@ -41,3 +41,25 @@ export function formatDateRange(fromIso, toIso) {
     : to.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   return `${fromLabel} – ${toLabel}`;
 }
+
+function pad2(n) { return String(n).padStart(2, "0"); }
+
+// The month's calendar grid as Sunday-first weeks: each week is seven date
+// keys, with null for the days that belong to the neighbouring months. The
+// week view pages through these, so it never needs another month's posts.
+export function monthWeeks(monthKey) {
+  const [year, mo] = monthKey.split("-").map(Number);
+  const daysInMonth = new Date(year, mo, 0).getDate();
+  const cells = Array(new Date(year, mo - 1, 1).getDay()).fill(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(`${monthKey}-${pad2(d)}`);
+  while (cells.length % 7) cells.push(null);
+  const weeks = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  return weeks;
+}
+
+// Which of monthWeeks(month of dateKey) holds dateKey.
+export function weekIndexOf(dateKey) {
+  const [year, mo, day] = dateKey.split("-").map(Number);
+  return Math.floor((new Date(year, mo - 1, 1).getDay() + day - 1) / 7);
+}

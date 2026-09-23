@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Sparkles, Info, X, Pencil, Trash2, PartyPopper, Repeat, Circle, CheckCircle2 } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback, useRef, useSyncExternalStore } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, Sparkles, Info, X, Pencil, Trash2, PartyPopper, Repeat, Circle, CheckCircle2, Check } from "lucide-react";
 import { UI, ACCENT, WHITE, mixWithWhite, TopNav, writePostHandoff } from "./shared.jsx";
 import { holidaysByDate, upcomingHolidays } from "./lib/holidays.mjs";
-import { groupAgendaDays, formatDateRange } from "./lib/planner.mjs";
+import { groupAgendaDays, formatDateRange, monthWeeks, weekIndexOf } from "./lib/planner.mjs";
 import { useAuth, api } from "./auth/AuthContext.jsx";
 
 // Purely a planning/tracking calendar — PostKey has no social API
@@ -76,6 +76,32 @@ function categoryLabel(category) {
   return (CATEGORIES[category] || CATEGORIES.community).label;
 }
 
+// The week view needs room for seven columns of post cards, so it's only
+// offered on screens at least this wide (Tailwind's `sm`).
+const WIDE_QUERY = "(min-width: 640px)";
+function subscribeWide(onChange) {
+  const mq = window.matchMedia(WIDE_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+function useIsWide() {
+  return useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE_QUERY).matches, () => false);
+}
+
+// Drag-to-move, shared by the agenda, week and month views. Native HTML5
+// drag and drop, so it's a mouse/trackpad nicety — on touch screens the
+// date field in the edit sheet is how a post moves.
+const DRAG_TYPE = "application/x-postkey-post";
+function postDragProps(post) {
+  return {
+    draggable: true,
+    onDragStart: (e) => {
+      e.dataTransfer.setData(DRAG_TYPE, String(post.id));
+      e.dataTransfer.effectAllowed = "move";
+    },
+  };
+}
+
 export function ContentCalendar({ onSwitchTool, onGoHome }) {
   const { user, logout } = useAuth();
   const [view, setView] = useState("agenda");
@@ -93,6 +119,10 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
   const [editingIdea, setEditingIdea] = useState(null);
   const [showEarlier, setShowEarlier] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
+  const [weekIndex, setWeekIndex] = useState(() => weekIndexOf(toDateKey(new Date())));
+  const [dropTarget, setDropTarget] = useState(null);
+  const isWide = useIsWide();
+  const activeView = view === "week" && !isWide ? "agenda" : view;
 
   const today = new Date();
   const todayKey = toDateKey(today);
@@ -101,6 +131,10 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
 
   function goToMonth(next) {
     setFocusMonth(next);
+    // The week containing today when landing on the current month,
+    // otherwise the month's first week.
+    const nextKey = monthKeyOf(next);
+    setWeekIndex(nextKey === todayKey.slice(0, 7) ? weekIndexOf(todayKey) : 0);
     setSelectedDay(null);
     setShowEarlier(false);
     setAutofillNote("");
@@ -205,7 +239,8 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
           ? "No open days left to fill this month."
           : `Added ${added} suggestion${added === 1 ? "" : "s"} to your open days. Nothing is planned until you confirm each one.`,
       );
-      await loadPosts();
+      // Auto-fill draws on saved ideas, so the ones it used leave that list.
+      await Promise.all([loadPosts(), loadIdeas()]);
     } catch (err) {
       setError(err.message || "Couldn't generate suggestions.");
     } finally {
@@ -224,6 +259,33 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
     }
   }
 
+  async function movePost(id, date) {
+    const post = posts.find((p) => p.id === id);
+    if (!post || post.date === date) return;
+    await patchPost(id, { date }, "Couldn't move that post.");
+  }
+
+  // Handlers for anything a post can be dropped on — a day in any view.
+  function dropProps(dateKey) {
+    return {
+      onDragOver: (e) => {
+        if (!e.dataTransfer.types.includes(DRAG_TYPE)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        if (dropTarget !== dateKey) setDropTarget(dateKey);
+      },
+      onDragLeave: (e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget((t) => (t === dateKey ? null : t));
+      },
+      onDrop: (e) => {
+        e.preventDefault();
+        setDropTarget(null);
+        const id = Number(e.dataTransfer.getData(DRAG_TYPE));
+        if (Number.isInteger(id)) movePost(id, dateKey);
+      },
+    };
+  }
+
   function confirmSuggested(id) {
     return patchPost(id, { status: "confirmed" }, "Couldn't confirm that post.");
   }
@@ -232,11 +294,13 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
     return patchPost(post.id, { posted: !post.posted }, "Couldn't update that post.");
   }
 
-  async function dismissSuggested(id) {
+  async function dismissSuggested(post) {
     const prev = posts;
-    setPosts((cur) => cur.filter((p) => p.id !== id));
+    setPosts((cur) => cur.filter((p) => p.id !== post.id));
     try {
-      await api(`/api/content/posts?id=${id}`, { method: "DELETE" });
+      await api(`/api/content/posts?id=${post.id}`, { method: "DELETE" });
+      // Dismissing a suggestion made from a saved idea puts the idea back.
+      if (post.source === "idea") loadIdeas();
     } catch (err) {
       setPosts(prev);
       setError(err.message || "Couldn't dismiss that post.");
@@ -287,20 +351,26 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
     setEditingRecurring({ dayOfMonth: "1", title: "", category: "community" });
   }
 
+  function openEditRecurring(topic) {
+    setEditingRecurring({ ...topic, dayOfMonth: String(topic.dayOfMonth) });
+  }
+
   async function saveRecurring() {
     if (!editingRecurring.title.trim()) return;
     // Kept as a string while typing so the field can be cleared and retyped;
     // only clamped to a real day here.
     const dayOfMonth = Math.min(31, Math.max(1, Math.round(Number(editingRecurring.dayOfMonth)) || 1));
+    const fields = { dayOfMonth, title: editingRecurring.title.trim(), category: editingRecurring.category };
     try {
-      await api("/api/content/recurring", {
-        method: "POST",
-        body: JSON.stringify({
-          dayOfMonth,
-          title: editingRecurring.title.trim(),
-          category: editingRecurring.category,
-        }),
-      });
+      if (editingRecurring.id) {
+        // Edits apply to months not generated yet — posts already on the
+        // calendar are left as they are, so only the list needs updating.
+        const data = await api(`/api/content/recurring?id=${editingRecurring.id}`, { method: "PATCH", body: JSON.stringify(fields) });
+        setRecurringTopics((cur) => cur.map((t) => (t.id === data.topic.id ? data.topic : t)).sort((a, b) => a.dayOfMonth - b.dayOfMonth || a.id - b.id));
+        setEditingRecurring(null);
+        return;
+      }
+      await api("/api/content/recurring", { method: "POST", body: JSON.stringify(fields) });
       setEditingRecurring(null);
       // A new rule may cover a day already in the currently-viewed month —
       // reload both so it shows up immediately instead of on next fetch.
@@ -423,13 +493,14 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
   }
 
   const rowHandlers = { onConfirm: confirmSuggested, onDismiss: dismissSuggested, onEdit: openEditPost, onTogglePosted: togglePosted };
+  const dnd = { dropProps, dropTarget, enabled: isWide };
   const selected = selectedDay && selectedDay.startsWith(monthKey) ? dayInfo(selectedDay) : null;
 
   return (
     <div className="min-h-dvh" style={{ background: UI.page, color: UI.ink }}>
       <TopNav active="calendar" onSwitch={onSwitchTool} userName={user?.fullName} onLogout={logout} onLogoClick={onGoHome} />
 
-      <main className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-10">
+      <main className={`${activeView === "week" ? "max-w-5xl" : "max-w-3xl"} mx-auto px-3 sm:px-6 py-4 sm:py-10`}>
         <div className="mb-4">
           <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Planner</h1>
           <p className="font-body text-sm mt-1" style={{ color: UI.inkSoft }}>
@@ -470,14 +541,14 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
 
         {/* View toggle */}
         <div className="flex rounded-lg p-1 mb-4" style={{ background: UI.stone, border: `2px solid ${UI.ink}` }} role="tablist">
-          {["agenda", "month"].map((v) => (
+          {(isWide ? ["agenda", "week", "month"] : ["agenda", "month"]).map((v) => (
             <button
               key={v}
               role="tab"
-              aria-selected={view === v}
+              aria-selected={activeView === v}
               onClick={() => setView(v)}
               className="press-fx flex-1 font-body text-sm font-bold rounded-md capitalize transition"
-              style={{ minHeight: 44, background: view === v ? ACCENT : "transparent", color: view === v ? WHITE : UI.inkSoft }}
+              style={{ minHeight: 44, background: activeView === v ? ACCENT : "transparent", color: activeView === v ? WHITE : UI.inkSoft }}
             >
               {v}
             </button>
@@ -591,7 +662,7 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
 
         {loading ? (
           <p className="font-body text-sm" style={{ color: UI.inkSoft }}>Loading…</p>
-        ) : view === "agenda" ? (
+        ) : activeView === "agenda" ? (
           <div>
             <h3 className="font-body text-[13px] font-semibold mb-2.5" style={{ color: UI.ink }}>{isCurrentMonth ? "Upcoming posts" : "Posts this month"}</h3>
 
@@ -607,14 +678,14 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
                   {showEarlier ? "Hide" : "Show"} earlier this month ({earlierPostCount} post{earlierPostCount === 1 ? "" : "s"})
                 </button>
                 {showEarlier && earlierDays.map((day) => (
-                  <AgendaDay key={day.date} day={day} todayKey={todayKey} onAdd={null} handlers={rowHandlers} />
+                  <AgendaDay key={day.date} day={day} todayKey={todayKey} onAdd={null} handlers={rowHandlers} dnd={dnd} />
                 ))}
               </div>
             )}
 
             {agendaItems.map((item) => (
               item.type === "day" ? (
-                <AgendaDay key={item.day.date} day={item.day} todayKey={todayKey} onAdd={openNewPost} handlers={rowHandlers} />
+                <AgendaDay key={item.day.date} day={item.day} todayKey={todayKey} onAdd={openNewPost} handlers={rowHandlers} dnd={dnd} />
               ) : (
                 <div key={item.days[0].date} className="flex items-center justify-between py-1" style={{ borderTop: `1px solid ${UI.line}` }}>
                   <span className="font-body text-sm" style={{ color: UI.inkSoft }}>
@@ -630,6 +701,18 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
             ))}
             {days.length === 0 && <p className="font-body text-sm" style={{ color: UI.inkSoft }}>Nothing left this month.</p>}
           </div>
+        ) : activeView === "week" ? (
+          <WeekView
+            posts={posts}
+            focusMonth={focusMonth}
+            weekIndex={weekIndex}
+            setWeekIndex={setWeekIndex}
+            todayKey={todayKey}
+            holidayLookup={holidayLookup}
+            onAdd={openNewPost}
+            handlers={rowHandlers}
+            dnd={dnd}
+          />
         ) : (
           <>
             <MonthView
@@ -639,16 +722,19 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
               holidayLookup={holidayLookup}
               selectedDay={selected?.date}
               onDayClick={setSelectedDay}
+              dnd={dnd}
             />
             {selected ? (
               <div className="rounded-xl p-3 mt-3" style={{ border: `1.5px solid ${UI.line}`, background: UI.card }}>
-                <AgendaDay day={selected} todayKey={todayKey} onAdd={openNewPost} handlers={rowHandlers} bare />
+                <AgendaDay day={selected} todayKey={todayKey} onAdd={openNewPost} handlers={rowHandlers} dnd={dnd} bare />
                 {selected.posts.length > 0 && (
                   <button onClick={() => openNewPost(selected.date)} className="press-fx font-body text-xs font-bold px-1" style={{ color: ACCENT, minHeight: 44 }}>+ Add another post</button>
                 )}
               </div>
             ) : (
-              <p className="font-body text-xs text-center mt-2.5" style={{ color: UI.inkSoft }}>Tap a day to see or plan its posts</p>
+              <p className="font-body text-xs text-center mt-2.5" style={{ color: UI.inkSoft }}>
+                {isWide ? "Click a day to see or plan its posts, or drag a post onto another day to move it" : "Tap a day to see or plan its posts"}
+              </p>
             )}
           </>
         )}
@@ -712,6 +798,9 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
             >
               {topic.active ? "Pause" : "Resume"}
             </button>
+            <button onClick={() => openEditRecurring(topic)} className="press-fx flex items-center justify-center flex-shrink-0" style={{ color: UI.inkSoft, width: 44, height: 44, margin: "-10px 0" }} aria-label="Edit recurring topic">
+              <Pencil size={15} />
+            </button>
             <button onClick={() => deleteRecurring(topic.id)} className="press-fx flex items-center justify-center flex-shrink-0" style={{ color: UI.inkSoft, width: 44, height: 44, margin: "-10px -10px -10px 0" }} aria-label="Delete recurring topic">
               <Trash2 size={15} />
             </button>
@@ -753,9 +842,14 @@ export function ContentCalendar({ onSwitchTool, onGoHome }) {
 
 // One day's block in the agenda — also reused as the detail panel under the
 // month grid, so a post can be confirmed, edited or ticked off from either view.
-function AgendaDay({ day, todayKey, onAdd, handlers, bare = false }) {
+function AgendaDay({ day, todayKey, onAdd, handlers, dnd, bare = false }) {
+  const isDrop = dnd?.dropTarget === day.date;
   return (
-    <div className="py-0.5" style={bare ? undefined : { borderTop: `1px solid ${UI.line}` }}>
+    <div
+      className="py-0.5 rounded-md"
+      style={{ ...(bare ? {} : { borderTop: `1px solid ${UI.line}` }), ...(isDrop ? { background: mixWithWhite(ACCENT, 0.9) } : {}) }}
+      {...(dnd?.enabled ? dnd.dropProps(day.date) : {})}
+    >
       <div className="flex items-baseline gap-2 py-2 flex-wrap">
         <span className="font-body text-[13.5px] font-semibold" style={{ color: day.date === todayKey ? ACCENT : UI.ink }}>{day.num}</span>
         <span className="font-body text-xs" style={{ color: UI.inkSoft }}>{day.dow}</span>
@@ -778,16 +872,17 @@ function AgendaDay({ day, todayKey, onAdd, handlers, bare = false }) {
         </div>
       )}
 
-      {day.posts.map((post) => <PostRow key={post.id} post={post} {...handlers} />)}
+      {day.posts.map((post) => <PostRow key={post.id} post={post} draggable={!!dnd?.enabled} {...handlers} />)}
     </div>
   );
 }
 
-function PostRow({ post, onConfirm, onDismiss, onEdit, onTogglePosted }) {
+function PostRow({ post, draggable, onConfirm, onDismiss, onEdit, onTogglePosted }) {
   const color = CATEGORIES[post.category]?.color || UI.inkSoft;
+  const drag = draggable ? { ...postDragProps(post), style: { cursor: "grab" } } : {};
   if (post.status === "suggested") {
     return (
-      <div className="relative flex items-start gap-2.5 rounded-lg p-2.5 my-1.5" style={{ background: mixWithWhite(ACCENT, 0.94), border: `1.5px dashed ${ACCENT}` }}>
+      <div {...drag} className="relative flex items-start gap-2.5 rounded-lg p-2.5 my-1.5" style={{ ...drag.style, background: mixWithWhite(ACCENT, 0.94), border: `1.5px dashed ${ACCENT}` }}>
         <div className="flex-1 min-w-0">
           <div className="font-body text-sm font-medium leading-snug" style={{ color: UI.ink }}>{post.title}</div>
           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
@@ -802,7 +897,7 @@ function PostRow({ post, onConfirm, onDismiss, onEdit, onTogglePosted }) {
           </div>
           <div className="flex gap-1.5 mt-1.5">
             <button onClick={() => onConfirm(post.id)} className="press-fx font-body text-xs font-bold rounded-md px-2.5" style={{ minHeight: 44, background: ACCENT, color: WHITE }}>Confirm</button>
-            <button onClick={() => onDismiss(post.id)} className="press-fx font-body text-xs font-bold rounded-md px-2.5" style={{ minHeight: 44, border: `1px solid ${UI.line}`, color: UI.ink, background: UI.card }}>Dismiss</button>
+            <button onClick={() => onDismiss(post)} className="press-fx font-body text-xs font-bold rounded-md px-2.5" style={{ minHeight: 44, border: `1px solid ${UI.line}`, color: UI.ink, background: UI.card }}>Dismiss</button>
           </div>
         </div>
         <button onClick={() => onEdit(post)} className="press-fx flex items-center justify-center flex-shrink-0" style={{ color: UI.inkSoft, width: 44, height: 44, margin: "-10px -10px -10px 0" }} aria-label="Edit suggestion">
@@ -812,7 +907,7 @@ function PostRow({ post, onConfirm, onDismiss, onEdit, onTogglePosted }) {
     );
   }
   return (
-    <div className="flex items-start gap-2.5 py-2">
+    <div {...drag} className="flex items-start gap-2.5 py-2">
       <span className="w-[3px] self-stretch rounded mt-0.5" style={{ background: color }} />
       <div className="flex-1 min-w-0">
         <div className="font-body text-sm font-medium leading-snug" style={{ color: post.posted ? UI.inkSoft : UI.ink, textDecoration: post.posted ? "line-through" : "none" }}>{post.title}</div>
@@ -839,22 +934,47 @@ function PostRow({ post, onConfirm, onDismiss, onEdit, onTogglePosted }) {
   );
 }
 
-function MonthView({ posts, focusMonth, todayKey, holidayLookup, selectedDay, onDayClick }) {
-  const year = focusMonth.getFullYear(), month = focusMonth.getMonth();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const startDow = new Date(year, month, 1).getDay();
-
+function usePostsByDate(posts) {
   // Keyed by the full date, not the day number, so a post that's briefly in
-  // the list from another month can never be drawn on the wrong day here.
-  const postsByDate = useMemo(() => {
+  // the list from another month can never be drawn on the wrong day.
+  return useMemo(() => {
     const map = {};
     posts.forEach((p) => { (map[p.date] ||= []).push(p); });
     return map;
   }, [posts]);
+}
 
-  const cells = [];
-  for (let i = 0; i < startDow; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+function dayAriaLabel(dateKey, holiday, count) {
+  const date = new Date(dateKey + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  return `${date}${holiday ? `, ${holiday}` : ""}, ${count ? `${count} post${count === 1 ? "" : "s"}` : "nothing planned"}`;
+}
+
+// A post's title as a one-line chip — what the month grid shows per post on
+// wider screens, where there's room for more than a dot. Draggable there.
+function PostChip({ post, draggable }) {
+  const color = CATEGORIES[post.category]?.color || UI.inkSoft;
+  const suggested = post.status === "suggested";
+  return (
+    <span
+      {...(draggable ? postDragProps(post) : {})}
+      className="block truncate rounded px-1 font-body text-[10.5px] leading-[16px] text-left"
+      style={{
+        background: suggested ? UI.card : mixWithWhite(color, 0.85),
+        border: suggested ? `1px dashed ${color}` : "1px solid transparent",
+        color: post.posted ? UI.inkSoft : UI.ink,
+        textDecoration: post.posted ? "line-through" : "none",
+        cursor: draggable ? "grab" : undefined,
+      }}
+      title={post.title}
+    >
+      {post.title}
+    </span>
+  );
+}
+
+function MonthView({ posts, focusMonth, todayKey, holidayLookup, selectedDay, onDayClick, dnd }) {
+  const postsByDate = usePostsByDate(posts);
+  const cells = monthWeeks(monthKeyOf(focusMonth)).flat();
 
   return (
     <div className="rounded-xl overflow-hidden" style={{ border: `2px solid ${UI.ink}` }}>
@@ -864,52 +984,192 @@ function MonthView({ posts, focusMonth, todayKey, holidayLookup, selectedDay, on
         ))}
       </div>
       <div className="grid grid-cols-7">
-        {cells.map((d, i) => {
-          const dateKey = d ? `${year}-${pad2(month + 1)}-${pad2(d)}` : null;
-          const dayPosts = dateKey ? postsByDate[dateKey] || [] : [];
-          const holiday = dateKey ? holidayLookup.get(dateKey) : null;
+        {cells.map((dateKey, i) => {
+          const cellStyle = {
+            borderTop: `1px solid ${UI.line}`,
+            borderRight: (i + 1) % 7 === 0 ? "none" : `1px solid ${UI.line}`,
+          };
+          if (!dateKey) return <div key={i} className="aspect-square" style={cellStyle} />;
+
+          const d = Number(dateKey.slice(8));
+          const dayPosts = postsByDate[dateKey] || [];
+          const holiday = holidayLookup.get(dateKey);
           const isToday = dateKey === todayKey;
-          const isSelected = dateKey && dateKey === selectedDay;
-          const isPast = dateKey && dateKey < todayKey;
+          const isSelected = dateKey === selectedDay;
+          const isPast = dateKey < todayKey;
+          const isDrop = dnd?.dropTarget === dateKey;
           const firstConfirmed = dayPosts.find((p) => p.status === "confirmed");
           const tint = firstConfirmed ? (CATEGORIES[firstConfirmed.category]?.color || UI.inkSoft) + "14" : undefined;
-          const label = dateKey
-            ? `${new Date(dateKey + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}${holiday ? `, ${holiday}` : ""}, ${dayPosts.length ? `${dayPosts.length} post${dayPosts.length === 1 ? "" : "s"}` : "nothing planned"}`
-            : undefined;
+          // A div rather than a <button>: the chips inside are draggable, and
+          // Firefox won't start a drag from inside a button.
           return (
-            <button
-              type="button"
+            <div
               key={i}
-              disabled={!d}
-              onClick={() => d && onDayClick(dateKey)}
-              aria-label={label}
-              aria-pressed={d ? !!isSelected : undefined}
+              role="button"
+              tabIndex={0}
+              onClick={() => onDayClick(dateKey)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onDayClick(dateKey); } }}
+              aria-label={dayAriaLabel(dateKey, holiday, dayPosts.length)}
+              aria-pressed={isSelected}
               title={holiday || undefined}
-              className="aspect-square flex flex-col items-center justify-center gap-1 relative"
+              className="aspect-square flex flex-col items-center justify-center gap-1 relative cursor-pointer overflow-hidden sm:items-stretch sm:justify-start sm:gap-0.5 sm:p-1"
               style={{
-                borderTop: `1px solid ${UI.line}`,
-                borderRight: (i + 1) % 7 === 0 ? "none" : `1px solid ${UI.line}`,
-                background: isToday ? mixWithWhite(ACCENT, 0.9) : tint,
-                boxShadow: isSelected ? `inset 0 0 0 2px ${ACCENT}` : "none",
+                ...cellStyle,
+                background: isDrop ? mixWithWhite(ACCENT, 0.8) : isToday ? mixWithWhite(ACCENT, 0.9) : tint,
+                boxShadow: isSelected || isDrop ? `inset 0 0 0 2px ${ACCENT}` : "none",
               }}
+              {...(dnd?.enabled ? dnd.dropProps(dateKey) : {})}
             >
-              {d && (
+              <span className="text-xs sm:px-0.5" style={{ fontWeight: isToday ? 700 : 400, color: isToday ? ACCENT : isPast ? UI.inkSoft : UI.ink }}>{d}</span>
+              {holiday && (
+                <span className="absolute rounded-full" style={{ top: 4, right: 4, width: 5, height: 5, background: ACCENT }} />
+              )}
+              {dayPosts.length > 0 && (
                 <>
-                  <span className="text-xs" style={{ fontWeight: isToday ? 700 : 400, color: isToday ? ACCENT : isPast ? UI.inkSoft : UI.ink }}>{d}</span>
-                  {holiday && (
-                    <span className="absolute rounded-full" style={{ top: 4, right: 4, width: 5, height: 5, background: ACCENT }} />
-                  )}
-                  {dayPosts.length > 0 && (
-                    <div className="flex items-center gap-0.5">
-                      {dayPosts.slice(0, 3).map((p) => <CategoryDot key={p.id} category={p.category} size={5} hollow={p.status === "suggested"} />)}
-                      {dayPosts.length > 1 && <span className="font-bold" style={{ fontSize: "8.5px", color: UI.inkSoft, marginLeft: 2 }}>{dayPosts.length}</span>}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-0.5 sm:hidden">
+                    {dayPosts.slice(0, 3).map((p) => <CategoryDot key={p.id} category={p.category} size={5} hollow={p.status === "suggested"} />)}
+                    {dayPosts.length > 1 && <span className="font-bold" style={{ fontSize: "8.5px", color: UI.inkSoft, marginLeft: 2 }}>{dayPosts.length}</span>}
+                  </div>
+                  <div className="hidden sm:flex flex-col gap-0.5 min-w-0">
+                    {dayPosts.slice(0, 2).map((p) => <PostChip key={p.id} post={p} draggable={!!dnd?.enabled} />)}
+                    {dayPosts.length > 2 && (
+                      <span className="font-body text-[10px] font-bold px-0.5" style={{ color: UI.inkSoft }}>+{dayPosts.length - 2} more</span>
+                    )}
+                  </div>
                 </>
               )}
-            </button>
+            </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// Seven columns of post cards for one week of the month on screen — the
+// view for arranging a week, with room to read titles and drag between days.
+// Pages through this month's weeks only; the month arrows move further.
+function WeekView({ posts, focusMonth, weekIndex, setWeekIndex, todayKey, holidayLookup, onAdd, handlers, dnd }) {
+  const postsByDate = usePostsByDate(posts);
+  const weeks = monthWeeks(monthKeyOf(focusMonth));
+  const index = Math.min(Math.max(weekIndex, 0), weeks.length - 1);
+  const week = weeks[index];
+  const inMonth = week.filter(Boolean);
+  const navButton = { border: `1.5px solid ${UI.line}`, width: 36, height: 36 };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <button type="button" onClick={() => setWeekIndex(index - 1)} disabled={index === 0} className="press-fx flex items-center justify-center rounded-lg disabled:opacity-30" style={navButton} aria-label="Previous week">
+          <ChevronLeft size={15} color={UI.ink} />
+        </button>
+        <span className="font-body text-sm font-semibold" style={{ color: UI.ink }}>
+          Week of {formatDateRange(inMonth[0], inMonth[inMonth.length - 1])}
+        </span>
+        <button type="button" onClick={() => setWeekIndex(index + 1)} disabled={index === weeks.length - 1} className="press-fx flex items-center justify-center rounded-lg disabled:opacity-30" style={navButton} aria-label="Next week">
+          <ChevronRight size={15} color={UI.ink} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 rounded-xl overflow-hidden" style={{ border: `2px solid ${UI.ink}` }}>
+        {week.map((dateKey, i) => {
+          const colStyle = { borderRight: i === 6 ? "none" : `1px solid ${UI.line}`, minHeight: 280 };
+          if (!dateKey) return <div key={i} style={{ ...colStyle, background: UI.stone }} />;
+
+          const date = new Date(dateKey + "T00:00:00");
+          const dayPosts = postsByDate[dateKey] || [];
+          const holiday = holidayLookup.get(dateKey);
+          const isToday = dateKey === todayKey;
+          const isDrop = dnd?.dropTarget === dateKey;
+          return (
+            <div
+              key={dateKey}
+              className="flex flex-col min-w-0"
+              style={{ ...colStyle, background: isDrop ? mixWithWhite(ACCENT, 0.88) : isToday ? mixWithWhite(ACCENT, 0.95) : UI.card }}
+              aria-label={dayAriaLabel(dateKey, holiday, dayPosts.length)}
+              {...(dnd?.enabled ? dnd.dropProps(dateKey) : {})}
+            >
+              <div className="px-2 py-1.5" style={{ background: UI.stone, borderBottom: `1px solid ${UI.line}` }}>
+                <div className="font-mono text-[10.5px] uppercase" style={{ color: UI.inkSoft }}>{date.toLocaleDateString("en-US", { weekday: "short" })}</div>
+                <div className="font-body text-sm font-bold" style={{ color: isToday ? ACCENT : dateKey < todayKey ? UI.inkSoft : UI.ink }}>{date.getDate()}</div>
+              </div>
+              <div className="flex-1 flex flex-col gap-1.5 p-1.5">
+                {holiday && (
+                  <span className="font-body text-[10.5px] font-semibold rounded px-1.5 py-0.5 truncate" style={{ background: mixWithWhite(ACCENT, 0.9), color: ACCENT }} title={holiday}>
+                    {holiday}
+                  </span>
+                )}
+                {dayPosts.map((post) => <WeekCard key={post.id} post={post} draggable={!!dnd?.enabled} {...handlers} />)}
+                {dateKey >= todayKey && (
+                  <button
+                    type="button"
+                    onClick={() => onAdd(dateKey)}
+                    className="press-fx mt-auto rounded-md font-body text-xs font-bold"
+                    style={{ minHeight: 32, color: ACCENT, border: `1px dashed ${UI.line}` }}
+                    aria-label={`Plan a post on ${date.toLocaleDateString("en-US", { month: "long", day: "numeric" })}`}
+                  >
+                    +
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="font-body text-xs text-center mt-2.5" style={{ color: UI.inkSoft }}>Drag a post onto another day to move it</p>
+    </div>
+  );
+}
+
+function WeekCard({ post, draggable, onConfirm, onDismiss, onEdit, onTogglePosted }) {
+  const color = CATEGORIES[post.category]?.color || UI.inkSoft;
+  const suggested = post.status === "suggested";
+  const iconButton = { width: 28, height: 28 };
+  return (
+    <div
+      {...(draggable ? postDragProps(post) : {})}
+      className="rounded-md p-1.5"
+      style={{
+        background: suggested ? mixWithWhite(ACCENT, 0.94) : mixWithWhite(color, 0.9),
+        border: suggested ? `1.5px dashed ${ACCENT}` : `1px solid ${mixWithWhite(color, 0.6)}`,
+        cursor: draggable ? "grab" : undefined,
+      }}
+    >
+      <button type="button" onClick={() => onEdit(post)} className="block w-full text-left" title="Edit">
+        <span
+          className="block font-body text-xs font-medium leading-snug line-clamp-3 break-words"
+          style={{ color: post.posted ? UI.inkSoft : UI.ink, textDecoration: post.posted ? "line-through" : "none" }}
+        >
+          {post.title}
+        </span>
+        <span className="flex items-center gap-1 mt-1 font-body text-[10.5px] truncate" style={{ color: UI.inkSoft }}>
+          <CategoryDot category={post.category} size={6} hollow={suggested} />
+          {suggested ? "Suggested" : categoryLabel(post.category)}
+        </span>
+      </button>
+      <div className="flex justify-end gap-0.5 mt-0.5">
+        {suggested ? (
+          <>
+            <button type="button" onClick={() => onConfirm(post.id)} className="press-fx flex items-center justify-center rounded" style={{ ...iconButton, color: WHITE, background: ACCENT }} aria-label="Confirm suggestion" title="Confirm">
+              <Check size={14} />
+            </button>
+            <button type="button" onClick={() => onDismiss(post)} className="press-fx flex items-center justify-center rounded" style={{ ...iconButton, color: UI.inkSoft }} aria-label="Dismiss suggestion" title="Dismiss">
+              <X size={14} />
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onTogglePosted(post)}
+            className="press-fx flex items-center justify-center"
+            style={{ ...iconButton, color: post.posted ? "#0F9D58" : UI.inkSoft }}
+            aria-pressed={!!post.posted}
+            aria-label={post.posted ? "Mark as not posted" : "Mark as posted"}
+            title={post.posted ? "Posted" : "Mark as posted"}
+          >
+            {post.posted ? <CheckCircle2 size={15} /> : <Circle size={15} />}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -990,7 +1250,7 @@ const PRIMARY_BUTTON_STYLE = { minHeight: 44, background: ACCENT, color: WHITE, 
 
 function RecurringTopicModal({ editing, setEditing, onSave, onClose }) {
   return (
-    <ModalShell title="Recurring topic" subtitle="Repeats every month, on the same day" onClose={onClose} onSubmit={onSave}>
+    <ModalShell title={editing.id ? "Edit recurring topic" : "Recurring topic"} subtitle="Repeats every month, on the same day" onClose={onClose} onSubmit={onSave}>
       <div className="px-6 py-4 grid gap-4">
         <label className="block">
           <FieldLabel>TITLE</FieldLabel>
@@ -1024,8 +1284,13 @@ function RecurringTopicModal({ editing, setEditing, onSave, onClose }) {
       </div>
 
       <div className="px-6 pb-5">
+        {editing.id && (
+          <p className="font-body text-xs mb-3" style={{ color: UI.inkSoft }}>
+            Changes apply to months you haven't opened yet. Posts already on your calendar stay as they are.
+          </p>
+        )}
         <button type="submit" disabled={!editing.title.trim()} className="press-fx w-full rounded-lg font-body font-bold text-sm transition disabled:opacity-50" style={PRIMARY_BUTTON_STYLE}>
-          Add recurring topic
+          {editing.id ? "Save changes" : "Add recurring topic"}
         </button>
       </div>
     </ModalShell>

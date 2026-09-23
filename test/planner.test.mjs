@@ -1,7 +1,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
-import { groupAgendaDays, formatDateRange } from "../src/lib/planner.mjs";
+import { groupAgendaDays, formatDateRange, monthWeeks, weekIndexOf } from "../src/lib/planner.mjs";
 
 const day = (date, { posts = [], holiday } = {}) => ({ date, posts, holiday });
 const shape = (items) => items.map((i) => (i.type === "day" ? i.day.date : i.days.map((d) => d.date)));
@@ -39,5 +39,26 @@ describe("formatDateRange", () => {
 
   test("names both months across a boundary", () => {
     assert.equal(formatDateRange("2026-10-30", "2026-11-02"), "Oct 30 – Nov 2");
+  });
+});
+
+describe("monthWeeks / weekIndexOf", () => {
+  test("pads the first and last weeks with nulls (Sep 2026 starts on a Tuesday)", () => {
+    const weeks = monthWeeks("2026-09");
+    assert.equal(weeks.length, 5);
+    assert.deepEqual(weeks[0].slice(0, 3), [null, null, "2026-09-01"]);
+    assert.deepEqual(weeks[4], ["2026-09-27", "2026-09-28", "2026-09-29", "2026-09-30", null, null, null]);
+    assert.ok(weeks.every((w) => w.length === 7));
+  });
+
+  test("a month can span six weeks", () => {
+    assert.equal(monthWeeks("2026-08").length, 6); // Sat the 1st, 31 days
+  });
+
+  test("weekIndexOf finds the row a date sits in", () => {
+    for (const key of ["2026-09-01", "2026-09-05", "2026-09-06", "2026-09-23", "2026-09-30", "2026-08-31"]) {
+      const weeks = monthWeeks(key.slice(0, 7));
+      assert.ok(weeks[weekIndexOf(key)].includes(key), key);
+    }
   });
 });

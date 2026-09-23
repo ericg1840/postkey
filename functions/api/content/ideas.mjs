@@ -66,10 +66,10 @@ export async function onRequestPatch({ request, env }) {
     WITH claimed AS (
       UPDATE content_ideas SET added_at = NOW()
        WHERE id = ${id} AND user_id = ${userId} AND added_at IS NULL
-      RETURNING title, category
+      RETURNING id, title, category
     )
-    INSERT INTO content_posts (user_id, date, title, category, status, source)
-    SELECT ${userId}, ${date}, title, category, 'suggested', 'idea' FROM claimed
+    INSERT INTO content_posts (user_id, date, title, category, status, source, idea_id)
+    SELECT ${userId}, ${date}, title, category, 'suggested', 'idea', id FROM claimed
     RETURNING id, date, title, category, status, source, posted
   `;
   if (!post) return json({ error: "Idea already added." }, { status: 400 });
