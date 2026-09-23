@@ -31,7 +31,10 @@ import * as adminAnalytics from "../functions/api/admin/analytics.mjs";
 import * as track from "../functions/api/track.mjs";
 import * as verifyEmail from "../functions/api/auth/verify-email.mjs";
 import * as resendVerification from "../functions/api/auth/resend-verification.mjs";
+import * as bioHeadshot from "../functions/api/bio-headshot.mjs";
 import { sendErrorAlert } from "../functions/_lib/alerts.mjs";
+import { getDb } from "../functions/_lib/db.mjs";
+import { loadBioMeta, bioShareText, hasShareableHeadshot } from "../functions/_lib/bioMeta.mjs";
 
 // Every handler in functions/api/ has to be listed here by hand — one that
 // isn't falls through to the static site and silently serves index.html.
@@ -50,6 +53,7 @@ export const ROUTES = {
   "/api/brand-kit": { GET: brandKit.onRequestGet, PUT: brandKit.onRequestPut },
   "/api/bio": { GET: bio.onRequestGet, PUT: bio.onRequestPut },
   "/api/bio-public": { GET: bioPublic.onRequestGet },
+  "/api/bio-headshot": { GET: bioHeadshot.onRequestGet },
   "/api/listings-fetch": { POST: listingsFetch.onRequestPost },
   "/api/posts": { GET: posts.onRequestGet, POST: posts.onRequestPost, DELETE: posts.onRequestDelete },
   "/api/drafts": { GET: drafts.onRequestGet, PUT: drafts.onRequestPut, DELETE: drafts.onRequestDelete },
@@ -73,6 +77,8 @@ export const ROUTES = {
   "/api/track": { POST: track.onRequestPost },
 };
 
+/* global HTMLRewriter -- provided by the Workers runtime */
+
 // Link-preview scrapers (Facebook, LinkedIn, iMessage) mostly ignore a
 // relative og:image, and index.html can't hardcode a domain — the same build
 // serves the workers.dev URL and any custom domain. So the page's og:image,
@@ -81,7 +87,6 @@ export const ROUTES = {
 // straight through.
 const SHARE_URL_TAGS = ['meta[property="og:image"]', 'meta[name="twitter:image"]', 'meta[property="og:url"]'];
 
-/* global HTMLRewriter -- provided by the Workers runtime */
 export function absolutizeShareTags(response, request) {
   const type = response.headers.get("content-type") || "";
   if (!type.includes("text/html") || typeof HTMLRewriter === "undefined") return response;
@@ -99,6 +104,48 @@ export function absolutizeShareTags(response, request) {
     });
   }
   return rewriter.transform(response);
+}
+
+// A public /u/<handle> page gets the agent's own title, description and
+// photo in place of PostKey's generic ones, so a shared link previews as
+// them. An unknown or disabled handle gets a real 404 status (the page
+// still renders its own "not found" screen). Any failure here falls back to
+// the generic page — a preview is never worth breaking the page over.
+export async function rewriteBioPage(response, request, env, lookup = (handle) => loadBioMeta(getDb(env), handle)) {
+  const match = new URL(request.url).pathname.match(/^\/u\/([^/]+)\/?$/);
+  const type = response.headers.get("content-type") || "";
+  if (!match || !type.includes("text/html") || typeof HTMLRewriter === "undefined") return response;
+
+  let meta;
+  try {
+    meta = await lookup(decodeURIComponent(match[1]));
+  } catch (err) {
+    console.error("Bio page preview lookup failed", err);
+    return response;
+  }
+  if (!meta) return new Response(response.body, { status: 404, headers: response.headers });
+
+  const { title, description } = bioShareText(meta);
+  const withPhoto = hasShareableHeadshot(meta.headshotUrl);
+  const image = withPhoto ? `/api/bio-headshot?handle=${encodeURIComponent(meta.handle)}` : "/og-image.png";
+  const set = (value) => ({ element(el) { el.setAttribute("content", value); } });
+  return new HTMLRewriter()
+    .on("title", { element(el) { el.setInnerContent(title); } })
+    .on('meta[name="description"]', set(description))
+    .on('meta[property="og:type"]', set("profile"))
+    .on('meta[property="og:title"]', set(title))
+    .on('meta[property="og:description"]', set(description))
+    .on('meta[property="og:image"]', set(image))
+    .on('meta[property="og:image:alt"]', set(title))
+    // A square headshot, not a 1200x630 banner: drop the banner dimensions
+    // and use the square card layout.
+    .on('meta[property="og:image:width"]', { element(el) { if (withPhoto) el.remove(); } })
+    .on('meta[property="og:image:height"]', { element(el) { if (withPhoto) el.remove(); } })
+    .on('meta[name="twitter:card"]', set(withPhoto ? "summary" : "summary_large_image"))
+    .on('meta[name="twitter:title"]', set(title))
+    .on('meta[name="twitter:description"]', set(description))
+    .on('meta[name="twitter:image"]', set(image))
+    .transform(response);
 }
 
 export default {
@@ -138,7 +185,7 @@ export default {
     // Not an API route — serve the built static site (index.html fallback
     // for client-side routing is handled by the `not_found_handling` setting
     // on the assets binding in wrangler.toml).
-    const response = await env.ASSETS.fetch(request);
+    const response = await rewriteBioPage(await env.ASSETS.fetch(request), request, env);
     return absolutizeShareTags(response, request);
   },
 };

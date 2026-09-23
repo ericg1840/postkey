@@ -3,6 +3,7 @@ import {
   BedDouble, Bath, Star, ChevronRight, Linkedin,
 } from "lucide-react";
 import { UI } from "../shared.jsx";
+import { linkProps } from "../lib/bioLinks.mjs";
 
 // Lucide has no TikTok mark, so this draws the note glyph as a filled path —
 // matching lucide's own icon API (size + color, color resolved through
@@ -129,9 +130,20 @@ export function nameSizePx(id) {
   return (NAME_SIZES.find((s) => s.id === id) || NAME_SIZES[1]).px;
 }
 
-function linkHref(link) {
-  if (!link.url) return "#";
-  return /^https?:\/\//i.test(link.url) ? link.url : `https://${link.url}`;
+// How far apart two hex colors are (0-441). Link-type badge colors are fixed
+// per type, so on a button the agent colored the same (the blue Website
+// badge on blue buttons) the icon circle vanished into the button.
+function colorDistance(a, b) {
+  if (!/^#[0-9a-f]{3,6}$/i.test(a || "") || !/^#[0-9a-f]{3,6}$/i.test(b || "")) return Infinity;
+  const x = hexToRgb(a);
+  const y = hexToRgb(b);
+  return Math.hypot(x.r - y.r, x.g - y.g, x.b - y.b);
+}
+
+// Gives the icon circle a ring in the button's text color when it would
+// otherwise blend into the button.
+export function badgeRing(badgeColor, boxColor) {
+  return colorDistance(badgeColor, boxColor) < 90 ? `0 0 0 2px ${textOn(boxColor)}55` : null;
 }
 
 // asLink: true renders real <a href> tags (the public page); false renders
@@ -155,10 +167,10 @@ export function BioLinksList({ links, bgColor, boxColor, buttonStyle, asLink }) 
             return (
               <Row
                 key={link.id ?? `s${i}`}
-                {...(asLink ? { href: linkHref(link), target: "_blank", rel: "noreferrer" } : {})}
+                {...(asLink ? linkProps(link) : {})}
                 aria-label={typeInfo.label}
                 className="bio-link-icon w-11 h-11 rounded-full flex items-center justify-center shrink-0 hover:scale-105"
-                style={{ background: typeInfo.color, boxShadow: "0 3px 10px rgba(0,0,0,0.25)" }}
+                style={{ background: typeInfo.color, boxShadow: [badgeRing(typeInfo.color, bgColor), "0 3px 10px rgba(0,0,0,0.25)"].filter(Boolean).join(", ") }}
               >
                 <Icon size={19} color="#FFFFFF" />
               </Row>
@@ -189,7 +201,7 @@ export function BioLinksList({ links, bgColor, boxColor, buttonStyle, asLink }) 
             return (
               <Row
                 key={link.id ?? i}
-                {...(asLink ? { href: linkHref(link), target: "_blank", rel: "noreferrer" } : {})}
+                {...(asLink ? linkProps(link) : {})}
                 className="bio-link-row overflow-hidden block"
                 style={{ backgroundColor: boxColor, borderRadius: radius === 999 ? 24 : radius }}
               >
@@ -203,7 +215,7 @@ export function BioLinksList({ links, bgColor, boxColor, buttonStyle, asLink }) 
                 <div className="p-4">
                   <span
                     className="font-mono inline-flex items-center gap-1 text-[10px] tracking-[0.08em] uppercase px-2.5 py-1 rounded-full mb-2.5 shadow-sm"
-                    style={{ background: typeInfo.color, color: "#FFFFFF" }}
+                    style={{ background: typeInfo.color, color: "#FFFFFF", boxShadow: badgeRing(typeInfo.color, boxColor) || undefined }}
                   >
                     <Star size={10} fill="#FFFFFF" /> Featured Listing
                   </span>
@@ -219,7 +231,7 @@ export function BioLinksList({ links, bgColor, boxColor, buttonStyle, asLink }) 
                     </div>
                   )}
                   {link.price && (
-                    <p className="font-display text-2xl font-bold mt-2.5" style={{ color: typeInfo.color }}>{link.price}</p>
+                    <p className="font-display text-2xl font-bold mt-2.5" style={{ color: boxTextColor }}>{link.price}</p>
                   )}
                 </div>
               </Row>
@@ -237,18 +249,18 @@ export function BioLinksList({ links, bgColor, boxColor, buttonStyle, asLink }) 
           return (
             <Row
               key={link.id ?? i}
-              {...(asLink ? { href: linkHref(link), target: "_blank", rel: "noreferrer" } : {})}
+              {...(asLink ? linkProps(link) : {})}
               className="bio-link-row flex items-center gap-3.5 px-4 py-3.5 hover:-translate-y-0.5"
               style={{ backgroundColor: boxColor, borderRadius: radius }}
             >
               <div
                 className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: typeInfo.color, boxShadow: "0 2px 8px rgba(0,0,0,0.2)" }}
+                style={{ background: typeInfo.color, boxShadow: [badgeRing(typeInfo.color, boxColor), "0 2px 8px rgba(0,0,0,0.2)"].filter(Boolean).join(", ") }}
               >
                 <Icon size={19} style={{ color: "#FFFFFF" }} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-body text-base font-semibold truncate" style={{ color: boxTextColor }}>{title}</p>
+                <p className="font-body text-base font-semibold line-clamp-2 break-words" style={{ color: boxTextColor }}>{title}</p>
                 {sub && <p className="font-body text-xs truncate" style={{ color: boxSubColor }}>{sub}</p>}
               </div>
               <ChevronRight size={20} style={{ color: boxTextColor, opacity: 0.5 }} className="shrink-0" />
