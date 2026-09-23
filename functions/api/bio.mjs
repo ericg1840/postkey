@@ -13,7 +13,7 @@ export async function onRequestGet({ request, env }) {
   if (auth.error) return auth.error;
   const { userId, db } = auth;
 
-  const [kit] = await db.sql`SELECT bio_handle, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style, bio_bg_image_url, bio_bg_tint FROM brand_kits WHERE user_id = ${userId}`;
+  const [kit] = await db.sql`SELECT bio_handle, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style, bio_bg_image_url, bio_bg_tint, bio_show_contact, bio_show_license, bio_show_eho FROM brand_kits WHERE user_id = ${userId}`;
   const links = await db.sql`SELECT id, type, label, url, address, price, beds, baths, photo_url FROM bio_links WHERE user_id = ${userId} ORDER BY sort_order ASC, id ASC`;
 
   return json({
@@ -28,6 +28,9 @@ export async function onRequestGet({ request, env }) {
       buttonStyle: kit?.bio_button_style || "rounded",
       bgImageUrl: kit?.bio_bg_image_url || "",
       bgTint: kit?.bio_bg_tint ?? 40,
+      showContact: !!kit?.bio_show_contact,
+      showLicense: !!kit?.bio_show_license,
+      showEho: !!kit?.bio_show_eho,
     },
     links: links.map((l) => ({
       id: String(l.id),
@@ -62,6 +65,9 @@ export async function onRequestPut({ request, env }) {
   const bgImageUrl = body.bgImageUrl ? String(body.bgImageUrl).slice(0, 4_000_000) : null;
   const bgTint = Number.isFinite(body.bgTint) ? Math.max(0, Math.min(100, Math.round(body.bgTint))) : 40;
   const links = Array.isArray(body.links) ? body.links : [];
+  const showContact = body.showContact === true;
+  const showLicense = body.showLicense === true;
+  const showEho = body.showEho === true;
 
   if (handle && !HANDLE_RE.test(handle)) {
     return json({ error: "Handle can only use lowercase letters, numbers, and hyphens." }, { status: 400 });
@@ -98,6 +104,9 @@ export async function onRequestPut({ request, env }) {
         bio_button_style = ${buttonStyle},
         bio_bg_image_url = ${bgImageUrl},
         bio_bg_tint = ${bgTint},
+        bio_show_contact = ${showContact},
+        bio_show_license = ${showLicense},
+        bio_show_eho = ${showEho},
         updated_at = NOW()
       WHERE user_id = ${userId}
     `,

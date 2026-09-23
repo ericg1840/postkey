@@ -2,6 +2,7 @@ import { getDb } from "../_lib/db.mjs";
 import { json } from "../_lib/auth.mjs";
 import { logEvent } from "../_lib/activity.mjs";
 import { checkRateLimit, getClientIp } from "../_lib/rateLimit.mjs";
+import { normalizePhone } from "../_lib/vcard.mjs";
 
 // Counted once per visitor per page per half hour: without this, every
 // refresh (or a script hammering the URL) wrote another activity_events row,
@@ -22,7 +23,8 @@ export async function onRequestGet({ request, env }) {
 
   const db = getDb(env);
   const [kit] = await db.sql`
-    SELECT k.user_id, agent_name, headshot_url, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style, bio_bg_image_url, bio_bg_tint
+    SELECT k.user_id, agent_name, headshot_url, bio_tagline, bio_brokerage, bio_bg_color, bio_box_color, bio_name_font, bio_name_size, bio_button_style, bio_bg_image_url, bio_bg_tint,
+           agent_phone, agent_email, license_number, bio_show_contact, bio_show_license, bio_show_eho
     FROM brand_kits k
     JOIN users u ON u.id = k.user_id
     WHERE k.bio_handle = ${handle} AND u.account_status = 'active'
@@ -54,6 +56,13 @@ export async function onRequestGet({ request, env }) {
     buttonStyle: kit.bio_button_style || "rounded",
     bgImageUrl: kit.bio_bg_image_url || "",
     bgTint: kit.bio_bg_tint ?? 40,
+    // Phone, email and license number come from the brand kit, and are only
+    // published once the agent has switched them on for this page.
+    contact: kit.bio_show_contact
+      ? { phone: normalizePhone(kit.agent_phone), email: (kit.agent_email || "").trim() }
+      : null,
+    license: kit.bio_show_license ? (kit.license_number || "").trim() : "",
+    showEho: !!kit.bio_show_eho,
     links: links.map((l) => ({
       type: l.type,
       label: l.label,

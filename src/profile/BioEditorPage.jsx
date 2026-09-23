@@ -7,7 +7,7 @@ import { UI, ACCENT, ACCENT_PRESETS, ERROR, WHITE, TopNav, SCRIPT_FONTS, scriptF
 import { useAuth } from "../auth/AuthContext.jsx";
 import { QrCodeButton } from "./QrCodeButton.jsx";
 import {
-  LINK_TYPES, SOCIAL_TYPES, BioLinksList, textOn, relativeLuminance,
+  LINK_TYPES, SOCIAL_TYPES, BioLinksList, ContactButtons, ComplianceFooter, textOn, relativeLuminance,
   NAME_SIZES, nameSizePx, THEME_PRESETS, BUTTON_STYLES, bgStyle, resizeImageToDataUrl,
 } from "./bioShared.jsx";
 
@@ -19,6 +19,7 @@ const TAGLINE_MAX = 80;
 const DEFAULTS = {
   handle: "", tagline: "", brokerage: "", bgColor: UI.ink, boxColor: "#2E3B4C",
   nameFont: "", nameSize: "md", buttonStyle: "rounded", bgImageUrl: "", bgTint: 40,
+  showContact: false, showLicense: false, showEho: false,
 };
 
 let linkIdSeq = 0;
@@ -90,6 +91,9 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
           buttonStyle: data.profile?.buttonStyle || DEFAULTS.buttonStyle,
           bgImageUrl: data.profile?.bgImageUrl || DEFAULTS.bgImageUrl,
           bgTint: data.profile?.bgTint ?? DEFAULTS.bgTint,
+          showContact: !!data.profile?.showContact,
+          showLicense: !!data.profile?.showLicense,
+          showEho: !!data.profile?.showEho,
         });
         setLinks(data.links || []);
         setSavedHandle(data.profile?.handle || "");
@@ -112,6 +116,17 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
   );
   const availableSocialTypes = SOCIAL_LINK_TYPES.filter((t) => !links.some((l) => l.type === t.id));
   const publicUrl = savedHandle ? `${window.location.origin}/u/${savedHandle}` : "";
+
+  // Contact details and license come from the brand kit (Profile › Brand);
+  // this page only decides whether to show them.
+  const kitPhone = (brandKit?.agentPhone || "").trim();
+  const kitEmail = (brandKit?.agentEmail || "").trim();
+  const kitLicense = (brandKit?.licenseNumber || "").trim();
+  const previewExtras = {
+    contact: profile.showContact && (kitPhone || kitEmail) ? { phone: kitPhone, email: kitEmail } : null,
+    license: profile.showLicense ? kitLicense : "",
+    showEho: profile.showEho,
+  };
 
   function addLink(type) {
     setLinks((prev) => [
@@ -532,6 +547,37 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                 </div>
               </Section>
 
+              <Section number={5} title="Contact & Licensing" subtitle="Let visitors reach you in one tap. Off until you turn it on." accent={ACCENT_PRESETS[2]}>
+                <div className="flex flex-col gap-4">
+                  <ToggleRow
+                    label="Call, Text & Email buttons"
+                    detail={kitPhone || kitEmail ? [kitPhone, kitEmail].filter(Boolean).join(" · ") : null}
+                    missing="Add your phone or email in Profile › Brand first."
+                    checked={profile.showContact}
+                    onChange={setField("showContact")}
+                    disabled={!kitPhone && !kitEmail}
+                    extra={'Includes a "Save my contact" button that adds you to the visitor\'s phone.'}
+                  />
+                  <ToggleRow
+                    label="License number"
+                    detail={kitLicense ? `License #${kitLicense}` : null}
+                    missing="Add your license number in Profile › Brand first."
+                    checked={profile.showLicense}
+                    onChange={setField("showLicense")}
+                    disabled={!kitLicense}
+                    extra="Shown with your name and brokerage at the bottom of the page. Many states require it on advertising."
+                  />
+                  <ToggleRow
+                    label="Equal Housing Opportunity logo"
+                    checked={profile.showEho}
+                    onChange={setField("showEho")}
+                  />
+                  <button type="button" onClick={() => onSwitchTool("profile")} className="font-body text-xs underline self-start text-left" style={{ color: UI.inkSoft, minHeight: 32 }}>
+                    Edit phone, email or license in Profile
+                  </button>
+                </div>
+              </Section>
+
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   onClick={save}
@@ -593,7 +639,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                     className="rounded-[1.9rem] overflow-hidden min-h-[560px] px-6 py-8 flex flex-col items-center transition-colors duration-200"
                     style={bgStyle(profile.bgColor, profile.bgImageUrl, profile.bgTint)}
                   >
-                    <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, links, ...profile }} />
+                    <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, links, ...profile, ...previewExtras }} />
                   </div>
                 </div>
               ) : (
@@ -613,7 +659,7 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
                     style={bgStyle(profile.bgColor, profile.bgImageUrl, profile.bgTint)}
                   >
                     <div className="w-full max-w-sm">
-                      <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, links, ...profile }} />
+                      <PreviewContent {...{ name, headshotUrl: brandKit?.headshotUrl, links, ...profile, ...previewExtras }} />
                     </div>
                   </div>
                 </div>
@@ -626,10 +672,10 @@ export function BioEditorPage({ onSwitchTool, onGoHome }) {
   );
 }
 
-function PreviewContent({ name, headshotUrl, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links }) {
+function PreviewContent({ name, headshotUrl, tagline, brokerage, bgColor, boxColor, nameFont, nameSize, buttonStyle, links, contact, license, showEho }) {
   return (
     <>
-      <div className="w-20 h-20 rounded-full p-1 mb-4" style={{ background: `conic-gradient(from 180deg, ${ACCENT}, #6E8CFF, ${ACCENT})` }}>
+      <div className="w-20 h-20 rounded-full p-1 mb-4" style={{ background: boxColor || ACCENT }}>
         {headshotUrl ? (
           <img src={headshotUrl} alt="" className="w-full h-full rounded-full object-cover" />
         ) : (
@@ -654,7 +700,15 @@ function PreviewContent({ name, headshotUrl, tagline, brokerage, bgColor, boxCol
       )}
       <p className="font-body text-xs text-center mb-6 opacity-70 max-w-[260px]" style={{ color: textOn(bgColor) }}>{tagline}</p>
 
+      {contact && (
+        <div className="w-full mb-4">
+          <ContactButtons contact={contact} bgColor={bgColor} boxColor={boxColor} buttonStyle={buttonStyle} asLink={false} />
+        </div>
+      )}
+
       <BioLinksList links={links} bgColor={bgColor} boxColor={boxColor} buttonStyle={buttonStyle} asLink={false} />
+
+      <ComplianceFooter name={name} brokerage={brokerage} license={license} showEho={showEho} bgColor={bgColor} />
 
       <p className="font-mono text-[10px] tracking-[0.1em] uppercase mt-8 opacity-40" style={{ color: textOn(bgColor) }}>Powered by PostKey</p>
     </>
@@ -787,5 +841,44 @@ function ColorField({ label, value, onChange }) {
         <input value={value} onChange={(e) => onChange(e.target.value)} className="font-body flex-1 bg-transparent text-sm outline-none uppercase min-w-0" style={{ color: UI.ink }} />
       </div>
     </div>
+  );
+}
+
+// A labelled on/off switch. When the brand kit doesn't have what it would
+// show, the switch is disabled and `missing` says where to add it.
+function ToggleRow({ label, detail, missing, extra, checked, onChange, disabled = false }) {
+  const on = checked && !disabled;
+  return (
+    <label className={`flex items-start justify-between gap-4 ${disabled ? "opacity-60" : "cursor-pointer"}`}>
+      <span className="min-w-0">
+        <span className="font-body text-sm font-semibold block" style={{ color: UI.ink }}>{label}</span>
+        {disabled && missing ? (
+          <span className="font-body text-xs block mt-0.5" style={{ color: UI.inkSoft }}>{missing}</span>
+        ) : detail ? (
+          <span className="font-mono text-xs block mt-0.5 break-all" style={{ color: UI.inkSoft }}>{detail}</span>
+        ) : null}
+        {extra && !disabled && <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>{extra}</span>}
+      </span>
+      <span className="relative inline-flex shrink-0 items-center" style={{ minHeight: 44 }}>
+        <input
+          type="checkbox"
+          role="switch"
+          className="peer sr-only"
+          checked={on}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        <span
+          aria-hidden="true"
+          className="block rounded-full transition peer-focus-visible:outline peer-focus-visible:outline-2"
+          style={{ width: 44, height: 26, background: on ? "#0F9D58" : UI.line }}
+        />
+        <span
+          aria-hidden="true"
+          className="absolute rounded-full bg-white transition-transform"
+          style={{ width: 20, height: 20, left: 3, transform: on ? "translateX(18px)" : "none", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }}
+        />
+      </span>
+    </label>
   );
 }

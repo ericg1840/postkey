@@ -32,6 +32,7 @@ import * as track from "../functions/api/track.mjs";
 import * as verifyEmail from "../functions/api/auth/verify-email.mjs";
 import * as resendVerification from "../functions/api/auth/resend-verification.mjs";
 import * as bioHeadshot from "../functions/api/bio-headshot.mjs";
+import * as bioVcard from "../functions/api/bio-vcard.mjs";
 import { sendErrorAlert } from "../functions/_lib/alerts.mjs";
 import { getDb } from "../functions/_lib/db.mjs";
 import { loadBioMeta, bioShareText, hasShareableHeadshot } from "../functions/_lib/bioMeta.mjs";
@@ -54,6 +55,7 @@ export const ROUTES = {
   "/api/bio": { GET: bio.onRequestGet, PUT: bio.onRequestPut },
   "/api/bio-public": { GET: bioPublic.onRequestGet },
   "/api/bio-headshot": { GET: bioHeadshot.onRequestGet },
+  "/api/bio-vcard": { GET: bioVcard.onRequestGet },
   "/api/listings-fetch": { POST: listingsFetch.onRequestPost },
   "/api/posts": { GET: posts.onRequestGet, POST: posts.onRequestPost, DELETE: posts.onRequestDelete },
   "/api/drafts": { GET: drafts.onRequestGet, PUT: drafts.onRequestPut, DELETE: drafts.onRequestDelete },
