@@ -8,7 +8,7 @@ import {
   DEFAULT_HEADSHOT_URL, DEFAULT_LOGO_URL,
   mixWithWhite, mixWithBlack, isLightColor, hexToRgba, drawCover, wrapText, roundRect, archedRect, drawContactBand,
   useUploadedImage, useAgentAsset, UploadBox, PhotoReposition, TopNav, isMobileDevice,
-  Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord, firstNameOf,
+  Accordion, PrivacyBadge, splitHeadlineLastWord, splitHeadlineFirstWord, HeadlineInput, firstNameOf,
   peekPostHandoff, clearPostHandoff, shareImageToFacebook,
   peekDraftHandoff, clearDraftHandoff, loadPostDrafts, SaveForLaterButton,
   canvasToPngBlob, canvasThumbDataUrl, downloadBlob, canvasBlockedMessage, THUMB_ASPECTS,
@@ -1947,11 +1947,10 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               {(form.layout === "bold" || form.layout === "signature" || form.layout === "roundup" || form.layout === "spotlight") && (
                 <label className="block md:col-span-2">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
-                  <input className="input" value={`${form.word1} ${form.script}`.trim()}
-                    onChange={(e) => {
-                      const { lead, emphasis } = splitHeadlineLastWord(e.target.value);
-                      setForm((f) => ({ ...f, word1: lead, script: emphasis }));
-                    }} placeholder={form.layout === "roundup" ? "New listings!" : form.layout === "spotlight" ? "Ridge Residence!" : "Just SOLD!"} />
+                  <HeadlineInput value={`${form.word1} ${form.script}`.trim()}
+                    split={splitHeadlineLastWord}
+                    onSplit={({ lead, emphasis }) => setForm((f) => ({ ...f, word1: lead, script: emphasis }))}
+                    placeholder={form.layout === "roundup" ? "New listings!" : form.layout === "spotlight" ? "Ridge Residence!" : "Just SOLD!"} />
                   <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The last word gets your accent color{form.layout === "bold" || form.layout === "signature" ? " and accent font" : ""}.</span>
                 </label>
               )}
@@ -1982,11 +1981,10 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               {form.layout === "modern" && (
                 <label className="block md:col-span-2">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>HEADLINE</span>
-                  <input className="input" value={`${form.modernScript} ${form.modernHeadline}`.trim()}
-                    onChange={(e) => {
-                      const { emphasis, lead } = splitHeadlineFirstWord(e.target.value);
-                      setForm((f) => ({ ...f, modernScript: emphasis, modernHeadline: lead }));
-                    }} placeholder="just Listed" />
+                  <HeadlineInput value={`${form.modernScript} ${form.modernHeadline}`.trim()}
+                    split={splitHeadlineFirstWord}
+                    onSplit={({ emphasis, lead }) => setForm((f) => ({ ...f, modernScript: emphasis, modernHeadline: lead }))}
+                    placeholder="just Listed" />
                   <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>The first word gets the accent font treatment.</span>
                 </label>
               )}
