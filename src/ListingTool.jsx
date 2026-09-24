@@ -1029,6 +1029,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
     // Left block: brokerage logo only — the agent's name runs large,
     // centered under the headshot instead of sitting next to the logo.
+    let logoRightEdge = w * 0.045;
     if (logo.img) {
       const logoSize = contactH * 0.6;
       const logoX = w * 0.045;
@@ -1036,20 +1037,8 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       const ratio = logo.img.width / logo.img.height;
       const logoW = logoSize * ratio;
       ctx.drawImage(logo.img, logoX, logoY, logoW, logoSize);
+      logoRightEdge = logoX + logoW;
     }
-
-    // Agent name, centered beneath the headshot circle
-    const nameMaxW = Math.min(circleD * 1.6, w * 0.5) || w * 0.5;
-    ctx.font = `700 ${contactH * 0.26}px "Playfair Display", serif`;
-    const nameText = form.agentName.toUpperCase();
-    shrinkToFit(nameText, nameMaxW);
-    ctx.fillStyle = textColor;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    const nameY = hasHeadshot ? bandY + circleD / 2 + (contactH - circleD / 2) / 2 : bandY + contactH / 2;
-    ctx.fillText(nameText, circleCX, nameY);
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
 
     // Right block: user-editable CTA line, then the same brokerage/office
     // info drawContactBand shows on every other layout — right-aligned to
@@ -1074,21 +1063,29 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctaSize *= rightMaxW / ctaWidest;
       ctx.font = `italic 600 ${ctaSize}px "Playfair Display", serif`;
     }
+    // The widest line actually drawn in this block — the agent's name
+    // below has to stay clear of it.
+    let rightBlockW = 0;
+    const drawRight = (text, y) => {
+      rightBlockW = Math.max(rightBlockW, ctx.measureText(text).width);
+      ctx.fillText(text, rightX, y);
+    };
+
     ctx.fillStyle = textColor;
     const ctaLineH = ctaSize * 1.15;
     const ctaY0 = bandY + contactH * 0.2 - (ctaLines.length - 1) * ctaLineH * 0.5;
-    ctaLines.forEach((line, i) => ctx.fillText(line, rightX, ctaY0 + i * ctaLineH));
+    ctaLines.forEach((line, i) => drawRight(line, ctaY0 + i * ctaLineH));
 
     ctx.font = `800 ${contactH * 0.135}px "Montserrat", sans-serif`;
     shrinkToFit(form.agentPhone, rightMaxW);
     ctx.fillStyle = form.accentColor;
-    ctx.fillText(form.agentPhone, rightX, bandY + contactH * 0.42);
+    drawRight(form.agentPhone, bandY + contactH * 0.42);
 
     if (form.agentEmail) {
       ctx.font = `600 ${contactH * 0.095}px "Montserrat", sans-serif`;
       shrinkToFit(form.agentEmail, rightMaxW);
       ctx.fillStyle = mutedColor;
-      ctx.fillText(form.agentEmail, rightX, bandY + contactH * 0.57);
+      drawRight(form.agentEmail, bandY + contactH * 0.57);
     }
 
     const brokerLine = [form.brokerageName, form.brokerageCity].filter(Boolean).join("   ·   ");
@@ -1097,7 +1094,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.font = brokerFont;
       shrinkToFit(brokerLine, rightMaxW);
       ctx.fillStyle = textColor;
-      ctx.fillText(brokerLine, rightX, bandY + contactH * 0.75);
+      drawRight(brokerLine, bandY + contactH * 0.75);
     }
 
     const officeLine = [form.officePhone && `Office  ${form.officePhone}`, form.website].filter(Boolean).join("   ·   ");
@@ -1105,9 +1102,59 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.font = `500 ${contactH * 0.08}px "Montserrat", sans-serif`;
       shrinkToFit(officeLine, rightMaxW);
       ctx.fillStyle = mutedColor;
-      ctx.fillText(officeLine, rightX, bandY + contactH * 0.9);
+      drawRight(officeLine, bandY + contactH * 0.9);
     }
     ctx.textAlign = "left";
+
+    // Agent name, centered beneath the headshot circle. Drawn last so it can
+    // be fitted to the space actually left between the logo and the contact
+    // block: sizing it off the circle alone let a long name ("BILLY-JO
+    // SALKOWSKI") run over the brokerage line beside it. It shrinks first,
+    // then splits onto two lines, and slides off-center only if it must.
+    const gap = w * 0.02;
+    const leftLimit = logoRightEdge + gap;
+    const rightLimit = rightX - rightBlockW - gap;
+    const nameSpace = Math.max(w * 0.12, rightLimit - leftLimit);
+    const nameText = form.agentName.toUpperCase();
+    const nameFont = (size) => `700 ${size}px "Playfair Display", serif`;
+    const nameAreaTop = hasHeadshot ? bandY + circleD / 2 : bandY;
+    const nameAreaH = bandY + contactH - nameAreaTop;
+    let nameSize = Math.min(contactH * 0.26, nameAreaH * 0.62);
+    const minOneLine = contactH * 0.15;
+    ctx.font = nameFont(nameSize);
+    let nameLines = [nameText];
+    const widest = (lines) => Math.max(...lines.map((l) => ctx.measureText(l).width));
+    if (widest(nameLines) > nameSpace) {
+      nameSize = Math.max(minOneLine, nameSize * (nameSpace / widest(nameLines)));
+      ctx.font = nameFont(nameSize);
+    }
+    const words = nameText.split(/\s+/);
+    if (widest(nameLines) > nameSpace && words.length > 1) {
+      // Split where the two halves are closest in length.
+      let best = null;
+      for (let i = 1; i < words.length; i++) {
+        const lines = [words.slice(0, i).join(" "), words.slice(i).join(" ")];
+        const lw = widest(lines);
+        if (!best || lw < best.w) best = { lines, w: lw };
+      }
+      nameLines = best.lines;
+      nameSize = Math.min(contactH * 0.2, (nameAreaH * 0.8) / 2 / 1.1);
+      ctx.font = nameFont(nameSize);
+    }
+    if (widest(nameLines) > nameSpace) {
+      nameSize *= nameSpace / widest(nameLines);
+      ctx.font = nameFont(nameSize);
+    }
+    const nameW = widest(nameLines);
+    const nameX = Math.min(Math.max(circleCX, leftLimit + nameW / 2), rightLimit - nameW / 2);
+    const nameLineH = nameSize * 1.1;
+    const nameY0 = nameAreaTop + nameAreaH / 2 - ((nameLines.length - 1) * nameLineH) / 2;
+    ctx.fillStyle = textColor;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    nameLines.forEach((line, i) => ctx.fillText(line, nameX, nameY0 + i * nameLineH));
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
   };
 
   // ---- Ribbon layout: full-bleed photo with a colored corner ribbon
