@@ -965,6 +965,21 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
     ctx.font = scriptFontCss(form.scriptFont, scriptSize);
     ctx.fillText(scriptWord, w * 0.62, photoH * 0.63);
+
+    // ---- Property line under the headline ----
+    // Signature was the one layout that never said which home the post was
+    // about. Kept small and above the headshot that straddles the bar below.
+    let detailY = photoH * 0.63 + photoH * 0.085;
+    if (form.address) {
+      const fitted = fitTextLine(ctx, form.address.toUpperCase(), w * 0.8, photoH * 0.034, photoH * 0.024, (s) => `700 ${s}px "Montserrat", sans-serif`);
+      ctx.fillText(fitted.text, w / 2, detailY);
+      detailY += fitted.size * 1.55;
+    }
+    const details = [form.beds && `${form.beds} BD`, form.baths && `${form.baths} BA`, form.price].filter(Boolean).join("   ·   ");
+    if (details) {
+      const fitted = fitTextLine(ctx, details, w * 0.8, photoH * 0.026, photoH * 0.02, (s) => `600 ${s}px "Montserrat", sans-serif`);
+      ctx.fillText(fitted.text, w / 2, detailY);
+    }
     ctx.restore();
     ctx.textAlign = "left";
 
@@ -1383,13 +1398,21 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     ctx.fillText(pillText, pillX + pillPadX + dotR * 2 + pillSize * 0.6, pillY + pillH / 2 + pillSize * 0.02);
     ctx.textBaseline = "alphabetic";
 
-    // ---- Timestamp (top-right) ----
-    const stamp = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).replace(",", " ·").toUpperCase();
-    ctx.font = `600 ${photoH * 0.026}px "Public Sans", sans-serif`;
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
-    ctx.textAlign = "right";
-    ctx.fillText(stamp, w * 0.955, h * 0.03 + photoH * 0.026);
-    ctx.textAlign = "left";
+    // ---- Date (top-right) ----
+    // Only a date that belongs to the listing (Coming Soon's "available"
+    // date). This used to stamp the moment the image was made, which went
+    // stale — and looked wrong — on any post published later.
+    const listingDateLabel = form.template === "coming_soon" ? formatListingDate(form.listingDate) : "";
+    if (listingDateLabel) {
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.45)";
+      ctx.shadowBlur = w * 0.008;
+      ctx.font = `600 ${photoH * 0.026}px "Public Sans", sans-serif`;
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.textAlign = "right";
+      ctx.fillText(`AVAILABLE ${listingDateLabel.toUpperCase()}`, w * 0.955, h * 0.03 + photoH * 0.026);
+      ctx.restore();
+    }
 
     // ---- Stats card ----
     // Text sizes below are fractions of `fs` (the shorter of w/h), not of
@@ -1737,11 +1760,28 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     // A blocked canvas (a cross-origin logo or headshot) throws on export —
     // without this the button stayed stuck on "Preparing…" with no message.
     try {
+      const files = [];
       for (const aspectKey of Object.keys(ASPECTS)) {
         drawToCanvas(offscreen, aspectKey);
         if (aspectKey === "square") savePostToHistory(offscreen);
         const blob = await canvasToPngBlob(offscreen);
-        downloadBlob(blob, `${base}-${aspectKey}.png`);
+        files.push(new File([blob], `${base}-${aspectKey}.png`, { type: "image/png" }));
+      }
+
+      // Phones get every size in one share sheet (Save Images / Photos):
+      // a burst of separate downloads mostly doesn't work there, and iOS
+      // opens each image in a tab instead. If sharing isn't possible or is
+      // refused, fall back to the downloads.
+      if (isMobileDevice() && navigator.canShare?.({ files })) {
+        try {
+          await navigator.share({ files });
+          return;
+        } catch (e) {
+          if (e?.name === "AbortError") return;
+        }
+      }
+      for (const file of files) {
+        downloadBlob(file, file.name);
         await new Promise((r) => setTimeout(r, 400));
       }
     } catch {
@@ -1769,7 +1809,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     form,
     DEFAULTS,
     [
-      ...(form.layout === "modern" || form.layout === "signature" ? [] : ["address"]),
+      ...(form.layout === "modern" ? [] : ["address"]),
       "price",
       ...(form.layout === "roundup" ? ["address2", "price2", "address3", "price3"] : []),
     ],
@@ -1897,7 +1937,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
               <div className="rounded-2xl p-4 sm:p-5 mt-5" style={{ background: UI.card, border: `2px solid ${UI.ink}` }}>
                 <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>LISTING DETAILS</span>
-                {form.layout !== "modern" && form.layout !== "signature" && (
+                {form.layout !== "modern" && (
                   <label className="block">
                     <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>ADDRESS</span>
                     <input className="input" value={form.address} onChange={update("address")} />
@@ -2208,15 +2248,15 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
           {/* Bounded to the visible area and scrollable inside it: the panel
               (preview + social set) is taller than a laptop viewport, and a
               sticky element taller than the screen pins its top and puts its
-              bottom permanently out of reach. */}
+              bottom permanently out of reach. Desktop only (md:): on a phone
+              it just made the review step a nested scroll box that cut off
+              the social set under the preview. */}
           <div
             ref={(el) => { sectionRefs.current[3] = el; }}
-            className={mobileStep === 3 ? "md:sticky md:col-start-2 md:row-span-full" : "hidden md:block md:sticky md:col-start-2 md:row-span-full"}
+            className={`${mobileStep === 3 ? "" : "hidden md:block"} md:sticky md:col-start-2 md:row-span-full md:max-h-[calc(100dvh-82px-3rem)] md:overflow-y-auto`}
             style={{
               top: "calc(82px + 1.5rem)",
               scrollMarginTop: "calc(82px + 1.5rem)",
-              maxHeight: "calc(100dvh - 82px - 3rem)",
-              overflowY: "auto",
             }}
           >
             {mobileStep === 3 && (
@@ -2303,7 +2343,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
             </div>
 
             {/* SOCIAL SET PREVIEW — under the preview card, same column */}
-            <div className="hidden md:block mt-6 rounded-2xl border" style={{ background: UI.card, borderColor: UI.line }}>
+            <div className={`${mobileStep === 3 ? "" : "hidden"} md:block mt-4 md:mt-6 rounded-2xl border`} style={{ background: UI.card, borderColor: UI.line }}>
               <button
                 type="button"
                 onClick={() => setShowSocialSetPreview((s) => !s)}
@@ -2312,7 +2352,6 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                 <div>
                   <h3 className="font-body text-base font-semibold flex items-center gap-2" style={{ color: UI.ink }}>
                     Download your complete social set
-                    <span className="font-mono" style={{ fontSize: "0.6rem", letterSpacing: "0.04em", color: WHITE, background: ACCENT, padding: "1px 6px", borderRadius: 999 }}>NEW</span>
                   </h3>
                   <p className="font-body text-xs mt-1" style={{ color: UI.inkSoft }}>We'll generate multiple sizes for all your platforms.</p>
                 </div>
@@ -2325,13 +2364,13 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
                   <button
                     onClick={downloadAllSizes}
                     disabled={downloadingAll}
-                    className="flex items-center gap-1.5 py-2 px-4 rounded-lg border font-body text-xs font-semibold transition disabled:opacity-60"
-                    style={{ borderColor: UI.line, color: UI.ink }}
+                    className="press-fx flex items-center gap-1.5 py-2 px-4 rounded-lg border font-body text-xs font-semibold transition disabled:opacity-60"
+                    style={{ borderColor: UI.line, color: UI.ink, minHeight: 44 }}
                   >
                     {downloadingAll ? "Preparing…" : "Download All"}
                   </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-2">
                   {THUMB_ASPECTS.map((key) => (
                     <div key={key}>
                       <div className="rounded-lg border overflow-hidden flex items-center justify-center p-2" style={{ background: UI.stone, borderColor: UI.line }}>

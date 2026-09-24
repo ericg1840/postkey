@@ -1535,12 +1535,10 @@ export function CommunityTool({ onSwitchTool, onGoHome }) {
               buttons reachable at any window height. */}
           <div
             ref={(el) => { sectionRefs.current[3] = el; }}
-            className={mobileStep === 3 ? "md:sticky md:col-start-2 md:row-span-full" : "hidden md:block md:sticky md:col-start-2 md:row-span-full"}
+            className={`${mobileStep === 3 ? "" : "hidden md:block"} md:sticky md:col-start-2 md:row-span-full md:max-h-[calc(100dvh-82px-3rem)] md:overflow-y-auto`}
             style={{
               top: "calc(82px + 1.5rem)",
               scrollMarginTop: "calc(82px + 1.5rem)",
-              maxHeight: "calc(100dvh - 82px - 3rem)",
-              overflowY: "auto",
             }}
           >
             {mobileStep === 3 && (
