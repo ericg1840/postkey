@@ -1,6 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Copy, Check, Shuffle, ArrowDown, Home, Building2, Warehouse, Building, AlertTriangle, ShieldCheck, FileText, Facebook } from "lucide-react";
-import { UI, ACCENT, ACCENT_PRESETS, WHITE, mixWithWhite, TopNav } from "./shared.jsx";
+import {
+  UI, ACCENT, ACCENT_PRESETS, WHITE, mixWithWhite, TopNav,
+  peekDraftHandoff, clearDraftHandoff, loadPostDrafts, SaveForLaterButton,
+  loadCaptionWorkingCopy, saveCaptionWorkingCopy,
+} from "./shared.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 import { seedFromText } from "./lib/description.mjs";
 import { DEFAULTS, buildDescription, buildFacebookPost } from "./lib/descriptionCopy.mjs";
@@ -51,6 +55,26 @@ function AutoTextarea({ value, minRows, ...props }) {
   return <textarea ref={ref} rows={minRows} value={value} style={{ overflow: "hidden", resize: "none" }} {...props} />;
 }
 
+// Where the page starts: a draft opened from Profile's Drafts list, else the
+// caption this tab was last working on, else the example. Restored forms
+// are laid over DEFAULTS so one saved before a field existed still has it.
+function initialState(userId) {
+  const handoffId = peekDraftHandoff();
+  const draft = handoffId ? loadPostDrafts().find((d) => d.id === handoffId && d.tool === "description") : null;
+  if (draft) {
+    const { variantOffset = 0, ...form } = draft.form || {};
+    return { form: { ...DEFAULTS, ...form }, variantOffset: Number(variantOffset) || 0, draftId: draft.id };
+  }
+  const working = loadCaptionWorkingCopy(userId);
+  if (working) {
+    // Only keep the link to a draft that still exists: one deleted from
+    // Profile since shouldn't be brought back by the next save.
+    const draftId = working.draftId && loadPostDrafts().some((d) => d.id === working.draftId) ? working.draftId : null;
+    return { form: { ...DEFAULTS, ...working.form }, variantOffset: Number(working.variantOffset) || 0, draftId };
+  }
+  return { form: DEFAULTS, variantOffset: 0, draftId: null };
+}
+
 function StepHeading({ n, title, subtitle, color = ACCENT }) {
   return (
     <div className="flex items-start gap-2.5 mb-2.5">
@@ -70,14 +94,18 @@ function StepHeading({ n, title, subtitle, color = ACCENT }) {
 
 export function DescriptionTool({ onSwitchTool, onGoHome }) {
   const { user, logout } = useAuth();
-  const [form, setForm] = useState(DEFAULTS);
+  const [initial] = useState(() => initialState(user?.id));
+  const [form, setForm] = useState(initial.form);
+  // Set once this caption has been saved for later (or was opened from a
+  // draft), so saving again updates that draft instead of adding another.
+  const [draftId, setDraftId] = useState(initial.draftId);
   // Where in each phrase pool this listing starts, derived from its address,
   // plus however many times the agent has hit "try another". Splitting the two
   // means regenerating still steps forward one phrasing at a time, and typing
   // a correction into the address later doesn't throw away the variant they
   // landed on.
-  const [seed, setSeed] = useState(() => seedFromText(DEFAULTS.address));
-  const [variantOffset, setVariantOffset] = useState(0);
+  const [seed, setSeed] = useState(() => seedFromText(initial.form.address));
+  const [variantOffset, setVariantOffset] = useState(initial.variantOffset);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
   // Below lg the result sits under a long form, out of sight while the agent
@@ -106,6 +134,16 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
     return () => clearTimeout(timer);
   }, [form.address]);
 
+  // The handoff is one-shot: read in initialState, then cleared so coming back
+  // to this tab later doesn't reopen the same draft over newer work.
+  useEffect(() => { clearDraftHandoff(); }, []);
+
+  // Keep the working copy current so switching tools or reloading brings the
+  // agent back to this caption, with the version they'd landed on.
+  useEffect(() => {
+    if (user?.id) saveCaptionWorkingCopy(user.id, { form, variantOffset, draftId });
+  }, [user?.id, form, variantOffset, draftId]);
+
   const isFacebook = form.format === "facebook";
   const description = isFacebook ? buildFacebookPost(form, seed + variantOffset) : buildDescription(form, seed + variantOffset);
   const tryAnother = () => setVariantOffset((v) => v + 1);
@@ -133,7 +171,7 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 pt-3 pb-24 sm:pt-10 lg:pb-10">
         <div className="mb-3 sm:mb-6">
-          <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Write a Listing Description</h1>
+          <h1 className="font-display font-bold" style={{ color: UI.ink, fontSize: "1.85rem" }}>Write a Caption</h1>
           <p className="font-body text-sm mt-1 hidden sm:block" style={{ color: UI.inkSoft }}>
             Fill in the details — get copy ready to paste into Zillow, Redfin, Realtor.com, or a Facebook post.
           </p>
@@ -337,6 +375,21 @@ export function DescriptionTool({ onSwitchTool, onGoHome }) {
                 {copyError && (
                   <p className="font-body text-xs mt-2" style={{ color: UI.inkSoft }}>{copyError}</p>
                 )}
+                <div className="flex justify-center mt-3">
+                  {/* The variant rides along in the saved form so reopening the
+                      draft gives back the wording that was saved, not the
+                      first version for that address. */}
+                  <SaveForLaterButton
+                    tool="description"
+                    label={form.address}
+                    typeLabel={FORMAT_OPTIONS.find((f) => f.key === form.format)?.label}
+                    form={{ ...form, variantOffset }}
+                    draftId={draftId}
+                    setDraftId={setDraftId}
+                    note="Saves the details and the version you're on, so you can finish it later from Profile → Drafts."
+                    untitled="Untitled caption"
+                  />
+                </div>
               </div>
               <div className="mt-4 rounded-xl p-3" style={{ background: UI.card, border: `1.5px solid ${flags.length ? "#E8792E" : UI.line}` }}>
                 <p className="font-body text-xs font-bold flex items-center gap-1.5" style={{ color: UI.ink }}>

@@ -537,7 +537,7 @@ function PlannedPostsSection() {
   );
 }
 
-const DRAFT_TOOL_LABELS = { listings: "Listing", community: "Community" };
+const DRAFT_TOOL_LABELS = { listings: "Listing", community: "Community", description: "Caption" };
 
 function DraftsSection({ onSwitchTool }) {
   // Seeded from the local cache so the list paints immediately, then
@@ -579,7 +579,7 @@ function DraftsSection({ onSwitchTool }) {
       <div className="flex flex-col items-center justify-center text-center py-16">
         <FileEdit size={28} style={{ color: UI.inkSoft }} />
         <p className="font-body text-sm mt-3" style={{ color: UI.inkSoft }}>
-          Posts you save for later from Listings or Community will show up here.
+          Posts and captions you save for later from Listings, Local or Captions will show up here.
         </p>
       </div>
     );
@@ -588,7 +588,7 @@ function DraftsSection({ onSwitchTool }) {
   return (
     <div>
       <p className="font-body text-xs mb-5" style={{ color: UI.inkSoft }}>
-        Rough out a batch of posts, then come back and finish each one — photos aren't saved, so you'll re-add those.
+        Rough out a batch of posts, then come back and finish each one — photos aren't saved, so you'll re-add those to Listing and Local posts.
       </p>
       <ul className="grid gap-2">
         {sorted.map((draft) => (
