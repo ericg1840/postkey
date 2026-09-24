@@ -1193,6 +1193,7 @@ export function clearPostDrafts() {
   } catch {
     // ignore — nothing to clear if storage isn't available
   }
+  clearCaptionWorkingCopy();
 }
 
 // Drops the cache if it belongs to somebody else, and records the new owner.
@@ -1275,6 +1276,40 @@ export async function syncPostDrafts(userId) {
   return loadPostDrafts();
 }
 
+// The caption in progress, so switching to another tool or reloading doesn't
+// throw away what the agent typed. Captions are text only, so unlike the
+// image tools there's nothing lost by restoring the whole thing. It's the
+// unsaved working copy, not a draft: session-scoped (gone when the tab
+// closes), and tagged with the account so a different sign-in in the same
+// tab starts clean. "Save for later" is still how a caption becomes a draft.
+const CAPTION_WORKING_KEY = "postkey_caption_working";
+
+export function loadCaptionWorkingCopy(userId) {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(CAPTION_WORKING_KEY) || "null");
+    if (!saved || typeof saved !== "object" || saved.owner !== String(userId)) return null;
+    return saved;
+  } catch {
+    return null;
+  }
+}
+
+export function saveCaptionWorkingCopy(userId, copy) {
+  try {
+    sessionStorage.setItem(CAPTION_WORKING_KEY, JSON.stringify({ ...copy, owner: String(userId) }));
+  } catch {
+    // Storage unavailable or full — the caption just won't survive a tab switch.
+  }
+}
+
+export function clearCaptionWorkingCopy() {
+  try {
+    sessionStorage.removeItem(CAPTION_WORKING_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 // One-shot handback from Profile's Drafts list — like POST_HANDOFF_KEY
 // above, but carries a whole saved draft's id instead of a single field,
 // so Listing/Community can restore every field of a post someone saved
@@ -1311,7 +1346,11 @@ export function clearDraftHandoff() {
 // or losing their place. Photos aren't included (they only ever live in
 // memory as blobs), so re-adding them is the one thing "quick edit" can't
 // skip.
-export function SaveForLaterButton({ tool, label, typeLabel, form, draftId, setDraftId }) {
+export function SaveForLaterButton({
+  tool, label, typeLabel, form, draftId, setDraftId,
+  note = "Saves everything except your photos — you'll re-add those when you finish it.",
+  untitled = "Untitled post",
+}) {
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState("");
   const [saved, setSaved] = useState(false);
@@ -1321,7 +1360,7 @@ export function SaveForLaterButton({ tool, label, typeLabel, form, draftId, setD
     const record = {
       id,
       tool,
-      label: (label || "").trim() || "Untitled post",
+      label: (label || "").trim() || untitled,
       typeLabel: typeLabel || "",
       date: date || null,
       form,
@@ -1350,9 +1389,7 @@ export function SaveForLaterButton({ tool, label, typeLabel, form, draftId, setD
         >
           <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>DATE (optional)</span>
           <input type="date" className="input" style={{ minWidth: 0 }} value={date} onChange={(e) => setDate(e.target.value)} />
-          <p className="font-body text-xs mt-2 mb-3" style={{ color: UI.inkSoft }}>
-            Saves everything except your photos — you'll re-add those when you finish it.
-          </p>
+          <p className="font-body text-xs mt-2 mb-3" style={{ color: UI.inkSoft }}>{note}</p>
           <button
             type="button"
             onClick={save}
