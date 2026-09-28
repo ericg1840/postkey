@@ -1,4 +1,4 @@
-import { Key, Sparkles, Lock, Palette, Home, MapPin, MessageCircle, Calendar, Link2, Heart, Send, Bookmark, Check } from "lucide-react";
+import { Key, Sparkles, Maximize, Palette, Home, MapPin, MessageCircle, Calendar, Link2, Heart, Send, Bookmark, Check } from "lucide-react";
 import { AUTH } from "../auth/AuthShell.jsx";
 import { ACCENT_PRESETS, Logo } from "../shared.jsx";
 
@@ -15,29 +15,32 @@ const PURPLE = ACCENT_PRESETS[4];
 // DescriptionTool, ContentCalendar, the Key Link page), not generic feature copy.
 const WHATS_INSIDE = [
   { icon: Palette, color: PINK, title: "Your brand kit, set once", text: "Add your logo, colors, headshot, and contact info one time — every post uses it automatically." },
-  { icon: Home, color: PRIMARY, title: "Listing & Sold graphics", text: "Just Listed, Just Sold, Open House, and Price Drop templates, ready in seconds." },
-  { icon: MapPin, color: GREEN, title: "Local & community posts", text: "Market updates, buyer & seller tips, and neighborhood spotlights that keep you visible between listings." },
-  { icon: MessageCircle, color: ORANGE, title: "Captions written for you", text: "Every graphic comes with an on-brand caption, so you're never stuck staring at an empty text box." },
-  { icon: Calendar, color: PURPLE, title: "A content calendar", text: "See your whole week or month of posts at a glance, and brainstorm new ideas whenever you need one." },
+  { icon: Home, color: PRIMARY, title: "Listing & Sold graphics", text: "Just Listed, Just Sold, Open House, New Price, Under Contract, and Coming Soon — in eight layouts." },
+  { icon: Calendar, color: PURPLE, title: "A planner that fills itself", text: "Plan your week or month, set recurring topics, and let auto-fill suggest posts for the empty days." },
+  { icon: MapPin, color: GREEN, title: "Local & community posts", text: "Market stats, testimonials, tips, and neighborhood spotlights that keep you visible between listings." },
+  { icon: MessageCircle, color: ORANGE, title: "Listing captions, drafted", text: "Enter the details and get a ready-to-post listing description — no more staring at an empty text box." },
   { icon: Link2, color: PINK, title: "Your own branded Key Link page", text: "One link for all your social media accounts that shows off your listings and gets people to your contact info." },
 ];
 
-// Content categories PostKey is actually built around, not a generic social caption tool.
-const CONTENT_TYPES = [
-  "Listings", "Just Sold", "Market Updates", "Testimonials", "Open Houses", "Neighborhood Spotlights", "Buyer & Seller Tips",
+const STEPS = [
+  { n: 1, title: "Pick what to post", text: "A listing, a closing, a local favorite, a market stat, or a tip — or let the planner suggest one." },
+  { n: 2, title: "Add a photo and details", text: "Your logo, colors, headshot, and contact info are already on it. Pick the layout you like." },
+  { n: 3, title: "Download and post", text: "Export for feed, story, Facebook, or portrait — every size is ready from the same post." },
 ];
 
-const STEPS = [
-  { n: 1, title: "Choose what to post", text: "Listings, testimonials, local favorites, buyer & seller tips, design inspiration, and more." },
-  { n: 2, title: "PostKey creates it", text: "Get your graphic, headline, and copy, formatted and ready for social." },
-  { n: 3, title: "Make it yours", text: "Your colors, logo, headshot, and contact info are already applied." },
-];
+// The hero shows the Just Listed card, so the gallery leads with a
+// different listing post rather than repeating it.
+const HERO_EXAMPLE = {
+  category: "LISTING", headline: "Just Listed!", sub: "419 Tall Oaks Dr",
+  caption: "Stunning 4 bed, 3 bath home with modern updates and a backyard oasis.", cta: "View more details →",
+  color: PINK, houseStyle: "cottage",
+};
 
 const EXAMPLES = [
   {
-    category: "LISTING", headline: "Just Listed!", sub: "419 Tall Oaks Dr",
-    caption: "Stunning 4 bed, 3 bath home with modern updates and a backyard oasis.", cta: "View more details →",
-    color: PINK, houseStyle: "cottage",
+    category: "OPEN HOUSE", headline: "Open House!", sub: "Sat 1–3pm · 82 Maple Ct",
+    caption: "Come see the sun-filled kitchen and brand-new deck in person.", cta: "See you there →",
+    color: PRIMARY, houseStyle: "cottage",
   },
   {
     category: "SOLD", headline: "Sold Fast!", sub: "Another happy client",
@@ -203,8 +206,8 @@ export function BrandKitPreview() {
           ))}
         </div>
       </BrandKitRow>
-      <BrandKitRow label="Font">
-        <span className="font-display font-bold text-sm" style={{ color: AUTH.ink }}>Montserrat</span>
+      <BrandKitRow label="Name font">
+        <span className="font-bold" style={{ color: AUTH.ink, fontFamily: "'Dancing Script', cursive", fontSize: "1rem" }}>Jane Doe</span>
       </BrandKitRow>
       <BrandKitRow label="Headshot">
         <div className="rounded-full" style={{ width: 24, height: 24, background: "#F1EFE8", border: `1px solid ${AUTH.border}` }} />
@@ -245,6 +248,7 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
             <span className="font-bold text-lg sm:text-xl whitespace-nowrap" style={{ fontFamily: "'Space Grotesk', sans-serif", color: AUTH.ink }}>PostKey</span>
           </div>
           <nav className="hidden sm:flex items-center gap-7">
+            <a href="#examples" className="font-body text-sm font-semibold inline-flex items-center" style={{ color: AUTH.ink, minHeight: 44 }}>Examples</a>
             <a href="#expect" className="font-body text-sm font-semibold inline-flex items-center" style={{ color: AUTH.ink, minHeight: 44 }}>What You Get</a>
             <a href="#how-it-works" className="font-body text-sm font-semibold inline-flex items-center" style={{ color: AUTH.ink, minHeight: 44 }}>How It Works</a>
             {onAbout && (
@@ -300,12 +304,12 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
 
           <div className="flex items-center justify-center gap-4 mt-8 flex-wrap">
             <StickerButton onClick={onGetStarted} background={PINK} color="#FFFFFF">Get Started Free</StickerButton>
-            <StickerButton as="a" href="#examples" background="#FFFFFF" color={AUTH.ink}>See a Sample Post</StickerButton>
+            <StickerButton as="a" href="#examples" background="#FFFFFF" color={AUTH.ink}>See Example Posts</StickerButton>
           </div>
 
           <div className="flex items-center justify-center gap-2.5 mt-8 flex-wrap">
             <span className="flex items-center gap-1.5 font-body text-xs font-bold rounded-full px-3.5 py-2" style={{ color: GREEN, background: `${GREEN}20`, transform: "rotate(-2deg)" }}>
-              <Lock size={13} /> Photos stay on your device
+              <Maximize size={13} /> Feed, story & Facebook sizes
             </span>
             <span className="flex items-center gap-1.5 font-body text-xs font-bold rounded-full px-3.5 py-2" style={{ color: PURPLE, background: `${PURPLE}20`, transform: "rotate(1.5deg)" }}>
               <Sparkles size={13} /> No design skills needed
@@ -324,28 +328,30 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
           >
             JUST LISTED
           </span>
-          <ExampleCard {...EXAMPLES[0]} rotate={-2} />
+          <ExampleCard {...HERO_EXAMPLE} rotate={-2} />
         </div>
       </section>
 
-      {/* CONTENT TYPES — dark full-bleed band */}
-      <section style={{ background: AUTH.ink }}>
-        <div className="max-w-3xl mx-auto px-6 sm:px-10 py-14 sm:py-16 text-center">
-          <span className="font-mono font-bold" style={{ color: "#F2B705", letterSpacing: "0.06em", fontSize: "0.7rem" }}>BUILT SPECIFICALLY FOR AGENTS</span>
-          <h2 className="font-bold mt-3" style={{ fontFamily: "'Space Grotesk', sans-serif", color: "#FFFFFF", fontSize: "1.5rem" }}>
-            Not a generic caption tool.
-          </h2>
-
-          <div className="flex flex-wrap justify-center gap-2.5 mt-8">
-            {CONTENT_TYPES.map((label, i) => (
-              <span
-                key={label}
-                className="font-body text-sm font-bold rounded-full px-4 py-2"
-                style={{ background: [PINK, PRIMARY, GREEN, ORANGE, PURPLE][i % 5], color: "#FFFFFF", transform: `rotate(${i % 2 === 0 ? -2 : 1.5}deg)` }}
-              >
-                {label}
-              </span>
+      {/* EXAMPLES */}
+      <section id="examples" className="border-t" style={{ background: "#FBFAF6", borderColor: "#EFF2F7" }}>
+        <div className="max-w-5xl mx-auto pt-16 pb-16 sm:pt-20 sm:pb-20">
+          <div className="px-6 sm:px-10">
+            <h2 className="font-bold text-center" style={{ fontFamily: "'Space Grotesk', sans-serif", color: AUTH.ink, fontSize: "1.6rem" }}>
+              See what you can create
+            </h2>
+            <p className="font-body text-sm text-center mt-2 mx-auto" style={{ color: AUTH.muted, maxWidth: 440 }}>
+              Listings, open houses, closings, tips, and local favorites — each one in your colors, with your logo and contact info.
+            </p>
+          </div>
+          <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory px-6 sm:px-10 pb-2 sm:pb-0 sm:grid sm:grid-cols-2 sm:overflow-visible mt-10" style={{ scrollbarWidth: "none" }}>
+            {EXAMPLES.map((e, i) => (
+              <div key={i} className="flex-shrink-0 w-[82%] xs:w-[70%] snap-center sm:w-auto">
+                <ExampleCard {...e} rotate={i % 2 === 0 ? -1.5 : 1.5} />
+              </div>
             ))}
+          </div>
+          <div className="text-center mt-8 px-6 sm:px-10">
+            <StickerButton onClick={onGetStarted} background="#FFFFFF" color={AUTH.ink} small>Explore Post Ideas →</StickerButton>
           </div>
         </div>
       </section>
@@ -406,30 +412,6 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
         </div>
       </section>
 
-      {/* EXAMPLES */}
-      <section id="examples" className="border-t" style={{ background: "#FBFAF6", borderColor: "#EFF2F7" }}>
-        <div className="max-w-5xl mx-auto pt-16 pb-16 sm:pt-20 sm:pb-20">
-          <div className="px-6 sm:px-10">
-            <h2 className="font-bold text-center" style={{ fontFamily: "'Space Grotesk', sans-serif", color: AUTH.ink, fontSize: "1.6rem" }}>
-              See what you can create
-            </h2>
-            <p className="font-body text-sm text-center mt-2 mx-auto" style={{ color: AUTH.muted, maxWidth: 440 }}>
-              Listings, closings, market updates, local content, and more — all styled to match your brand.
-            </p>
-          </div>
-          <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory px-6 sm:px-10 pb-2 sm:pb-0 sm:grid sm:grid-cols-2 sm:overflow-visible mt-10" style={{ scrollbarWidth: "none" }}>
-            {EXAMPLES.map((e, i) => (
-              <div key={i} className="flex-shrink-0 w-[82%] xs:w-[70%] snap-center sm:w-auto">
-                <ExampleCard {...e} rotate={i % 2 === 0 ? -1.5 : 1.5} />
-              </div>
-            ))}
-          </div>
-          <div className="text-center mt-8 px-6 sm:px-10">
-            <StickerButton onClick={onGetStarted} background="#FFFFFF" color={AUTH.ink} small>Explore Post Ideas →</StickerButton>
-          </div>
-        </div>
-      </section>
-
       {/* YOUR INFO — bold full-bleed color band */}
       <section style={{ background: AUTH.ink }}>
         <div className="max-w-4xl mx-auto px-6 sm:px-10 py-16 sm:py-20 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
@@ -444,7 +426,7 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
               Add your branding and contact info once and we'll apply it to every post you create.
             </p>
             <div className="flex flex-wrap justify-center lg:justify-start gap-2 mt-6">
-              {["Logo", "Colors", "Fonts", "Headshot", "Contact Info"].map((label) => (
+              {["Logo", "Colors", "Name Font", "Headshot", "Contact Info"].map((label) => (
                 <span key={label} className="font-body text-xs rounded-full px-3 py-1.5" style={{ color: "#FFFFFF", background: "rgba(255,255,255,0.08)" }}>
                   {label}
                 </span>
@@ -507,6 +489,7 @@ export function HomePage({ onGetStarted, onLogIn, onAbout, onPrivacy, onTerms })
             <div>
               <span className="font-mono font-bold block mb-3" style={{ color: AUTH.ink, letterSpacing: "0.05em", fontSize: "0.68rem" }}>PRODUCT</span>
               <div className="grid">
+                <a href="#examples" className="font-body text-xs inline-flex items-center" style={{ color: AUTH.muted, minHeight: 44 }}>Examples</a>
                 <a href="#expect" className="font-body text-xs inline-flex items-center" style={{ color: AUTH.muted, minHeight: 44 }}>What You Get</a>
                 <a href="#how-it-works" className="font-body text-xs inline-flex items-center" style={{ color: AUTH.muted, minHeight: 44 }}>How It Works</a>
                 {onAbout && (
