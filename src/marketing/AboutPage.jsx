@@ -50,7 +50,7 @@ const CAPABILITIES = [
 const PRINCIPLES = [
   { icon: Clock, title: "Built for busy days", text: "A post takes minutes, not a design session — so it actually happens between showings.", color: PRIMARY },
   { icon: Palette, title: "Always on-brand", text: "Your logo, colors, fonts, and contact info are set once and applied to everything you create.", color: ACCENT_PRESETS[3] },
-  { icon: Lock, title: "Private by design", text: "Listing and client photos are rendered on your device and never uploaded to a server.", color: ACCENT_PRESETS[4] },
+  { icon: Lock, title: "Private by design", text: "Listing and client photos are edited on your device. Only the finished posts you export are kept, in your own post history.", color: ACCENT_PRESETS[4] },
 ];
 
 export function AboutPage({ onBack, onGetStarted, onLogIn }) {
