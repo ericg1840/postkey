@@ -1413,11 +1413,17 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     else { ctx.fillStyle = "#D8CFC9"; ctx.fillRect(0, 0, w, photoH); }
 
     // Soften the hard photo/card seam by fading the card's background color
-    // up into the bottom of the photo.
-    const fadeH = photoH * 0.22;
+    // up into the bottom of the photo. A plain two-stop ramp shows a hard
+    // "start line" where it begins, so alpha follows a smoothstep curve
+    // sampled into many stops: it eases in from nothing and lands flat
+    // on the card color with no visible edge at either end.
+    const fadeH = photoH * 0.36;
     const photoFade = ctx.createLinearGradient(0, photoH - fadeH, 0, photoH);
-    photoFade.addColorStop(0, hexToRgba(form.spotlightCardBg, 0));
-    photoFade.addColorStop(1, hexToRgba(form.spotlightCardBg, 1));
+    const FADE_STOPS = 16;
+    for (let i = 0; i <= FADE_STOPS; i++) {
+      const t = i / FADE_STOPS;
+      photoFade.addColorStop(t, hexToRgba(form.spotlightCardBg, t * t * (3 - 2 * t)));
+    }
     ctx.fillStyle = photoFade;
     ctx.fillRect(0, photoH - fadeH, w, fadeH);
 
