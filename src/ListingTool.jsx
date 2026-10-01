@@ -143,6 +143,15 @@ function formatListingDate(dateStr) {
   return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "long", day: "numeric" });
 }
 
+// Signature's long CTA crowds the price on Spotlight's stats card, so each
+// layout gets its own default — swapped on layout change unless edited.
+const DEFAULT_CTA = "Let's talk about your home goals!";
+const SPOTLIGHT_CTA = "Tap for tour";
+const ctaForLayout = (cta, layout) => {
+  if (cta !== DEFAULT_CTA && cta !== SPOTLIGHT_CTA) return cta;
+  return layout === "spotlight" ? SPOTLIGHT_CTA : DEFAULT_CTA;
+};
+
 const DEFAULTS = {
   layout: "bold",
   aspect: "square",
@@ -157,7 +166,7 @@ const DEFAULTS = {
   price: "$2,295,000",
   badgeText: "Another Home\nSold by\n{agent}",
   bottomMessage: "Message for more details",
-  ctaMessage: "Let's talk about your home goals!",
+  ctaMessage: DEFAULT_CTA,
   photoTint: 0,
   address2: "812 Willow Creek Ln, Warminster",
   beds2: "3",
@@ -1405,8 +1414,46 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
   // around one property — a hero treatment for a single listing. ----
   const drawSpotlightLayout = (ctx, w, h) => {
     const contactH = Math.min(w, h) * 0.135;
-    const cardH = h * 0.34;
-    const photoH = h - cardH - contactH;
+    // Every size and gap below — card text, the spacing between it, and
+    // the overlays on the photo — is a fraction of `fs` (the shorter of
+    // w/h), and the card is exactly as tall as its content. Mixing in
+    // fractions of the card or photo height made the card cramped on
+    // Square/Landscape, gappy on Story, and the pill/avatar balloon on Story.
+    const fs = Math.min(w, h);
+    const pad = w * 0.06;
+
+    // ---- Measure the card's content to size the card ----
+    const eyebrowSize = fs * 0.021;
+    let headSize = fs * 0.065;
+    ctx.font = `800 ${headSize}px "Playfair Display", serif`;
+    const w1w = ctx.measureText(form.word1).width;
+    ctx.font = scriptFontCss(form.scriptFont, headSize);
+    const scriptWord = form.script.replace(/!+$/, "") + ".";
+    const scriptw = ctx.measureText(scriptWord).width;
+    const headMaxW = w - pad * 2;
+    if (w1w + headSize * 0.2 + scriptw > headMaxW) headSize *= headMaxW / (w1w + headSize * 0.2 + scriptw);
+    const fittedAddr = fitTextLine(ctx, form.address || "", w - pad * 2, fs * 0.018, fs * 0.015, (s) => `500 ${s}px "Public Sans", sans-serif`);
+    const stats = [
+      { value: form.beds, label: "BEDROOMS" },
+      { value: form.baths, label: "BATHROOMS" },
+      { value: form.sqft, label: "SQUARE FEET" },
+    ].filter((s) => s.value);
+    const hasPriceRow = !!(form.price || form.ctaMessage);
+
+    // Baselines measured from the card's top edge (cap height ≈ 0.72 × size).
+    const eyebrowBase = fs * 0.045 + eyebrowSize * 0.72;
+    const ruleY = eyebrowBase + fs * 0.014;
+    const headBase = ruleY + fs * 0.022 + headSize * 0.72;
+    const addrBase = headBase + headSize * 0.28 + fs * 0.012 + fittedAddr.size * 0.72;
+    const statsY0 = addrBase + fs * 0.03;
+    const statsH = stats.length ? fs * 0.09 : 0;
+    const rowTop = statsY0 + statsH;
+    const priceLabelBase = rowTop + fs * 0.032;
+    const priceBase = priceLabelBase + fs * 0.012 + fs * 0.0306 * 0.72;
+    // Whole pixels: a fractional photo/card edge leaves a faint
+    // anti-aliased hairline across the seam the fade is meant to hide.
+    const cardH = Math.round((hasPriceRow ? priceBase : rowTop) + fs * 0.038);
+    const photoH = Math.round(h - cardH - contactH);
 
     // ---- Photo ----
     if (photo.img) drawCover(ctx, photo.img, 0, 0, w, photoH, photo.focus.x, photo.focus.y, photo.zoom);
@@ -1429,14 +1476,14 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
 
     // ---- Status pill (top-left) ----
     const pillText = (TEMPLATES[form.template]?.label || "New Listing").toUpperCase();
-    const pillSize = photoH * 0.032;
+    const pillSize = fs * 0.018;
     ctx.font = `700 ${pillSize}px "Public Sans", sans-serif`;
     const dotR = pillSize * 0.28;
     const pillPadX = pillSize * 0.9;
     const pillTextW = ctx.measureText(pillText).width;
     const pillH = pillSize * 2.2;
     const pillW = dotR * 2 + pillSize * 0.6 + pillTextW + pillPadX * 2;
-    const pillX = w * 0.045, pillY = h * 0.03;
+    const pillX = w * 0.045, pillY = fs * 0.035;
     ctx.save();
     ctx.fillStyle = "rgba(20,20,20,0.55)";
     roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
@@ -1457,23 +1504,21 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     // stale — and looked wrong — on any post published later.
     const listingDateLabel = form.template === "coming_soon" ? formatListingDate(form.listingDate) : "";
     if (listingDateLabel) {
+      const dateSize = fs * 0.015;
       ctx.save();
       ctx.shadowColor = "rgba(0,0,0,0.45)";
       ctx.shadowBlur = w * 0.008;
-      ctx.font = `600 ${photoH * 0.026}px "Public Sans", sans-serif`;
+      ctx.font = `600 ${dateSize}px "Public Sans", sans-serif`;
       ctx.fillStyle = "rgba(255,255,255,0.9)";
       ctx.textAlign = "right";
-      ctx.fillText(`AVAILABLE ${listingDateLabel.toUpperCase()}`, w * 0.955, h * 0.03 + photoH * 0.026);
+      ctx.fillText(`AVAILABLE ${listingDateLabel.toUpperCase()}`, w * 0.955, pillY + pillH / 2 + dateSize * 0.36);
       ctx.restore();
     }
 
     // ---- Stats card ----
-    // Text sizes below are fractions of `fs` (the shorter of w/h), not of
-    // cardH — cardH alone balloons on a tall Story canvas and would blow
-    // the headline/price text out past the card's actual (fixed) width.
     const cardBg = form.spotlightCardBg;
     ctx.fillStyle = cardBg;
-    ctx.fillRect(0, photoH, w, cardH);
+    ctx.fillRect(0, photoH, w, h - contactH - photoH);
     // Flips the card's text from white-on-dark to black-on-light when
     // someone picks a light custom background instead of the dark default.
     const cardIsLight = isLightColor(cardBg);
@@ -1483,10 +1528,10 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
     // ---- Agent avatar (bottom-right of photo, straddling the card boundary) ----
     // Drawn after the card fill (not before) so the card's background
     // doesn't paint over the lower half of the circle where it dips below
-    // the photo/card line.
+    // the photo/card line. Right edge lines up with the card's text column.
     if (headshot.img) {
-      const d = photoH * 0.24;
-      const cx = w * 0.87, cy = photoH - d * 0.1;
+      const d = fs * 0.13;
+      const cx = w - pad - d / 2, cy = photoH - d * 0.1;
       ctx.save();
       ctx.beginPath();
       ctx.arc(cx, cy, d / 2, 0, Math.PI * 2);
@@ -1503,96 +1548,77 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       ctx.lineWidth = Math.max(3, w * 0.006);
       ctx.stroke();
     }
-    const pad = w * 0.06;
-    const fs = Math.min(w, h);
-    let cy = photoH + cardH * 0.13;
 
-    ctx.font = `700 ${fs * 0.021}px "Public Sans", sans-serif`;
+    const eyebrowText = form.spotlightEyebrow.toUpperCase();
+    ctx.font = `700 ${eyebrowSize}px "Public Sans", sans-serif`;
     ctx.fillStyle = form.accentColor;
-    ctx.fillText(form.spotlightEyebrow.toUpperCase(), pad, cy);
-    const eyebrowW = Math.min(w * 0.14, ctx.measureText(form.spotlightEyebrow).width);
-    cy += cardH * 0.07;
+    ctx.fillText(eyebrowText, pad, photoH + eyebrowBase);
+    const eyebrowW = Math.min(w * 0.14, ctx.measureText(eyebrowText).width);
     ctx.strokeStyle = form.accentColor;
     ctx.lineWidth = Math.max(1.5, w * 0.002);
     ctx.beginPath();
-    ctx.moveTo(pad, cy);
-    ctx.lineTo(pad + eyebrowW, cy);
+    ctx.moveTo(pad, photoH + ruleY);
+    ctx.lineTo(pad + eyebrowW, photoH + ruleY);
     ctx.stroke();
 
-    cy += cardH * 0.16;
-    let headSize = fs * 0.065;
-    ctx.font = `800 ${headSize}px "Playfair Display", serif`;
-    const w1w = ctx.measureText(form.word1).width;
-    ctx.font = scriptFontCss(form.scriptFont, headSize);
-    const scriptWord = form.script.replace(/!+$/, "") + ".";
-    const scriptw = ctx.measureText(scriptWord).width;
-    const headMaxW = w - pad * 2;
-    if (w1w + headSize * 0.2 + scriptw > headMaxW) headSize *= headMaxW / (w1w + headSize * 0.2 + scriptw);
     ctx.font = `800 ${headSize}px "Playfair Display", serif`;
     ctx.fillStyle = cardTextColor;
-    ctx.fillText(form.word1, pad, cy);
+    ctx.fillText(form.word1, pad, photoH + headBase);
     const w1wFinal = ctx.measureText(form.word1).width;
     ctx.font = scriptFontCss(form.scriptFont, headSize);
     ctx.fillStyle = form.accentColor;
-    ctx.fillText(scriptWord, pad + w1wFinal + headSize * 0.2, cy);
+    ctx.fillText(scriptWord, pad + w1wFinal + headSize * 0.2, photoH + headBase);
 
-    cy += cardH * 0.13;
-    const fittedAddr = fitTextLine(ctx, form.address || "", w - pad * 2, fs * 0.018, fs * 0.015, (s) => `500 ${s}px "Public Sans", sans-serif`);
+    ctx.font = `500 ${fittedAddr.size}px "Public Sans", sans-serif`;
     ctx.fillStyle = cardSoft(0.75);
-    ctx.fillText(fittedAddr.text, pad, cy);
+    ctx.fillText(fittedAddr.text, pad, photoH + addrBase);
 
-    cy += cardH * 0.1;
-    ctx.strokeStyle = cardSoft(0.18);
-    ctx.lineWidth = Math.max(1, w * 0.0015);
-    ctx.beginPath();
-    ctx.moveTo(pad, cy);
-    ctx.lineTo(w - pad, cy);
-    ctx.stroke();
+    const divider = (y) => {
+      ctx.strokeStyle = cardSoft(0.18);
+      ctx.lineWidth = Math.max(1, w * 0.0015);
+      ctx.beginPath();
+      ctx.moveTo(pad, y);
+      ctx.lineTo(w - pad, y);
+      ctx.stroke();
+    };
+    divider(photoH + statsY0);
 
-    const statsY0 = cy;
-    const statsH = cardH * 0.2;
-    const stats = [
-      { value: form.beds, label: "BEDROOMS" },
-      { value: form.baths, label: "BATHROOMS" },
-      { value: form.sqft, label: "SQUARE FEET" },
-    ].filter((s) => s.value);
-    const colW = (w - pad * 2) / stats.length;
-    stats.forEach((s, i) => {
-      const cx = pad + colW * i;
-      ctx.font = `700 ${fs * 0.034}px "Playfair Display", serif`;
-      ctx.fillStyle = form.accentColor;
-      ctx.fillText(s.value, cx, statsY0 + statsH * 0.55);
-      ctx.font = `600 ${fs * 0.0122}px "Public Sans", sans-serif`;
-      ctx.fillStyle = cardSoft(0.55);
-      ctx.fillText(s.label, cx, statsY0 + statsH * 0.85);
-      if (i > 0) {
-        ctx.strokeStyle = cardSoft(0.18);
-        ctx.beginPath();
-        ctx.moveTo(cx - colW * 0.12, statsY0);
-        ctx.lineTo(cx - colW * 0.12, statsY0 + statsH);
-        ctx.stroke();
-      }
-    });
-
-    const rowY0 = photoH + cardH - cardH * 0.02;
-    ctx.strokeStyle = cardSoft(0.18);
-    ctx.beginPath();
-    ctx.moveTo(pad, rowY0 - cardH * 0.19);
-    ctx.lineTo(w - pad, rowY0 - cardH * 0.19);
-    ctx.stroke();
+    if (stats.length) {
+      const y0 = photoH + statsY0;
+      const colW = (w - pad * 2) / stats.length;
+      stats.forEach((s, i) => {
+        const cx = pad + colW * i;
+        ctx.font = `700 ${fs * 0.034}px "Playfair Display", serif`;
+        ctx.fillStyle = form.accentColor;
+        ctx.fillText(s.value, cx, y0 + fs * 0.047);
+        ctx.font = `600 ${fs * 0.0122}px "Public Sans", sans-serif`;
+        ctx.fillStyle = cardSoft(0.55);
+        ctx.fillText(s.label, cx, y0 + fs * 0.07);
+        if (i > 0) {
+          ctx.strokeStyle = cardSoft(0.18);
+          ctx.beginPath();
+          ctx.moveTo(cx - colW * 0.12, y0);
+          ctx.lineTo(cx - colW * 0.12, y0 + statsH);
+          ctx.stroke();
+        }
+      });
+      if (hasPriceRow) divider(photoH + rowTop);
+    }
 
     // CTA sized/positioned first so the price line can shrink to leave room
     // for it instead of the two colliding on a wide price + long CTA combo.
+    // It's centered on the price row (label top to price baseline).
     let ctaX = w - pad;
     if (form.ctaMessage) {
       const ctaText = form.ctaMessage.toUpperCase();
       const ctaSize = fs * 0.017;
       ctx.font = `700 ${ctaSize}px "Public Sans", sans-serif`;
-      const ctaPadX = ctaSize, ctaPadY = ctaSize * 0.75;
+      const ctaPadX = ctaSize * 1.3, ctaPadY = ctaSize * 0.8;
       const ctaW = Math.min(w * 0.62, ctx.measureText(ctaText).width + ctaPadX * 2);
       const ctaH2 = ctaSize + ctaPadY * 2;
       ctaX = w - pad - ctaW;
-      const ctaY = rowY0 - ctaH2 * 0.95;
+      const rowMid = photoH + (priceLabelBase - fs * 0.0153 * 0.72 + priceBase) / 2;
+      const ctaY = rowMid - ctaH2 / 2;
       ctx.fillStyle = form.accentColor;
       roundRect(ctx, ctaX, ctaY, ctaW, ctaH2, ctaH2 / 2);
       ctx.fill();
@@ -1608,20 +1634,20 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
       const priceMaxW = ctaX - pad - w * 0.03;
       ctx.font = `600 ${fs * 0.0153}px "Public Sans", sans-serif`;
       ctx.fillStyle = cardSoft(0.5);
-      ctx.fillText("LISTED AT", pad, rowY0 - cardH * 0.09);
+      ctx.fillText("LISTED AT", pad, photoH + priceLabelBase);
       let priceSize = fs * 0.0306;
       ctx.font = `800 ${priceSize}px "Public Sans", sans-serif`;
       const priceW = ctx.measureText(form.price).width;
       if (priceW > priceMaxW) priceSize *= priceMaxW / priceW;
       ctx.font = `800 ${priceSize}px "Public Sans", sans-serif`;
       ctx.fillStyle = cardTextColor;
-      ctx.fillText(form.price, pad, rowY0);
+      ctx.fillText(form.price, pad, photoH + priceBase);
     }
 
     // ---- Contact band (brokerage-required, shared across every layout) ----
     // The agent's headshot already appears on the photo above, so skip the
     // redundant circle here.
-    drawContactBand(ctx, w, photoH + cardH, contactH, form, headshot, logo, false);
+    drawContactBand(ctx, w, h - contactH, contactH, form, headshot, logo, false);
   };
 
   const drawToCanvas = (canvas, aspectKey) => {
@@ -1939,7 +1965,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>DESIGN</span>
               <div className="grid grid-cols-2 gap-3">
                 {STYLE_OPTIONS.map(({ key, label, description }) => (
-                  <button key={key} type="button" onClick={() => setForm((f) => ({ ...f, layout: key }))}
+                  <button key={key} type="button" onClick={() => setForm((f) => ({ ...f, layout: key, ctaMessage: ctaForLayout(f.ctaMessage, key) }))}
                     aria-label={`${label} — ${description}`}
                     className="press-fx text-left rounded-lg overflow-hidden transition"
                     style={{
@@ -2174,7 +2200,7 @@ export function ListingTool({ onSwitchTool, onGoHome }) {
               {(form.layout === "signature" || form.layout === "spotlight") && (
                 <label className="block md:col-span-2">
                   <span className="font-mono text-xs block mb-1.5" style={{ color: UI.inkSoft, letterSpacing: "0.04em" }}>CALL-TO-ACTION MESSAGE</span>
-                  <input className="input" value={form.ctaMessage} onChange={update("ctaMessage")} placeholder={form.layout === "spotlight" ? "Tap for tour" : "Let's talk about your home goals!"} />
+                  <input className="input" value={form.ctaMessage} onChange={update("ctaMessage")} placeholder={form.layout === "spotlight" ? SPOTLIGHT_CTA : DEFAULT_CTA} />
                   {form.layout === "spotlight" && <span className="font-body text-xs block mt-1" style={{ color: UI.inkSoft }}>Shown as a button on the stats card. Leave blank to hide it.</span>}
                 </label>
               )}
