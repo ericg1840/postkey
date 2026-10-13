@@ -94,6 +94,15 @@ describe("rewriteBioPage", () => {
     assert.equal(seen['meta[property="og:image:width"]'], "REMOVED");
   });
 
+  test("an https headshot is used directly, not through a redirect", async () => {
+    const seen = installFakeRewriter();
+    const lookup = async () => ({ handle: "jane", name: "Jane", brokerage: "", tagline: "", headshotUrl: "https://cdn.example/me.jpg" });
+    await rewriteBioPage(html(), new Request("https://x.test/u/jane"), env, lookup);
+    assert.equal(seen['meta[property="og:image"]'], "https://cdn.example/me.jpg");
+    assert.equal(seen['meta[name="twitter:image"]'], "https://cdn.example/me.jpg");
+    assert.equal(seen['meta[name="twitter:card"]'], "summary");
+  });
+
   test("without a headshot, keeps the generic banner image", async () => {
     const seen = installFakeRewriter();
     const lookup = async () => ({ handle: "jane", name: "Jane", brokerage: "", tagline: "", headshotUrl: "" });

@@ -9,6 +9,16 @@ const LISTING_STATUSES = new Set(["just_listed", "open_house", "under_contract",
 const NAME_SIZES = new Set(["sm", "md", "lg", "xl"]);
 const BUTTON_STYLES = new Set(["rounded", "pill", "square"]);
 
+// The colors land in inline styles on the public page, so only a plain hex
+// value is stored. Anything else gets the default — the page already renders
+// an invalid one as the default (see readableAccent in bioTheme.mjs), so
+// this doesn't change what the agent sees, only what's kept.
+const HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+export function cleanColor(value, fallback) {
+  const color = String(value ?? "").trim();
+  return HEX_COLOR.test(color) ? color : fallback;
+}
+
 export async function onRequestGet({ request, env }) {
   const auth = await requireUser(request, env);
   if (auth.error) return auth.error;
@@ -61,8 +71,8 @@ export async function onRequestPut({ request, env }) {
   const handle = String(body.handle || "").trim().toLowerCase();
   const tagline = String(body.tagline || "").slice(0, 200);
   const brokerage = String(body.brokerage || "").slice(0, 120);
-  const bgColor = String(body.bgColor || "#1B2430");
-  const boxColor = String(body.boxColor || "#2E3B4C");
+  const bgColor = cleanColor(body.bgColor, "#1B2430");
+  const boxColor = cleanColor(body.boxColor, "#2E3B4C");
   const nameFont = String(body.nameFont || "").slice(0, 40);
   const nameSize = NAME_SIZES.has(body.nameSize) ? body.nameSize : "md";
   const buttonStyle = BUTTON_STYLES.has(body.buttonStyle) ? body.buttonStyle : "rounded";

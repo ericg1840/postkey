@@ -10,9 +10,10 @@ export async function onRequestGet({ request, env }) {
   const meta = await loadBioMeta(getDb(env), handle);
   if (!meta) return new Response("Not found", { status: 404 });
 
-  if (/^https:\/\//i.test(meta.headshotUrl)) {
-    return Response.redirect(meta.headshotUrl, 302);
-  }
+  // Only stored images are served. An https:// headshot is already a real
+  // image URL, so rewriteBioPage points previews at it directly — this
+  // endpoint used to 302 to it, which made our domain redirect anywhere an
+  // agent typed in.
   const image = decodeHeadshot(meta.headshotUrl);
   if (!image) return new Response("Not found", { status: 404 });
 

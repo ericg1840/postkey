@@ -35,7 +35,7 @@ import * as bioHeadshot from "../functions/api/bio-headshot.mjs";
 import * as bioVcard from "../functions/api/bio-vcard.mjs";
 import { sendErrorAlert } from "../functions/_lib/alerts.mjs";
 import { getDb } from "../functions/_lib/db.mjs";
-import { loadBioMeta, bioShareText, hasShareableHeadshot } from "../functions/_lib/bioMeta.mjs";
+import { loadBioMeta, bioShareText, hasShareableHeadshot, decodeHeadshot } from "../functions/_lib/bioMeta.mjs";
 
 // Every handler in functions/api/ has to be listed here by hand — one that
 // isn't falls through to the static site and silently serves index.html.
@@ -132,7 +132,11 @@ export async function rewriteBioPage(response, request, env, lookup = (handle) =
 
   const { title, description } = bioShareText(meta);
   const withPhoto = hasShareableHeadshot(meta.headshotUrl);
-  const image = withPhoto ? `/api/bio-headshot?handle=${encodeURIComponent(meta.handle)}` : "/og-image.png";
+  // A stored (data URL) headshot is decoded by /api/bio-headshot; one that's
+  // already an https:// URL is used as-is.
+  const image = !withPhoto ? "/og-image.png"
+    : decodeHeadshot(meta.headshotUrl) ? `/api/bio-headshot?handle=${encodeURIComponent(meta.handle)}`
+    : meta.headshotUrl;
   const set = (value) => ({ element(el) { el.setAttribute("content", value); } });
   return new HTMLRewriter()
     .on("title", { element(el) { el.setInnerContent(title); } })
