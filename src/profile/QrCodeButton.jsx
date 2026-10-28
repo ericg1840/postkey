@@ -77,7 +77,7 @@ export function QrCodeButton({ url, handle }) {
           aria-modal="true"
           aria-label="QR code for your Key Link page"
         >
-          <div className="rounded-2xl p-5 w-full max-w-xs" style={{ background: WHITE }} onClick={(e) => e.stopPropagation()}>
+          <div className="rounded-2xl p-5 w-full max-w-xs max-h-full overflow-y-auto" style={{ background: WHITE }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
                 <h2 className="font-body text-sm font-semibold" style={{ color: UI.ink }}>Your page's QR code</h2>
