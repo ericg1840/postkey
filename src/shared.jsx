@@ -971,8 +971,11 @@ export function GlobalStyles() {
 
 // Shared top bar: brand mark + the tab switcher between the two tools.
 export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
+  // On a short screen (a phone in landscape, like iPhone Duo's 368px-tall
+  // outer display) the two-row header would pin a third of the viewport,
+  // so it scrolls away with the page instead.
   return (
-    <header className="sticky top-0 z-50" style={{ borderBottom: `2px solid ${UI.ink}`, background: UI.page, paddingTop: "env(safe-area-inset-top)" }}>
+    <header className="sticky [@media(max-height:500px)]:static top-0 z-50" style={{ borderBottom: `2px solid ${UI.ink}`, background: UI.page, paddingTop: "env(safe-area-inset-top)" }}>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-5 flex flex-wrap sm:grid sm:grid-cols-[1fr_auto_1fr] items-center justify-between gap-2 sm:gap-4">
         {onLogoClick ? (
           <button type="button" onClick={onLogoClick} className="press-fx flex items-center gap-2 justify-self-start" style={{ minHeight: 44 }}>
@@ -1019,7 +1022,7 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
           {onLogout && (
             <div className="flex items-center">
               {userName && (
-                <span className="font-body text-xs mr-1 hidden sm:inline" style={{ color: UI.inkSoft }}>{userName}</span>
+                <span className="font-body text-xs mr-1 hidden lg:inline whitespace-nowrap" style={{ color: UI.inkSoft }}>{userName}</span>
               )}
               <button
                 onClick={() => onSwitch("profile")}
@@ -1037,7 +1040,7 @@ export function TopNav({ active, onSwitch, userName, onLogout, onLogoClick }) {
               </button>
               <button
                 onClick={onLogout}
-                className="press-fx flex items-center justify-center px-2.5 font-body text-xs font-semibold underline"
+                className="press-fx flex items-center justify-center px-2.5 font-body text-xs font-semibold underline whitespace-nowrap"
                 style={{ minHeight: 44, minWidth: 44, color: UI.inkSoft }}
               >
                 Log out
